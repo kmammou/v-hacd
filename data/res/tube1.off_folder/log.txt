@@ -1,0 +1,26 @@
+Saving .\tube1.off
+Saving .\tube1_decimated.off
++ Mesh
+	 # vertices                     	48
+	 # triangles                    	96
++ Parameters
+	 depth			              	10
+	 concavityThreshold			  	0.01
+	 alpha			              	0.01
+	 # of position samples          	10
+	 # of angle samples	          	10
+	 refine position parameter      	5
+	 refine angle parameter         	5
++ Subdividing the mesh 
+Nunber of clipping planes 143
+Best 60 	 C=0.124894 	 B=0.007811 	 (0.000000, 0.000000, 1.000000, -1.703699)
+Nunber of clipping planes 583
+Best 60 	 C=0.124894 	 B=0.007811 	 (0.000000, 0.000000, 1.000000, -1.703699)
+Nunber of clipping planes 143
+Best 138 	 C=0.009300 	 B=0.030032 	 (1.000000, 0.000000, 0.000000, 7.201302)
+Nunber of clipping planes 583
+Best 565 	 C=0.008386 	 B=0.081909 	 (0.954417, -0.050000, -0.294257, 2.401302)
+Nunber of clipping planes 143
+Best 4 	 C=0.016387 	 B=0.045545 	 (-0.923189, -0.050000, 0.381079, -14.135200)
+Nunber of clipping planes 583
+Best 581 	 C=0.003678 	 B=0.015082 	 (1.000000, 0.000000, 0.000000, 6.005200)

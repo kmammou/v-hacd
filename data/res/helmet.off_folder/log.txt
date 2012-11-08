@@ -1,0 +1,30 @@
+Saving .\helmet.off
+Saving .\helmet_decimated.off
++ Mesh
+	 # vertices                     	496
+	 # triangles                    	1000
++ Parameters
+	 depth			              	10
+	 concavityThreshold			  	0.01
+	 alpha			              	0.01
+	 # of position samples          	10
+	 # of angle samples	          	10
+	 refine position parameter      	5
+	 refine angle parameter         	5
++ Subdividing the mesh 
+Nunber of clipping planes 143
+Best 60 	 C=0.045978 	 B=0.225058 	 (0.000000, 0.000000, 1.000000, 0.000000)
+Nunber of clipping planes 583
+Best 212 	 C=0.040576 	 B=0.137725 	 (-0.209942, -0.010000, -0.977663, -0.080000)
+Nunber of clipping planes 143
+Best 59 	 C=0.003101 	 B=0.191820 	 (0.000000, 0.000000, 1.000000, -0.004699)
+Nunber of clipping planes 583
+Best 279 	 C=0.003445 	 B=0.090050 	 (0.000000, 0.000000, 1.000000, -0.038346)
+Nunber of clipping planes 143
+Best 129 	 C=0.015036 	 B=0.289821 	 (0.928694, -0.150000, 0.339157, 0.280120)
+Nunber of clipping planes 583
+Best 399 	 C=0.015612 	 B=0.026160 	 (0.375513, -0.090000, 0.922437, 0.202108)
+Nunber of clipping planes 143
+Best 131 	 C=0.007542 	 B=0.114914 	 (0.928694, -0.150000, 0.339157, 0.341227)
+Nunber of clipping planes 583
+Best 477 	 C=0.007931 	 B=0.049431 	 (0.650550, -0.250000, 0.717136, 0.307578)

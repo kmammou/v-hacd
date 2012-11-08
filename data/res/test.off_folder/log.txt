@@ -1,0 +1,22 @@
+Saving .\test.off
+Saving .\test_decimated.off
++ Mesh
+	 # vertices                     	12
+	 # triangles                    	20
++ Parameters
+	 depth			              	10
+	 concavityThreshold			  	0.01
+	 alpha			              	0.01
+	 # of position samples          	10
+	 # of angle samples	          	10
+	 refine position parameter      	5
+	 refine angle parameter         	5
++ Subdividing the mesh 
+Nunber of clipping planes 143
+Best 140 	 C=0.058085 	 B=0.081969 	 (1.000000, 0.000000, 0.000000, 0.682932)
+Nunber of clipping planes 583
+Best 576 	 C=0.017187 	 B=0.011862 	 (1.000000, 0.000000, 0.000000, 0.549234)
+Nunber of clipping planes 143
+Best 55 	 C=0.006161 	 B=0.108611 	 (0.000000, 0.000000, 1.000000, -0.549234)
+Nunber of clipping planes 583
+Best 276 	 C=-0.000026 	 B=0.104813 	 (0.000000, 0.000000, 1.000000, -0.853339)

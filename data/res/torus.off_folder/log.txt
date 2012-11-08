@@ -1,0 +1,22 @@
+Saving .\torus.off
+Saving .\torus_decimated.off
++ Mesh
+	 # vertices                     	288
+	 # triangles                    	576
++ Parameters
+	 depth			              	10
+	 concavityThreshold			  	0.01
+	 alpha			              	0.01
+	 # of position samples          	10
+	 # of angle samples	          	10
+	 refine position parameter      	5
+	 refine angle parameter         	5
++ Subdividing the mesh 
+Nunber of clipping planes 143
+Best 52 	 C=0.448215 	 B=0.001745 	 (-0.243184, -0.350000, 0.904633, 16.910880)
+Nunber of clipping planes 583
+Internal error in segmentintersection():
+  Topological inconsistency after splitting a segment.
+  Please report this bug to jrs@cs.berkeley.edu
+  Include the message above, your input data set, and the exact
+    command line you used to run Triangle.

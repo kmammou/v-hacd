@@ -1,0 +1,66 @@
+Saving .\tstTorusModel3.off
+Saving .\tstTorusModel3_decimated.off
++ Mesh
+	 # vertices                     	288
+	 # triangles                    	576
++ Parameters
+	 depth			              	10
+	 concavityThreshold			  	0.01
+	 alpha			              	0.01
+	 # of position samples          	10
+	 # of angle samples	          	10
+	 refine position parameter      	5
+	 refine angle parameter         	5
++ Subdividing the mesh 
+Nunber of clipping planes 143
+Best 71 	 C=1.075201 	 B=0.001904 	 (0.000000, 1.000000, 0.000000, -0.189800)
+Nunber of clipping planes 583
+Best 5 	 C=1.075058 	 B=0.007673 	 (-0.969038, -0.230000, -0.089810, -0.189800)
+Nunber of clipping planes 143
+Best 70 	 C=0.189430 	 B=0.008753 	 (0.000000, 1.000000, 0.000000, -6.932020)
+Nunber of clipping planes 583
+Best 70 	 C=0.189430 	 B=0.008753 	 (0.000000, 1.000000, 0.000000, -6.932020)
+Nunber of clipping planes 143
+Best 72 	 C=0.199863 	 B=0.000582 	 (0.000000, 1.000000, 0.000000, 7.185726)
+Nunber of clipping planes 583
+Best 321 	 C=0.198917 	 B=0.002387 	 (0.141067, -0.990000, 0.000000, -2.358979)
+Nunber of clipping planes 143
+Best 73 	 C=0.028380 	 B=0.011971 	 (0.000000, 1.000000, 0.000000, 15.946129)
+Nunber of clipping planes 583
+Best 110 	 C=0.026006 	 B=0.003761 	 (-0.542064, -0.810000, 0.223756, 0.439949)
+Nunber of clipping planes 143
+Best 121 	 C=0.026255 	 B=0.022914 	 (0.928694, -0.150000, 0.339157, -9.553361)
+Nunber of clipping planes 583
+Best 546 	 C=0.024659 	 B=0.019602 	 (0.947490, -0.310000, -0.078498, -5.576436)
+Nunber of clipping planes 143
+Best 69 	 C=0.029905 	 B=0.010837 	 (0.000000, 1.000000, 0.000000, -16.676037)
+Nunber of clipping planes 583
+Best 120 	 C=0.027533 	 B=0.002402 	 (-0.542064, -0.810000, 0.223756, -0.768195)
+Nunber of clipping planes 143
+Best 131 	 C=0.027315 	 B=0.036287 	 (0.928694, -0.150000, 0.339157, 9.001204)
+Nunber of clipping planes 583
+Best 543 	 C=0.025961 	 B=0.012170 	 (0.947490, -0.310000, -0.078498, 7.057756)
+Nunber of clipping planes 143
+Best 70 	 C=0.004135 	 B=0.027635 	 (0.000000, 1.000000, 0.000000, 2.839852)
+Nunber of clipping planes 583
+Best 292 	 C=0.003698 	 B=0.003793 	 (0.000000, 1.000000, 0.000000, 5.264222)
+Nunber of clipping planes 143
+Best 135 	 C=0.003493 	 B=0.014374 	 (1.000000, 0.000000, 0.000000, -17.044378)
+Nunber of clipping planes 583
+Best 65 	 C=0.003038 	 B=0.002583 	 (-0.759285, -0.650000, 0.031399, -2.856964)
+Nunber of clipping planes 143
+Best 133 	 C=0.003199 	 B=0.005454 	 (1.000000, 0.000000, 0.000000, -4.582205)
+Nunber of clipping planes 583
+Best 133 	 C=0.003199 	 B=0.005454 	 (1.000000, 0.000000, 0.000000, -4.582205)
+Nunber of clipping planes 143
+Best 91 	 C=0.003166 	 B=0.041241 	 (0.312250, -0.950000, 0.000000, 6.507404)
+Nunber of clipping planes 583
+Best 484 	 C=0.003318 	 B=0.002261 	 (0.667506, -0.730000, -0.146749, -2.584932)
+Nunber of clipping planes 143
+Best 139 	 C=0.003960 	 B=0.025701 	 (1.000000, 0.000000, 0.000000, 17.104613)
+Nunber of clipping planes 583
+Internal error in finddirection():  Unable to find a
+  triangle leading from (-30.8959895043, 26.1722551107) to  (-30.8959895044, 26.1722551107).
+  Please report this bug to jrs@cs.berkeley.edu
+  Include the message above, your input data set, and the exact
+    command line you used to run Triangle.

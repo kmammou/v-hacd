@@ -1,0 +1,58 @@
+Saving .\table.off
+Saving .\table_decimated.off
++ Mesh
+	 # vertices                     	48
+	 # triangles                    	92
++ Parameters
+	 depth			              	10
+	 concavityThreshold			  	0.01
+	 alpha			              	0.01
+	 # of position samples          	10
+	 # of angle samples	          	10
+	 refine position parameter      	5
+	 refine angle parameter         	5
++ Subdividing the mesh 
+Nunber of clipping planes 143
+Best 137 	 C=5.243123 	 B=0.000000 	 (1.000000, 0.000000, 0.000000, 0.000000)
+Nunber of clipping planes 583
+Best 576 	 C=5.242203 	 B=0.069348 	 (1.000000, 0.000000, 0.000000, -0.320000)
+Nunber of clipping planes 143
+Best 72 	 C=0.698527 	 B=0.422608 	 (0.000000, 1.000000, 0.000000, -0.400000)
+Nunber of clipping planes 583
+Best 290 	 C=0.496964 	 B=0.411956 	 (0.000000, 1.000000, 0.000000, -0.640000)
+Nunber of clipping planes 143
+Best 91 	 C=0.501040 	 B=0.307855 	 (0.312250, -0.950000, 0.000000, -0.287500)
+Nunber of clipping planes 583
+Best 289 	 C=0.368422 	 B=0.336505 	 (0.000000, 1.000000, 0.000000, -0.777500)
+Nunber of clipping planes 143
+Best 1 	 C=-0.000006 	 B=0.000000 	 (-0.923189, -0.050000, 0.381079, -3.208000)
+Nunber of clipping planes 583
+Best 1 	 C=-0.000006 	 B=0.000000 	 (-0.923189, -0.050000, 0.381079, -3.208000)
+Nunber of clipping planes 143
+Best 15 	 C=0.086886 	 B=0.162587 	 (-0.822398, -0.550000, -0.145471, -1.600000)
+Nunber of clipping planes 583
+Best 59 	 C=0.051465 	 B=0.306722 	 (-0.759285, -0.650000, 0.031399, -1.840000)
+Nunber of clipping planes 143
+Best 0 	 C=-0.000006 	 B=0.000000 	 (-0.923189, -0.050000, 0.381079, -2.125000)
+Nunber of clipping planes 583
+Best 0 	 C=-0.000006 	 B=0.000000 	 (-0.923189, -0.050000, 0.381079, -2.125000)
+Nunber of clipping planes 143
+Best 91 	 C=0.018191 	 B=0.327309 	 (0.312250, -0.950000, 0.000000, -0.200000)
+Nunber of clipping planes 583
+Best 91 	 C=0.018191 	 B=0.327309 	 (0.312250, -0.950000, 0.000000, -0.200000)
+Nunber of clipping planes 143
+Best 62 	 C=0.032387 	 B=0.012244 	 (0.000000, 0.000000, 1.000000, 0.200000)
+Nunber of clipping planes 583
+Best 279 	 C=0.032393 	 B=0.002917 	 (0.000000, 0.000000, 1.000000, -0.040000)
+Nunber of clipping planes 143
+Best 58 	 C=0.011414 	 B=0.003464 	 (0.000000, 0.000000, 1.000000, -0.200000)
+Nunber of clipping planes 583
+Best 281 	 C=0.011411 	 B=0.000693 	 (0.000000, 0.000000, 1.000000, 0.040000)
+Nunber of clipping planes 143
+Best 53 	 C=0.004842 	 B=0.009411 	 (-0.243184, -0.350000, 0.904633, 0.612500)
+Nunber of clipping planes 583
+Best 284 	 C=0.003713 	 B=0.015001 	 (0.000000, 0.000000, 1.000000, 1.432500)
+Nunber of clipping planes 143
+Best 48 	 C=0.007242 	 B=0.003059 	 (-0.243184, -0.350000, 0.904633, -1.600000)
+Nunber of clipping planes 583
+Best 340 	 C=0.005186 	 B=0.013464 	 (0.158663, -0.350000, 0.923215, -0.400000)
