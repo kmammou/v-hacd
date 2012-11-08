@@ -55,7 +55,7 @@ namespace VHACD
 		inline	friend bool						operator<(const MDEdgePriorityQueue & lhs, const MDEdgePriorityQueue & rhs) { return (lhs.m_qem > rhs.m_qem);}
 		inline	friend bool						operator>(const MDEdgePriorityQueue & lhs, const MDEdgePriorityQueue & rhs) { return (lhs.m_qem < rhs.m_qem);}
 	};
-	typedef void (*CallBackFunction)(const char *, double, double, size_t);
+	typedef void (*CallBackFunction)(const char *);
 	class MeshDecimator
 	{
 	public:

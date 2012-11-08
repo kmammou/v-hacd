@@ -410,7 +410,7 @@ namespace VHACD
 			if (fabs(progress-progressOld) > ptgStep && m_callBack)
 			{
 				sprintf(msg, "%3.2f %% \t \t \r", progress);
-				(*m_callBack)(msg, progress, 0.0, m_nVertices);
+				(*m_callBack)(msg);
 				progressOld = progress;
 			}
 
@@ -645,14 +645,14 @@ namespace VHACD
 			msg << "\t target # of vertices           \t" << targetNVertices << std::endl;
 			msg << "\t target # of triangles          \t" << targetNTriangles << std::endl;
 			msg << "\t QEM			                  \t" << targetError << std::endl;
-			(*m_callBack)(msg.str().c_str(), 0.0, 0.0, m_nPoints);
+			(*m_callBack)(msg.str().c_str());
 		}
 		
-		if (m_callBack) (*m_callBack)("+ Initialize QEM \n", 0.0, 0.0, m_nPoints);
+		if (m_callBack) (*m_callBack)("+ Initialize QEM \n");
 		InitializeQEM();
-		if (m_callBack) (*m_callBack)("+ Initialize priority queue \n", 0.0, 0.0, m_nPoints);
+		if (m_callBack) (*m_callBack)("+ Initialize priority queue \n");
 		InitializePriorityQueue();
-		if (m_callBack) (*m_callBack)("+ Simplification \n", 0.0, 0.0, m_nPoints);
+		if (m_callBack) (*m_callBack)("+ Simplification \n");
 		double invDiag2 = 1.0 / (m_diagBB * m_diagBB);
 		while((m_pqueue.size() > 0) && 
 			  (m_nEdges > 0) && 
@@ -664,7 +664,7 @@ namespace VHACD
 			if (fabs(progress-progressOld) > ptgStep && m_callBack)
 			{
 				sprintf(msg, "%3.2f %% V = %lu \t QEM = %f \t \t \r", progress, static_cast<unsigned long>(m_nVertices), sqrt(qem));
-				(*m_callBack)(msg, progress, qem, m_nVertices);
+				(*m_callBack)(msg);
 				progressOld = progress;
 			}
 			if (!EdgeCollapse(qem)) break;
@@ -677,7 +677,7 @@ namespace VHACD
 			msg << "\t # vertices                     \t" << m_nVertices << std::endl;
 			msg << "\t # triangles                    \t" << m_nTriangles << std::endl;
 			msg << "\t QEM					          \t" << qem << std::endl;
-			(*m_callBack)(msg.str().c_str(), 100.0, qem, m_nVertices);
+			(*m_callBack)(msg.str().c_str());
 		}
 		return true;
 	}

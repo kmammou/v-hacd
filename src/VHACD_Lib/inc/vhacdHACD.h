@@ -143,7 +143,7 @@ namespace VHACD
 														}
 														return lhs.m_priority>rhs.m_priority;
 													}
-    typedef void (*CallBackFunction)(const char *, double, double, size_t);
+    typedef void (*CallBackFunction)(const char *);
 
 	//! Provides an implementation of the Volumetric Hierarchical Approximate Convex Decomposition (VHACD) technique
     class VHACD
@@ -268,6 +268,8 @@ namespace VHACD
 	bool ApproximateConvexDecomposition(const Mesh & inputMesh, const std::vector< Mesh * > & convexHulls, int depth, int posSampling, int angleSampling, CallBackFunction callBack);
 	bool ApproximateConvexDecomposition(const Mesh & inputMesh, int depth, 
 										int posSampling, int angleSampling,
-										int posRefine, int angleRefine, Real alpha, CallBackFunction callBack);
+										int posRefine, int angleRefine, 
+                                        Real alpha, Real concavityThreshold,
+                                        std::vector< Mesh * > & parts, CallBackFunction callBack);
 }
 #endif

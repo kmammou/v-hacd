@@ -227,7 +227,7 @@
 /*   write "#define SELF_CHECK" below.  If you are modifying this code, I    */
 /*   recommend you turn self-checks on until your work is debugged.          */
 
-#define SELF_CHECK
+//#define SELF_CHECK
 
 /* To compile Triangle as a callable object library (triangle.o), define the */
 /*   TRILIBRARY symbol.  Read the file triangle.h for details on how to call */
