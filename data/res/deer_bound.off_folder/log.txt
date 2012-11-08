@@ -1,0 +1,122 @@
+Saving .\deer_bound.off
++ Mesh
+	 # vertices                     	855
+	 # triangles                    	1208
++ Parameters
+	 target # of vertices           	0
+	 target # of triangles          	1000
+	 QEM			                  	1.79769e+308
++ Initialize QEM 
++ Initialize priority queue 
+0.05 % 	 	 1.08 % 	 	 2.11 % 	 	 3.14 % 	 	 4.18 % 	 	 5.21 % 	 	 6.24 % 	 	 7.27 % 	 	 8.30 % 	 	 9.34 % 	 	 10.37 % 	 	 11.40 % 	 	 12.43 % 	 	 13.46 % 	 	 14.50 % 	 	 15.53 % 	 	 16.56 % 	 	 17.59 % 	 	 18.62 % 	 	 19.66 % 	 	 20.69 % 	 	 21.72 % 	 	 22.75 % 	 	 23.78 % 	 	 24.82 % 	 	 25.85 % 	 	 26.88 % 	 	 27.91 % 	 	 28.94 % 	 	 29.98 % 	 	 31.01 % 	 	 32.04 % 	 	 33.07 % 	 	 34.10 % 	 	 35.14 % 	 	 36.17 % 	 	 37.20 % 	 	 38.23 % 	 	 39.26 % 	 	 40.29 % 	 	 41.33 % 	 	 42.36 % 	 	 43.39 % 	 	 44.42 % 	 	 45.45 % 	 	 46.49 % 	 	 47.52 % 	 	 48.55 % 	 	 49.58 % 	 	 50.61 % 	 	 51.65 % 	 	 52.68 % 	 	 53.71 % 	 	 54.74 % 	 	 55.77 % 	 	 56.81 % 	 	 57.84 % 	 	 58.87 % 	 	 59.90 % 	 	 60.93 % 	 	 61.97 % 	 	 63.00 % 	 	 64.03 % 	 	 65.06 % 	 	 66.09 % 	 	 67.13 % 	 	 68.16 % 	 	 69.19 % 	 	 70.22 % 	 	 71.25 % 	 	 72.29 % 	 	 73.32 % 	 	 74.35 % 	 	 75.38 % 	 	 76.41 % 	 	 77.44 % 	 	 78.48 % 	 	 79.51 % 	 	 80.54 % 	 	 81.57 % 	 	 82.60 % 	 	 83.64 % 	 	 84.67 % 	 	 85.70 % 	 	 86.73 % 	 	 87.76 % 	 	 88.80 % 	 	 89.83 % 	 	 90.86 % 	 	 91.89 % 	 	 92.92 % 	 	 93.96 % 	 	 94.99 % 	 	 96.02 % 	 	 97.05 % 	 	 98.08 % 	 	 99.12 % 	 	 + Simplification 
+0.12 % V = 854 	 QEM = 0.000008 	 	 1.17 % V = 845 	 QEM = 0.000059 	 	 2.22 % V = 836 	 QEM = 0.000088 	 	 3.27 % V = 827 	 QEM = 0.000096 	 	 4.33 % V = 818 	 QEM = 0.000105 	 	 5.38 % V = 809 	 QEM = 0.000118 	 	 6.43 % V = 800 	 QEM = 0.000138 	 	 7.49 % V = 791 	 QEM = 0.000156 	 	 8.54 % V = 782 	 QEM = 0.000165 	 	 9.59 % V = 773 	 QEM = 0.000176 	 	 10.64 % V = 764 	 QEM = 0.000196 	 	 11.70 % V = 755 	 QEM = 0.000222 	 	 12.75 % V = 746 	 QEM = 0.000239 	 	 + Simplification output
+	 # vertices                     	741
+	 # triangles                    	1000
+	 QEM					          	6.72677e-008
+Saving .\deer_bound_decimated.off
++ Mesh
+	 # vertices                     	741
+	 # triangles                    	1000
++ Parameters
+	 depth			              	10
+	 concavityThreshold			  	0.01
+	 alpha			              	0.01
+	 # of position samples          	10
+	 # of angle samples	          	10
+	 refine position parameter      	5
+	 refine angle parameter         	5
++ Subdividing the mesh 
+Nunber of clipping planes 143
+Best 49 	 C=2.091307 	 B=0.454451 	 (-0.243184, -0.350000, 0.904633, 0.217965)
+Nunber of clipping planes 583
+Best 271 	 C=2.034602 	 B=0.489527 	 (-0.036602, -0.610000, 0.791556, 0.469573)
+Nunber of clipping planes 143
+Best 62 	 C=0.407665 	 B=0.440991 	 (0.000000, 0.000000, 1.000000, 0.785611)
+Nunber of clipping planes 583
+Best 402 	 C=0.375245 	 B=0.513587 	 (0.375513, -0.090000, 0.922437, 0.907908)
+Nunber of clipping planes 143
+Best 27 	 C=0.633617 	 B=0.084521 	 (-0.446271, -0.250000, -0.859268, 0.771834)
+Nunber of clipping planes 583
+Best 435 	 C=0.618850 	 B=0.080695 	 (0.502455, -0.370000, -0.781434, 0.853329)
+Nunber of clipping planes 143
+Best 6 	 C=0.189998 	 B=0.028230 	 (-0.923189, -0.050000, 0.381079, 0.479868)
+Nunber of clipping planes 583
+Best 554 	 C=0.182412 	 B=0.028518 	 (0.953526, -0.150000, 0.261322, 0.357571)
+Nunber of clipping planes 143
+Best 61 	 C=0.146134 	 B=0.122710 	 (0.000000, 0.000000, 1.000000, 0.426531)
+Nunber of clipping planes 583
+Best 281 	 C=0.125589 	 B=0.219770 	 (0.000000, 0.000000, 1.000000, 0.520823)
+Nunber of clipping planes 143
+Best 0 	 C=0.205424 	 B=0.010189 	 (-0.923189, -0.050000, 0.381079, -0.246851)
+Nunber of clipping planes 583
+Best 274 	 C=0.204141 	 B=0.074936 	 (-0.036602, -0.610000, 0.791556, 0.160623)
+Nunber of clipping planes 143
+Best 44 	 C=0.193875 	 B=0.120288 	 (-0.243184, -0.350000, 0.904633, -0.179030)
+Nunber of clipping planes 583
+Best 94 	 C=0.185600 	 B=0.116574 	 (-0.649897, -0.290000, 0.702520, -0.120833)
+Nunber of clipping planes 143
+Best 24 	 C=0.072262 	 B=0.020531 	 (-0.446271, -0.250000, -0.859268, -0.674720)
+Nunber of clipping planes 583
+Best 302 	 C=0.071363 	 B=0.019294 	 (0.004697, -0.270000, -0.962849, -0.674720)
+Nunber of clipping planes 143
+Best 54 	 C=0.036585 	 B=0.004976 	 (-0.243184, -0.350000, 0.904633, 1.317869)
+Nunber of clipping planes 583
+Best 235 	 C=0.035963 	 B=0.006118 	 (-0.175723, -0.190000, 0.965930, 1.210971)
+Nunber of clipping planes 143
+Best 136 	 C=0.048218 	 B=0.011708 	 (1.000000, 0.000000, 0.000000, -0.044928)
+Nunber of clipping planes 583
+Best 7 	 C=0.047359 	 B=0.076499 	 (-0.969038, -0.230000, -0.089810, 0.143655)
+Nunber of clipping planes 143
+Best 121 	 C=0.064286 	 B=0.000120 	 (0.928694, -0.150000, 0.339157, -0.246851)
+Nunber of clipping planes 583
+Best 121 	 C=0.064286 	 B=0.000120 	 (0.928694, -0.150000, 0.339157, -0.246851)
+Nunber of clipping planes 143
+Best 29 	 C=0.052440 	 B=0.024259 	 (-0.446271, -0.250000, -0.859268, 0.985699)
+Nunber of clipping planes 583
+Best 304 	 C=0.048447 	 B=0.019104 	 (0.004697, -0.270000, -0.962849, 1.118028)
+Nunber of clipping planes 143
+Best 102 	 C=0.058356 	 B=0.117177 	 (0.462374, -0.650000, 0.603084, 0.257449)
+Nunber of clipping planes 583
+Best 252 	 C=0.050205 	 B=0.105438 	 (-0.127998, -0.870000, 0.476147, 0.548434)
+Nunber of clipping planes 143
+Best 33 	 C=0.030851 	 B=0.000117 	 (-0.388433, -0.850000, 0.355837, -0.159489)
+Nunber of clipping planes 583
+Best 519 	 C=0.030851 	 B=0.000014 	 (0.807368, -0.410000, 0.424330, -0.295465)
+Nunber of clipping planes 143
+Best 108 	 C=0.021247 	 B=0.017467 	 (0.462374, -0.650000, 0.603084, 1.433148)
+Nunber of clipping planes 583
+Best 270 	 C=0.020760 	 B=0.018325 	 (-0.036602, -0.610000, 0.791556, 1.541025)
+Nunber of clipping planes 143
+Best 43 	 C=0.012987 	 B=0.005248 	 (-0.388433, -0.850000, 0.355837, 0.888827)
+Nunber of clipping planes 583
+Best 224 	 C=0.012793 	 B=0.003998 	 (-0.179258, -0.970000, 0.164215, 0.802509)
+Nunber of clipping planes 143
+Best 43 	 C=0.007745 	 B=0.005501 	 (-0.388433, -0.850000, 0.355837, 0.891161)
+Nunber of clipping planes 583
+Best 273 	 C=0.007024 	 B=0.005485 	 (-0.036602, -0.610000, 0.791556, 1.250481)
+Nunber of clipping planes 143
+Best 82 	 C=0.008300 	 B=0.002033 	 (0.057827, -0.750000, -0.658905, 0.113451)
+Nunber of clipping planes 583
+Best 318 	 C=0.007547 	 B=0.001442 	 (0.027299, -0.950000, -0.311054, 0.595218)
+Nunber of clipping planes 143
+Best 97 	 C=0.031472 	 B=0.051404 	 (0.312250, -0.950000, 0.000000, 1.133720)
+Nunber of clipping planes 583
+Best 484 	 C=0.029568 	 B=0.024008 	 (0.667506, -0.730000, -0.146749, 0.662261)
+Nunber of clipping planes 143
+Best 96 	 C=0.018816 	 B=0.012157 	 (0.312250, -0.950000, 0.000000, 0.878881)
+Nunber of clipping planes 583
+Best 486 	 C=0.017025 	 B=0.019014 	 (0.667506, -0.730000, -0.146749, 0.613143)
+Nunber of clipping planes 143
+Best 97 	 C=0.014290 	 B=0.001508 	 (0.312250, -0.950000, 0.000000, 1.586782)
+Nunber of clipping planes 583
+Best 413 	 C=0.014037 	 B=0.001368 	 (0.384719, -0.890000, -0.244727, 1.668277)
+Nunber of clipping planes 143
+Best 96 	 C=0.015925 	 B=0.001424 	 (0.312250, -0.950000, 0.000000, 1.439900)
+Nunber of clipping planes 583
+Best 56 	 C=0.015074 	 B=0.001483 	 (-0.759285, -0.650000, 0.031399, 1.159405)
+Nunber of clipping planes 143
+Internal error in segmentintersection():
+  Topological inconsistency after splitting a segment.
+  Please report this bug to jrs@cs.berkeley.edu
+  Include the message above, your input data set, and the exact
+    command line you used to run Triangle.
