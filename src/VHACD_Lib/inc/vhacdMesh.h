@@ -36,6 +36,9 @@ namespace VHACD
 		Z_AXIS,
 		N_AXIS
 	};
+    class Mesh;
+
+	unsigned long long											EdgeID(long a, long b);
 
 	//! Contour data structure
     class Polyline2D
@@ -65,7 +68,11 @@ namespace VHACD
 																						  long const * const v2CC, 
 																						  long * mapping, 
 																						  Polyline2D & CC) const;
-
+        void                                                    Triangulate(Mesh & mesh) const ;
+		void													ComputeBB();
+		const Vec2<Real> &										GetCenter() const								{ return m_center;}
+		const Vec2<Real> &										GetMinBB() const								{ return m_minBB;}
+		const Vec2<Real> &										GetMaxBB() const								{ return m_maxBB;}
 
 		//! Constructor.
 																Polyline2D();
@@ -75,7 +82,10 @@ namespace VHACD
 		private:
 			std::vector< Vec2<Real> >							m_points;
 			std::vector< Vec2<long> >							m_edges;
-//			std::vector< std::set<long> >						m_point2Point;
+			Vec2<Real>											m_minBB;
+			Vec2<Real>											m_maxBB;
+			Vec2<Real>											m_center;
+
 			friend class										Mesh;
 	};
 
@@ -125,6 +135,8 @@ namespace VHACD
 		void													CleanDuplicatedVectices();
 		Real													ComputeVolume() const;
 		void													ComputeConvexHull(Mesh & meshCH) const;
+        long                                                    FindPoint(const Vec3<Real> & pt) const;
+        long                                                    InsertPoint(const Vec3<Real> & pt);
 
 
 		//! Constructor.

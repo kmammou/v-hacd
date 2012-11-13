@@ -504,7 +504,7 @@ namespace VHACD
 				vhacd.SetInitialConvexHulls(& parts);
 
 				vhacd.Init();
-
+				/*
 				for(size_t n1 = 0; n1 < nCCRight; n1++)
 				{
 					for(size_t n2 = n1+1; n2 < nCCRight; n2++)
@@ -513,6 +513,15 @@ namespace VHACD
 					}
 				}
 				for(size_t n1 = nCCRight; n1 < nCC; n1++)
+				{
+					for(size_t n2 = n1+1; n2 < nCC; n2++)
+					{
+						vhacd.AddEdge(n1, n2);
+					}
+				}
+				*/
+
+				for(size_t n1 = 0; n1 < nCC; n1++)
 				{
 					for(size_t n2 = n1+1; n2 < nCC; n2++)
 					{
@@ -715,6 +724,7 @@ namespace VHACD
 		            Real minConcavity = std::numeric_limits<double>::max();
 		            Real minBalance = std::numeric_limits<double>::max();
 
+					printf("Main \t");
 		            ComputeBestClippingPlane(*mesh, volume0, volume, planes, bestPlane, *bestLeft, *bestRight, minConcavity,  minBalance, alpha, callBack, false);
 #ifdef VHACD_DEBUG
 		            sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\best_left_sub%i_part%i.wrl", sub, p);
@@ -723,20 +733,24 @@ namespace VHACD
 		            sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\best_right_sub%i_part%i.wrl", sub, p);
 		            bestRight->SaveVRML2(fileName);		
 #endif 
-		            Real delta   = (maxD - minD) / (posSampling);
-		            Real minDRef = bestPlane.m_d - delta;
-		            Real maxDRef = bestPlane.m_d + delta;
-		            std::set< Plane > planesRef;
+					if (angleRefine > 0 && posRefine > 0)
+					{
+						Real delta   = (maxD - minD) / (posSampling);
+						Real minDRef = bestPlane.m_d - delta;
+						Real maxDRef = bestPlane.m_d + delta;
+						std::set< Plane > planesRef;
 
-		            RefineClipPlanes(bestPlane, minDRef, maxDRef, posRefine, angleRefine * angleSampling, planesRef);
-		            ComputeBestClippingPlane(*mesh, volume0, volume, planesRef, bestPlane, *bestLeft, *bestRight, minConcavity,  minBalance, alpha, callBack, false);
-#ifdef VHACD_DEBUG
-		            sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\best_sub%i_part%i_ref.wrl", sub, 2*p);
-		            bestLeft->SaveVRML2(fileName);
+						printf("Refine \t");
+						RefineClipPlanes(bestPlane, minDRef, maxDRef, posRefine, angleRefine * angleSampling, planesRef);
+						ComputeBestClippingPlane(*mesh, volume0, volume, planesRef, bestPlane, *bestLeft, *bestRight, minConcavity,  minBalance, alpha, callBack, false);
+	#ifdef VHACD_DEBUG
+						sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\best_sub%i_part%i_ref.wrl", sub, 2*p);
+						bestLeft->SaveVRML2(fileName);
 
-		            sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\best_sub%i_part%i_ref.wrl", sub, 2*p+1);
-		            bestRight->SaveVRML2(fileName);		
-#endif 
+						sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\best_sub%i_part%i_ref.wrl", sub, 2*p+1);
+						bestRight->SaveVRML2(fileName);		
+	#endif 
+					}
 
                     delete mesh;
                 }

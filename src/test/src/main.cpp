@@ -23,7 +23,7 @@
 #include <VHACDHACD.h>
 
 #include <VHACDMeshDecimator.h>
-
+#include <VHACDMesh.h>
 
 #ifdef WIN32
 #define PATH_SEP "\\"
@@ -42,7 +42,29 @@ bool SaveOFF(const std::string & fileName, size_t nV, size_t nT, const VHACD::Ve
 
 int main(int argc, char * argv[])
 {
-	// C:\git\v-hacd\data\test\drum.off 10 0.01 0 10 10 5 5 0.01 1000
+	/*
+    VHACD::Mesh meshpoly;
+    VHACD::Polyline2D poly;
+    poly.InsertPoint(VHACD::Vec2< VHACD::Real > (0.0,0.0));
+    poly.InsertPoint(VHACD::Vec2< VHACD::Real > (3.0,0.0));
+    poly.InsertPoint(VHACD::Vec2< VHACD::Real > (3.0,3.0));
+    poly.InsertPoint(VHACD::Vec2< VHACD::Real > (2.0,3.0));
+    poly.InsertPoint(VHACD::Vec2< VHACD::Real > (2.0,2.0));
+    poly.InsertPoint(VHACD::Vec2< VHACD::Real > (0.0,2.0));
+
+    poly.InsertEdge(VHACD::Vec2< long > (0, 1));
+    poly.InsertEdge(VHACD::Vec2< long > (1, 2));
+    poly.InsertEdge(VHACD::Vec2< long > (2, 3));
+    poly.InsertEdge(VHACD::Vec2< long > (3, 4));
+    poly.InsertEdge(VHACD::Vec2< long > (4, 5));
+    poly.InsertEdge(VHACD::Vec2< long > (5, 0));
+
+    poly.ComputeBB();
+    poly.Triangulate(meshpoly);
+    meshpoly.SaveVRML2("C:\\work\\git\\v-hacd\\data\\test\\mesh.wrl");
+    return 0;
+*/
+	// C:\work\git\v-hacd\data\test\drum.off 10 0.01 0 10 10 5 5 0.01 1000
     if (argc != 11)
     { 
         std::cout << "Usage: ./testVHACD fileName.off depth maxConcavity invertInputFaces posSampling angleSampling posRefine angleRefine alpha targetNTrianglesDecimatedMesh"<< std::endl;

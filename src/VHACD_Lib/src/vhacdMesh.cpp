@@ -21,11 +21,17 @@
 #include <string>
 #include <iosfwd>
 #include <kdtree.h>
-#include <triangle.h>
+
 #include <btConvexHullComputer.h>
+#include <map>
+#include <set>
 
-
+// #define USE_TRIANGLE
 // #define DEBUG_VHACD
+
+#ifdef USE_TRIANGLE
+#include <triangle.h>
+#endif
 
 namespace VHACD
 {    
@@ -292,113 +298,8 @@ namespace VHACD
 	  }
 	  return c;
 	}
-
-	void Triangulate(const std::vector< Vector2dVector > & contourSet, const std::vector< long > & numAncestors , std::vector< Vec2< Real > > & triangles)
-	{
-		size_t contoursCount = contourSet.size();
-		size_t segmentsCount = 0;
-		size_t holesCount  = 0;
-		for (size_t i = 0; i < contoursCount; ++i)
-		{
-			segmentsCount += contourSet[i].size();
-			if (numAncestors[i] % 2 != 0)
-			{
-				holesCount++;
-			}
-		}
-		size_t pointsCount = segmentsCount;
-
-		REAL* pointList  = new REAL[pointsCount   * 2];
-		int*  segmentList = new int[segmentsCount * 2];
-		for (size_t i = 0, pointIndex = 0, startIndex = 0; i < contoursCount; ++i)
-		{
-			size_t contourSize = contourSet[i].size();
-			startIndex         = pointIndex;
-			for (size_t j = 0; j < contourSize - 1; ++j)
-			{
-				pointList[pointIndex * 2]           = contourSet[i][j].X();
-				pointList[pointIndex * 2 + 1]       = contourSet[i][j].Y();
-				segmentList[pointIndex * 2]         = pointIndex;
-				segmentList[pointIndex * 2 + 1]     = pointIndex + 1;
-				++pointIndex;
-			}
-			pointList[pointIndex * 2]         = contourSet[i][contourSize - 1].X();
-			pointList[pointIndex * 2 + 1]     = contourSet[i][contourSize - 1].Y();
-			segmentList[pointIndex * 2]       = pointIndex;
-			segmentList[pointIndex * 2 + 1]   = startIndex;
-			++pointIndex;
-		}
-
-		/// Create holes
-		
-		REAL* holeList    = new REAL[holesCount * 2];
-		for (size_t i = 0; i < contoursCount; ++i)
-		{
-			if (numAncestors[i] % 2 != 0)
-			{
-				Vec2< Real > holePoint = 1.0/3.0 * (contourSet[i][0] + contourSet[i][1] + contourSet[i][2]);
-				size_t nPts = contourSet[i].size();
-				Vec2< Real > U, V;
-				for(size_t j = 0; j < nPts-2; ++j)
-				{
-					U = contourSet[i][j] - contourSet[i][j+1];
-					V = contourSet[i][j] - contourSet[i][j+2];
-					if (fabs(V.X() * U.Y() - V.Y() * U.X()) > EPSILON)
-					{
-						holePoint = EPSILON/3.0 * (contourSet[i][j] + contourSet[i][j+1] + contourSet[i][j+2]) + (1-EPSILON) * contourSet[i][0];
-						break;
-					}
-				}
-				holeList[2*(i-1)]     = holePoint.X();
-				holeList[2*(i-1) + 1] = holePoint.Y();
-			}
-		}
-	
-		/// Triangle input and output structures
-		struct triangulateio in, out;
-		memset(&in, 0, sizeof(triangulateio));
-		memset(&out, 0, sizeof(triangulateio));
-
-		/// Define input points
-		in.numberofpoints = pointsCount;
-		in.pointlist      = pointList;
-
-		/// Define segments
-		in.numberofsegments = segmentsCount;
-		in.segmentlist      = segmentList;
-
-		/// Define holes
-		in.numberofholes    = holesCount;
-		in.holelist         = holeList;
-
-		triangulate("pzQ", &in, &out, 0);
-
-
-		int nIndices = out.numberoftriangles * 3;
-		triangles.resize(nIndices);
-
-		for (int i = 0; i < nIndices;)
-		{
-			for (int k = 0; k < 3; ++k)
-			{
-				triangles[i] = Vec2< Real > ( pointList[ 2 * out.trianglelist[i] ], 
-					                          pointList[ 2 * out.trianglelist[i] +1 ]);
-				i++;
-			}
-		}
-
-
-		delete[] pointList;
-		delete[] segmentList;
-		delete[] holeList;
-		free(out.pointlist);
-		free(out.pointmarkerlist);
-		free(out.trianglelist);
-		free(out.neighborlist);
-		free(out.segmentlist);
-		free(out.segmentmarkerlist);
-	}
-	void PolyToMesh( Mesh * const triPoly, const Polyline2D * const poly,  REAL* const pointList,  int* const segmentList)
+#ifdef USE_TRIANGLE
+    void PolyToMesh( Mesh * const triPoly, const Polyline2D * const poly,  REAL* const pointList,  int* const segmentList)
 	{
 		struct triangulateio in, out;
 		memset(&in, 0, sizeof(triangulateio));
@@ -452,6 +353,7 @@ namespace VHACD
 		free(out.segmentlist);
 		free(out.segmentmarkerlist);
 	}
+#endif
 	Real Sign(const Vec3< Real > & p1, const Vec3< Real > & p2, const Vec3< Real > & p3)
 	{
 	  return (p1.X() - p3.X()) * (p2.Y() - p3.Y()) - (p2.X() - p3.X()) * (p1.Y() - p3.Y());
@@ -460,19 +362,25 @@ namespace VHACD
 						   const Vec3< Real > & v1, const Vec3< Real > & v2, const Vec3< Real > & v3)
 	{
 	  bool b1, b2, b3;
+	  bool b4, b5, b6;
 	  Real s1 = Sign(pt, v1, v2);
 	  Real s2 = Sign(pt, v2, v3);
 	  Real s3 = Sign(pt, v3, v1);
 
-	  b1 = s1 < 0.0;
-	  b2 = s2 < 0.0;
-	  b3 = s3 < 0.0;
-	  return ((b1 == b2) && (b2 == b3));
+	  b1 = s1 <= 0.0;
+	  b2 = s2 <= 0.0;
+	  b3 = s3 <= 0.0;
+
+	  b4 = s1 >= 0.0;
+	  b5 = s2 >= 0.0;
+	  b6 = s3 >= 0.0;
+
+	  return ( ((b1 == b2) && (b2 == b3)) || ((b4 == b5) && (b5 == b6)));
 	}
 #ifdef DEBUG_VHACD
 	int g_it  =0;
 	char g_fileName[1024];
-	char g_root[] = "C:\\Work\\HACD\\HACD\\data\\test\\temp\\";
+	char g_root[] = "C:\\work\\git\\v-hacd\\data\\test\\";
 #endif
 	void Mesh::Clip(const Real a, const Real b, const Real c, const Real d,  // Plane: ax + by + cz + d = 0
 					Mesh * positivePart, Mesh * negativePart, const bool fillClippingHoles) const
@@ -646,22 +554,30 @@ namespace VHACD
 			{
 				mesh0.AddTriangle(Vec3<long>(contours.GetEdge(ed).X(), contours.GetEdge(ed).Y(), contours.GetEdge(ed).X()));
 			}
-			sprintf(g_fileName, "%scontours_d_%i.wrl", g_root, g_it);			
+			sprintf(g_fileName, "%scontours_d_%05i.wrl", g_root, g_it);			
 			mesh0.SaveVRML2(g_fileName);
 #endif
 
-
 			long * v2CC       = new long [contours.GetNPoints()];
 			long * mapping    = new long [contours.GetNPoints()];
+#ifdef USE_TRIANGLE
 			REAL* pointList   = new REAL [contours.GetNPoints() * 2];
 			int*  segmentList = new int  [contours.GetNEdges() * 2];
-
+#endif
 			Mesh * triContours = new Mesh;
+#ifdef USE_TRIANGLE
 			PolyToMesh(triContours, &contours,  pointList, segmentList);
+#else
+			contours.ComputeBB();
+			contours.Triangulate(*triContours);
+#endif
 			triPolys.push_back(triContours);
+
+
+
 #ifdef DEBUG_VHACD
 			char fileName[1024];
-			sprintf(fileName, "%striPolys_%i.wrl", g_root, g_it); 
+			sprintf(fileName, "%striPolys_%05i.wrl", g_root, g_it); 
 			triContours->SaveVRML2(fileName);
 #endif
 			size_t nCC = contours.ComputeConnectedComponents(v2CC);
@@ -672,11 +588,16 @@ namespace VHACD
 				if (poly.GetNPoints() > 3)
 				{
 					Mesh * triPoly = new Mesh;
+#ifdef USE_TRIANGLE
 					PolyToMesh(triPoly, &poly,  pointList, segmentList);
+#else
+					poly.ComputeBB();
+					poly.Triangulate(*triPoly);
+#endif
 					triPolys.push_back(triPoly);
 #ifdef DEBUG_VHACD
 					char fileName[1024];
-					sprintf(fileName, "%striPoly_%i_%i.wrl", g_root, g_it, p); 
+					sprintf(fileName, "%striPoly_%05i_%2i.wrl", g_root, g_it, p); 
 					triPoly->SaveVRML2(fileName);
 #endif
 				}
@@ -774,9 +695,10 @@ namespace VHACD
 				}
 			}
 			
-
+#ifdef USE_TRIANGLE
 			delete [] pointList;
 			delete [] segmentList;
+#endif
 			delete [] v2CC;
 			delete [] mapping;
 			
@@ -798,9 +720,9 @@ namespace VHACD
 			index += 3;
 		}
 #ifdef DEBUG_VHACD
-		sprintf(g_fileName, "%snegative_d_%i.wrl", g_root, g_it);			
+		sprintf(g_fileName, "%snegative_d_%05i.wrl", g_root, g_it);			
 		negativePart->SaveVRML2(g_fileName);
-		sprintf(g_fileName, "%spositive_d_%i.wrl", g_root, g_it);			
+		sprintf(g_fileName, "%spositive_d_%05i.wrl", g_root, g_it);			
 		positivePart->SaveVRML2(g_fileName);
 		g_it++;
 #endif
@@ -1050,6 +972,36 @@ namespace VHACD
 		}
 	}
 
+	long Mesh::InsertPoint(const Vec3<Real> & pt)
+	{
+		const size_t nPts = GetNPoints();
+		Vec3<Real> point;
+		for(size_t p = 0; p < nPts; p++)
+		{
+			point = GetPoint(p);
+			if ( (point-pt).GetNorm() < EPSILON )
+			{
+				return static_cast<long>(p);
+			}
+		}
+		AddPoint(pt);
+		return static_cast<long>(GetNPoints() - 1);
+	}
+
+	long Mesh::FindPoint(const Vec3<Real> & pt) const
+	{
+		const size_t nPts = GetNPoints();
+		Vec3<Real> point;
+		for(size_t p = 0; p < nPts; p++)
+		{
+			point = GetPoint(p);
+			if ( (point-pt).GetNorm() < EPSILON )
+			{
+				return static_cast<long>(p);
+			}
+		}
+		return -1;
+	}
 
     Real Mesh::ComputeVolume() const
     {
@@ -1121,6 +1073,27 @@ namespace VHACD
     {
     }
 
+	void Polyline2D::ComputeBB()
+	{
+		const size_t nPoints = GetNPoints();
+		if (nPoints == 0) return;
+		m_minBB = m_points[0];
+		m_maxBB = m_points[0];
+		Real x, y, z;
+        for (size_t v = 1; v < nPoints ; v++) 
+        {
+	        x = m_points[v][0];
+            y = m_points[v][1];
+            z = m_points[v][2];
+            if      ( x < m_minBB[0]) m_minBB[0] = x;
+			else if ( x > m_maxBB[0]) m_maxBB[0] = x;
+            if      ( y < m_minBB[1]) m_minBB[1] = y;
+			else if ( y > m_maxBB[1]) m_maxBB[1] = y;
+        }
+		m_center  = 0.5 * m_minBB + 0.5 * m_maxBB;
+	}
+
+
 	long Polyline2D::InsertPoint(const Vec2<Real> & pt)
 	{
 		const size_t nPts = GetNPoints();
@@ -1137,6 +1110,22 @@ namespace VHACD
 		return static_cast<long>(GetNPoints() - 1);
 	}
 
+
+	int PointInSegment( const Vec3< Real > & P, const Vec3< Real > & A,  const Vec3< Real > & B)
+	{
+
+        Vec3< Real > U = B-A;
+        Vec3< Real > V = P-A;
+        Vec3< Real > N = U ^ V;
+        if ( N.GetNorm() < EPSILON && U.GetNorm() >= V.GetNorm())
+        {
+            return 1;
+        }
+		return 0;
+	}
+
+
+	
 	// Copyright 2001, softSurfer (www.softsurfer.com)
 	// This code may be freely used and modified for any purpose
 	// providing that this copyright notice is included with it.
@@ -1148,7 +1137,7 @@ namespace VHACD
 	//    Input:  a point P, and a collinear segment S=[AB]
 	//    Return: 1 = P is inside S
 	//            0 = P is not inside S
-	int PointIn2DSegment( const Vec2< Real > & P, const Vec2< Real > & A,  const Vec2< Real > & B)
+	int PointIn2DSegment_Intersect2DSegments( const Vec2< Real > & P, const Vec2< Real > & A,  const Vec2< Real > & B)
 	{
 		if (A.X() != B.X()) {    // S is not vertical
 			if (A.X() <= P.X() && P.X() <= B.X())
@@ -1200,13 +1189,13 @@ namespace VHACD
 				return 1;
 			}
 			if (du==0) {                    // S1 is a single point
-				if (PointIn2DSegment(PA, PC, PD) == 0)  // but is not in S2
+				if (PointIn2DSegment_Intersect2DSegments(PA, PC, PD) == 0)  // but is not in S2
 					return 0;
 				I0 = PA;
 				return 1;
 			}
 			if (dv==0) {                    // S2 a single point
-				if (PointIn2DSegment(PC, PA, PB) == 0)  // but is not in S1
+				if (PointIn2DSegment_Intersect2DSegments(PC, PA, PB) == 0)  // but is not in S1
 					return 0;
 				I0 = PC;
 				return 1;
@@ -1479,6 +1468,356 @@ namespace VHACD
 		}
 		return nCCs;
 	}
+
+	
+    void Polyline2D::Triangulate(Mesh & meshF) const
+    {
+#ifdef DEBUG_VHACD
+		printf("begin\n");
+#endif
+        meshF.Clear();
+        Mesh mesh;
+        Vec2< Real > p0 = GetMinBB();
+        Vec2< Real > p1 = GetMaxBB();
+        Real r = (p1-p0).GetNorm();
+        Vec2< Real > a = p0 - r/5.0;
+        Vec2< Real > d = p1 + r/5.0;
+        Vec2< Real > b(d.X(), a.Y());
+        Vec2< Real > c(a.X(), d.Y());
+        mesh.AddPoint(Vec3<Real>( a.X(), a.Y(), 0.0));
+        mesh.AddPoint(Vec3<Real>( b.X(), b.Y(), 0.0));
+        mesh.AddPoint(Vec3<Real>( c.X(), c.Y(), 0.0));
+        mesh.AddPoint(Vec3<Real>( d.X(), d.Y(), 0.0));
+        mesh.AddTriangle(Vec3< long > (0, 1, 3));
+        mesh.AddTriangle(Vec3< long > (0, 3, 2));
+#ifdef DEBUG_VHACD
+        char fileName[1024];
+#endif       
+        const size_t nPoints    = GetNPoints();
+        
+        Vec3< Real > pt(0.0,0.0,0.0);
+        Vec3< long > tri;
+        Vec3< Real > A, B, C;
+        long ipt, iA, iB, iC;
+		for(size_t vertex = 0; vertex < nPoints; ++vertex)
+		{
+            const Vec2< Real > & pt2 = GetPoint(vertex);
+            pt.X() = pt2.X();
+            pt.Y() = pt2.Y();
+            const size_t nT = mesh.GetNTriangles();
+			for(size_t tt = 0; tt < nT; ++tt)
+			{
+				tri = mesh.GetTriangle(tt);
+                iA = tri[0];
+                iB = tri[1];
+                iC = tri[2];
+                A = mesh.GetPoint(iA);
+                B = mesh.GetPoint(iB);
+                C = mesh.GetPoint(iC);
+				if (PointIn2DTriangle(pt, A, B, C))
+				{
+                    if ((pt-A).GetNorm() < EPSILON || (pt-B).GetNorm() < EPSILON || (pt-C).GetNorm() < EPSILON)
+                    {
+                        // nothing
+                    }
+                    else if (PointInSegment(pt, A, B) == 1)
+                    {
+                        ipt = mesh.InsertPoint(pt);
+                        tri[0] = iA;
+                        tri[1] = ipt;
+                        tri[2] = iC;
+                        mesh.SetTriangle(tt, tri);
+                        tri[0] = ipt;
+                        tri[1] = iB;
+                        tri[2] = iC;
+                        mesh.AddTriangle(tri);
+                    }
+                    else if (PointInSegment(pt, B, C) == 1)
+                    {
+                        ipt = mesh.InsertPoint(pt);
+                        tri[0] = iA;
+                        tri[1] = iB;
+                        tri[2] = ipt;
+                        mesh.SetTriangle(tt, tri);
+                        tri[0] = iA;
+                        tri[1] = ipt;
+                        tri[2] = iC;
+                        mesh.AddTriangle(tri);
+                    }
+                    else if (PointInSegment(pt, C, A) == 1)
+                    {
+                        ipt = mesh.InsertPoint(pt);
+                        tri[0] = iA;
+                        tri[1] = iB;
+                        tri[2] = ipt;
+                        mesh.SetTriangle(tt, tri);
+                        tri[0] = ipt;
+                        tri[1] = iB;
+                        tri[2] = iC;
+                        mesh.AddTriangle(tri);
+                    }
+                    else
+                    {
+                        ipt = mesh.InsertPoint(pt);
+                        tri[0] = iA;
+                        tri[1] = iB;
+                        tri[2] = ipt;
+                        mesh.SetTriangle(tt, tri);
+                        tri[0] = ipt;
+                        tri[1] = iB;
+                        tri[2] = iC;
+                        mesh.AddTriangle(tri);
+                        tri[0] = ipt;
+                        tri[1] = iC;
+                        tri[2] = iA;
+                        mesh.AddTriangle(tri);
+                        break;
+                    }		                    
+				}
+			}
+		}
+#ifdef DEBUG_VHACD	
+		Mesh contour0;
+        sprintf(fileName, "%stest_triPolys_%05i_points.wrl", g_root, g_it); 
+	    mesh.SaveVRML2(fileName);
+#endif
+     	const size_t nEdges = GetNEdges();
+		Vec2<long> edge;
+        Vec2< Real > A2, B2, C2, pt2_0, pt2_1;
+		Vec3< Real > pt0(0.0, 0.0, 0.0), pt1(0.0,0.0,0.0);
+		Vec2< Real > pt0_2, pt1_2;
+		std::set<unsigned long long> constraintEdges;
+
+
+		for(size_t t = 0; t < nEdges; ++t)
+		{
+#ifdef DEBUG_VHACD
+			printf("%i / %i\n", t, nEdges);
+#endif
+            edge = GetEdge(t);
+			pt0_2 = GetPoint(edge.X());
+			pt1_2 = GetPoint(edge.Y());
+			pt0.X() = pt0_2.X();
+			pt0.Y() = pt0_2.Y();
+			pt1.X() = pt1_2.X();
+			pt1.Y() = pt1_2.Y();
+
+			long ipt0 = mesh.FindPoint(pt0);
+		    long ipt1 = mesh.FindPoint(pt1);
+
+		    if (ipt0 != ipt1)
+		    {
+		        long i0[3];
+
+                pt2_0.X() = pt0.X();
+                pt2_0.Y() = pt0.Y();
+                pt2_1.X() = pt1.X();
+                pt2_1.Y() = pt1.Y();
+
+		        Vec2< Real > I0_0, I1_0;
+		        Vec2< Real > I0_1, I1_1;
+		        Vec2< Real > I0_2, I1_2;
+		        int test[3];
+                const size_t nT = mesh.GetNTriangles();
+			    for(size_t tt = 0; tt < nT; ++tt)
+			    {
+				    tri = mesh.GetTriangle(tt);
+                    iA = tri[0];
+                    iB = tri[1];
+                    iC = tri[2];
+
+    		        if ( (ipt0==iA && ipt1==iB) || (ipt0==iB && ipt1==iA) ||
+                         (ipt0==iB && ipt1==iC) || (ipt0==iC && ipt1==iB) ||
+                         (ipt0==iA && ipt1==iC) || (ipt0==iC && ipt1==iA)  ) // edge already exists
+			        {
+						constraintEdges.insert(EdgeID(ipt0, ipt1));
+//						printf("CE \t (%i, %i) \n", ipt0, ipt1);
+				        break;
+			        }
+                    else            
+                    {
+                        A = mesh.GetPoint(iA);
+                        B = mesh.GetPoint(iB);
+                        C = mesh.GetPoint(iC);
+                        A2.X() = A.X();
+                        A2.Y() = A.Y();
+                        B2.X() = B.X();
+                        B2.Y() = B.Y();
+                        C2.X() = C.X();
+                        C2.Y() = C.Y();
+
+                        test[0] = Intersect2DSegments(pt2_0, pt2_1, A2, B2,  I0_0, I1_0);
+                        test[1] = Intersect2DSegments(pt2_0, pt2_1, B2, C2,  I0_1, I1_1);
+                        test[2] = Intersect2DSegments(pt2_0, pt2_1, C2, A2,  I0_2, I1_2);
+						if (test[0] != 0 || test[1] != 0 ||test[2] != 0)
+						{
+						
+							i0[0] = iA;
+							i0[1] = iB;
+							i0[2] = iC;
+							long e[3] = {-1, -1, -1};					
+							int n = 0;
+							if (test[0] == 1) 
+							{
+								i0[0] = mesh.InsertPoint(Vec3< Real > (I0_0.X(), I0_0.Y(), 0.0));
+								e[n++] = i0[0];							
+							}
+							if (test[1] == 1) 
+							{
+								i0[1] = mesh.InsertPoint(Vec3< Real > (I0_1.X(), I0_1.Y(), 0.0));
+								if (n == 0 || i0[1] != e[0])
+								{
+									e[n++] = i0[1];							
+								}
+							}
+							if (test[2] == 1) 
+							{
+								i0[2] = mesh.InsertPoint(Vec3< Real > (I0_2.X(), I0_2.Y(), 0.0));
+								if (n == 0 || (n == 1 && i0[2] != e[0]) || (n==2 && i0[2] != e[0] && i0[2] != e[1]))
+								{
+									e[n++] = i0[2];							
+								}
+							}
+
+							if (n==3)
+							{
+								printf("Error \n");
+							}
+
+							bool firstUpdate = true;
+							tri[0] = i0[0];
+							tri[1] = iB;
+							tri[2] = i0[1];
+
+							if (n==2 && e[0] != e[1])
+							{
+								constraintEdges.insert(EdgeID(e[0], e[1]));
+	//							printf("CE \t (%i, %i) \n", e[0], e[1]);
+							}
+
+							if (tri[0]  != tri[1] && tri[1] != tri[2] && tri[2] != tri[0])
+							{
+								if (firstUpdate) mesh.SetTriangle(tt, tri);
+								else			 mesh.AddTriangle(tri);
+								firstUpdate = false;
+							}
+							tri[0] = iA;
+							tri[1] = i0[0];
+							tri[2] = i0[2];
+							if (tri[0]  != tri[1] && tri[1] != tri[2] && tri[2] != tri[0])
+							{
+								if (firstUpdate) mesh.SetTriangle(tt, tri);
+								else			 mesh.AddTriangle(tri);
+								firstUpdate = false;
+							}
+							tri[0] = i0[0];
+							tri[1] = i0[1];
+							tri[2] = i0[2];
+							if (tri[0]  != tri[1] && tri[1] != tri[2] && tri[2] != tri[0])
+							{
+								if (firstUpdate) mesh.SetTriangle(tt, tri);
+								else			 mesh.AddTriangle(tri);
+								firstUpdate = false;
+							}
+							tri[0] = i0[2];
+							tri[1] = i0[1];
+							tri[2] = iC;
+							if (tri[0]  != tri[1] && tri[1] != tri[2] && tri[2] != tri[0])
+							{
+								if (firstUpdate) mesh.SetTriangle(tt, tri);
+								else			 mesh.AddTriangle(tri);
+								firstUpdate = false;
+							}
+						}
+					}
+				}
+			}
+		}
+#ifdef DEBUG_VHACD
+        sprintf(fileName, "%stest_triPolys_%i_edges.wrl", g_root, g_it); 
+	    mesh.SaveVRML2(fileName);
+#endif
+
+		std::map<unsigned long long, std::vector<long> > e2t;
+
+        const size_t nTrisMesh = mesh.GetNTriangles();
+    	for(size_t t = 0; t < nTrisMesh; ++t)
+    	{
+            const Vec3<long> & tri = mesh.GetTriangle(t);
+			if (tri[0] == tri[1] || tri[0] == tri[2] || tri[2] == tri[1])
+			{
+				printf("Error (%i, %i, %i)\n", tri[0], tri[1], tri[2]);
+			}
+			else
+			{
+				e2t[EdgeID(tri[0], tri[1])].push_back(t);
+				e2t[EdgeID(tri[1], tri[2])].push_back(t);
+				e2t[EdgeID(tri[2], tri[0])].push_back(t);
+			}
+		}
+
+		std::vector<long> tags;
+		tags.resize(nTrisMesh);
+
+		std::vector<long> L;
+    	for(size_t t = 0; t < nTrisMesh; ++t)
+    	{
+			const Vec3<long> & tri = mesh.GetTriangle(t);
+			if ((tri[0]<=3 || tri[1]<=3 || tri[2]<=3) && (tags[t] == 0))
+			{
+				tags[t] = 1;
+				L.push_back(t);
+				while(L.size() > 0)
+				{
+					long current_tri = L[L.size()-1];
+					L.pop_back();
+					const Vec3<long> & tri = mesh.GetTriangle(current_tri);
+					for(int k = 0; k < 3; ++k)
+					{
+						long a = tri[k];
+						long b = tri[(k+1)%3];
+						unsigned long long edge_id  = EdgeID(a, b);
+						if ( constraintEdges.find(edge_id) == constraintEdges.end())
+						{
+							for(size_t r = 0; r < e2t[edge_id].size(); ++r)
+							{
+								long tn = e2t[edge_id][r];
+								if ( tags[tn] == 0)
+								{
+									tags[tn] = 1;
+									L.push_back(tn);
+								}
+							}
+						}
+					}
+				}
+			}
+			break;
+		}
+
+
+        
+        const size_t nPtsMesh = mesh.GetNPoints();
+        meshF.ResizePoints(nPtsMesh-4);
+        
+    	for(size_t vertex = 4; vertex < nPtsMesh; ++vertex)
+    	{
+            meshF.SetPoint(vertex-4, mesh.GetPoint(vertex));
+        }
+		
+    	for(size_t t = 0; t < nTrisMesh; ++t)
+    	{
+            const Vec3<long> & tri = mesh.GetTriangle(t);
+            if (tags[t] == 0)
+            {
+                meshF.AddTriangle(tri-4);
+            }
+        }
+#ifdef DEBUG_VHACD
+		printf("end\n");
+#endif
+    }
+
 	void Polyline2D::ExtractConnectedComponent(size_t nCC, long const * const v2CC, long * mapping, Polyline2D & CC) const
 	{
 		const size_t nPoints    = GetNPoints();
@@ -1504,5 +1843,9 @@ namespace VHACD
 				CC.AddEdge(edge);
 			}
 		}
+	}
+	unsigned long long EdgeID(long a, long b)
+	{ 
+		return (a > b)? (static_cast<unsigned long long>(a) << 32) + b : (static_cast<unsigned long long>(b) << 32) + a; 
 	}
 }
