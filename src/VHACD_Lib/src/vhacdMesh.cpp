@@ -541,16 +541,17 @@ namespace VHACD
 
 		if (fillClippingHoles && contours.GetNPoints() > 3)
 		{
-		
 			std::vector< Mesh * > triPolys;
 
 #ifdef DEBUG_VHACD
 			Mesh mesh0;
-			for(size_t pt = 0; pt < contours.GetNPoints(); ++pt)
+			const size_t nP = contours.GetNPoints();
+			for(size_t pt = 0; pt < nP; ++pt)
 			{
 				mesh0.AddPoint(Vec3< Real >(contours.GetPoint(pt).X(), contours.GetPoint(pt).Y(), 0.0));
 			}
-			for(size_t ed = 0; ed < contours.GetNEdges(); ++ed)
+			const size_t nE = contours.GetNEdges();
+			for(size_t ed = 0; ed < nE; ++ed)
 			{
 				mesh0.AddTriangle(Vec3<long>(contours.GetEdge(ed).X(), contours.GetEdge(ed).Y(), contours.GetEdge(ed).X()));
 			}
@@ -581,11 +582,12 @@ namespace VHACD
 			triContours->SaveVRML2(fileName);
 #endif
 			size_t nCC = contours.ComputeConnectedComponents(v2CC);
+
 			for(size_t p = 0; p < nCC; ++p)
 			{				
 				Polyline2D poly;
 				contours.ExtractConnectedComponent(p, v2CC, mapping, poly);
-				if (poly.GetNPoints() > 3)
+				if (poly.GetNPoints() >= 3)
 				{
 					Mesh * triPoly = new Mesh;
 #ifdef USE_TRIANGLE
@@ -1791,8 +1793,7 @@ namespace VHACD
 						}
 					}
 				}
-			}
-			break;
+			}			
 		}
 
 
@@ -1810,7 +1811,8 @@ namespace VHACD
             const Vec3<long> & tri = mesh.GetTriangle(t);
             if (tags[t] == 0)
             {
-                meshF.AddTriangle(tri-4);
+				Vec3<long> tri1(tri.X() - 4, tri.Y() - 4,   tri.Z() - 4);
+                meshF.AddTriangle(tri1);
             }
         }
 #ifdef DEBUG_VHACD

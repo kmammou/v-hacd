@@ -347,12 +347,14 @@ namespace VHACD
 
 	bool ComputeClipPlanes(Real minD, Real maxD, int posSampling, int angleSampling, std::set< Plane > & planes)
 	{
+//		Mesh sphere;
 		Real a, b, c, d;
 		const Real inc = PI * (3.0 - sqrt(5.0));
 		const Real off = 1.0 / angleSampling;
 		Real phi, y, r;
 		Real deltaPos = 1.0 / posSampling;
 		Real t = 0.0;
+//		sphere.AddPoint(Vec3<Real>(0.0, 0.0, 0.0));
 		for(int i=0; i <= posSampling; ++i)
 		{	
 			d = (1.0 - t) * minD + t * maxD;
@@ -361,6 +363,17 @@ namespace VHACD
 			planes.insert(Plane(1.0, 0.0, 0.0, d));
 			planes.insert(Plane(0.0, 1.0, 0.0, d));
 			planes.insert(Plane(0.0, 0.0, 1.0, d));
+/*
+			if (i == 0)
+			{
+				sphere.AddPoint(Vec3<Real>(1.0, 0.0, 0.0));
+				sphere.AddTriangle(Vec3<long>(0, sphere.GetNPoints()-1, 0));
+				sphere.AddPoint(Vec3<Real>(0.0, -1.0, 0.0));
+				sphere.AddTriangle(Vec3<long>(0, sphere.GetNPoints()-1, 0));
+				sphere.AddPoint(Vec3<Real>(0.0, 0.0, 1.0));
+				sphere.AddTriangle(Vec3<long>(0, sphere.GetNPoints()-1, 0));
+			}
+*/
 			
 			for(int j=0; j < angleSampling; ++j)
 			{
@@ -371,8 +384,20 @@ namespace VHACD
 				b = y;
 				c = sin(phi)*r;
 				planes.insert(Plane(a, b, c, d));																					
+/*
+				if (i == 0)
+				{
+					sphere.AddPoint(Vec3<Real>(a, b, c));
+					sphere.AddTriangle(Vec3<long>(0, sphere.GetNPoints()-1, 0));
+				}
+*/
 			}			
 		}
+/*
+		char fileName[1024];
+		sprintf(fileName, "C:\\work\\git\\v-hacd\\data\\test\\sphere.wrl");
+		sphere.SaveVRML2(fileName);
+*/
 		return true;
 	}
 
@@ -681,7 +706,6 @@ namespace VHACD
 #endif
 
         std::vector< Mesh * > inputParts;
-        inputParts.reserve(static_cast<size_t>(pow(2.0, depth)));
         inputParts.push_back(new Mesh);
         *(inputParts[0]) = inputMesh;
 
