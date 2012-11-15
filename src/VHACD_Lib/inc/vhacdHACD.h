@@ -103,31 +103,33 @@ namespace VHACD
 	
 	//! priority queque element
 	class VHACD;
-    class GraphEdgePriorityQueue
+
+    class ElementPriorityQueue
     {
 		public:
+			long								   GetName() const { return m_name; }
 			//! Constructor
 			//! @param name edge's id
 			//! @param priority edge's priority
-													GraphEdgePriorityQueue(long name, Real priority, long v)
+													ElementPriorityQueue(long name, Real priority, long v)
 													{
 														m_name = name;
 														m_priority = priority;
 														m_v = v;
 													}
 			//! Destructor
-													~GraphEdgePriorityQueue(void){}
+													~ElementPriorityQueue(void){}
 		private:
 			long									m_name;						//!< edge name
 			Real                                    m_priority;					//!< priority
 			long									m_v;						//!< priority
 		//! Operator < for GraphEdgePQ
-        friend bool                                 operator<(const GraphEdgePriorityQueue & lhs, const GraphEdgePriorityQueue & rhs);
+        friend bool                                 operator<(const ElementPriorityQueue & lhs, const ElementPriorityQueue & rhs);
 		//! Operator > for GraphEdgePQ
-        friend bool                                 operator>(const GraphEdgePriorityQueue & lhs, const GraphEdgePriorityQueue & rhs);
+        friend bool                                 operator>(const ElementPriorityQueue & lhs, const ElementPriorityQueue & rhs);
 		friend class VHACD;
     };
-    inline bool										operator<(const GraphEdgePriorityQueue & lhs, const GraphEdgePriorityQueue & rhs)
+    inline bool										operator<(const ElementPriorityQueue & lhs, const ElementPriorityQueue & rhs)
 													{
 														if (fabs(lhs.m_priority - rhs.m_priority) < EPSILON)
 														{
@@ -135,7 +137,7 @@ namespace VHACD
 														}
 														return (lhs.m_priority<rhs.m_priority);
 													}
-    inline bool										operator>(const GraphEdgePriorityQueue & lhs, const GraphEdgePriorityQueue & rhs)
+    inline bool										operator>(const ElementPriorityQueue & lhs, const ElementPriorityQueue & rhs)
 													{
 														if (fabs(lhs.m_priority - rhs.m_priority) < EPSILON)
 														{
@@ -258,9 +260,9 @@ namespace VHACD
 		std::vector< long >							m_finalConvexHullsIndices;  //>! indices of the final clusters
 		std::vector< Mesh * > *						m_convexHulls;			    //>! all convex-hulls
 		
-		reservable_priority_queue<GraphEdgePriorityQueue, 
-            std::vector<GraphEdgePriorityQueue>,
-			std::greater<std::vector<GraphEdgePriorityQueue>::value_type> > m_pqueue;		//!> priority queue
+		reservable_priority_queue<ElementPriorityQueue, 
+            std::vector<ElementPriorityQueue>,
+			std::greater<std::vector<ElementPriorityQueue>::value_type> > m_pqueue;		//!> priority queue
 													VHACD(const VHACD & rhs);
 	};
 	bool InitialConvexDecomposion(const Mesh & inputMesh, const size_t nSub[3], std::vector< Mesh * > & convexHulls, CallBackFunction callBack = 0, bool bbCenter=true);

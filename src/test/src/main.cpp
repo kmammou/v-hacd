@@ -64,7 +64,7 @@ int main(int argc, char * argv[])
     meshpoly.SaveVRML2("C:\\work\\git\\v-hacd\\data\\test\\mesh.wrl");
     return 0;
 */
-	// C:\work\git\v-hacd\data\test\drum.off 10 0.01 0 10 10 5 5 0.01 1000
+	// C:\work\git\v-hacd\data\test\block.off 30 0.01 0 16 32 8 64 0.01 2000
     if (argc != 11)
     { 
         std::cout << "Usage: ./testVHACD fileName.off depth maxConcavity invertInputFaces posSampling angleSampling posRefine angleRefine alpha targetNTrianglesDecimatedMesh"<< std::endl;

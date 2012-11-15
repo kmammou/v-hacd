@@ -24,6 +24,7 @@
 #include <btConvexHullComputer.h>
 #include <limits>
 #include <fstream>
+#include <omp.h>
 
 //#define VHACD_DEBUG
 namespace VHACD
@@ -148,7 +149,7 @@ namespace VHACD
         for (size_t e=0; e < m_graph.m_nE; ++e) 
         {
 			ComputeEdgeCost(static_cast<long>(e));
-			m_pqueue.push(GraphEdgePriorityQueue(static_cast<long>(e), m_graph.m_edges[e].m_concavity, std::min(m_graph.m_edges[e].m_v1, m_graph.m_edges[e].m_v2)));
+			m_pqueue.push(ElementPriorityQueue(static_cast<long>(e), m_graph.m_edges[e].m_concavity, std::min(m_graph.m_edges[e].m_v1, m_graph.m_edges[e].m_v2)));
         }
 		return true;
     }
@@ -163,7 +164,7 @@ namespace VHACD
 		char msg[1024];
 		double ptgStep = 1.0;
 		const size_t V0 = m_graph.GetNVertices();
-		std::vector<GraphEdgePriorityQueue> highPriority;
+		std::vector<ElementPriorityQueue> highPriority;
 		while ( (!m_pqueue.empty()) || (highPriority.size() > 0)) 
 		{
             progress = 100.0-m_graph.GetNVertices() * 100.0 / V0;
@@ -182,7 +183,7 @@ namespace VHACD
 				}
             }
 
-			GraphEdgePriorityQueue currentEdge(0,0.0, -1);
+			ElementPriorityQueue currentEdge(0,0.0, -1);
 			bool done = false;
 
 			do
@@ -244,15 +245,15 @@ namespace VHACD
 					{
 						idEdge = m_graph.m_vertices[v1].m_edges[itE];
 						ComputeEdgeCost(idEdge);
-						m_pqueue.push(GraphEdgePriorityQueue(idEdge, m_graph.m_edges[idEdge].m_concavity, std::min(m_graph.m_edges[idEdge].m_v1, m_graph.m_edges[idEdge].m_v2)));
+						m_pqueue.push(ElementPriorityQueue(idEdge, m_graph.m_edges[idEdge].m_concavity, std::min(m_graph.m_edges[idEdge].m_v1, m_graph.m_edges[idEdge].m_v2)));
 /*
 						if (m_graph.m_edges[idEdge].m_concavity > gV1.m_concavity)
 						{
-							m_pqueue.push(GraphEdgePriorityQueue(idEdge, m_graph.m_edges[idEdge].m_concavity));
+							m_pqueue.push(ElementPriorityQueue(idEdge, m_graph.m_edges[idEdge].m_concavity));
 						}
 						else
 						{
-							highPriority.push_back(GraphEdgePriorityQueue(idEdge, m_graph.m_edges[idEdge].m_concavity));
+							highPriority.push_back(ElementPriorityQueue(idEdge, m_graph.m_edges[idEdge].m_concavity));
 						}
 */
 					}
@@ -345,6 +346,86 @@ namespace VHACD
 		}	
 	}
 
+
+	bool ComputeClipPlanes(const Mesh * const mesh, const Mesh * const ch, Real radius, int posSampling, int angleSampling, std::set< Plane > & planes)
+	{
+
+        const size_t nV    = mesh->GetNPoints();
+		const size_t nTCH  = ch->GetNTriangles();
+        Vec3<Real> p0, p_opt;
+		Vec3<Real> ver0, ver1, ver2;
+		Real volOpt = 0.0;
+
+		reservable_priority_queue<ElementPriorityQueue, 
+            std::vector<ElementPriorityQueue>,
+			std::less<std::vector<ElementPriorityQueue>::value_type> > pqueue;	
+		pqueue.reserve(nV);
+		for(size_t v = 0; v < nV; v++)
+        {
+			p0=  mesh->GetPoint(v);
+			Real vol = std::numeric_limits<double>::max();
+			for(size_t t = 0; t < nTCH; t++)
+			{
+				const Vec3<long> & tri = ch->GetTriangle(t);
+				ver0 = ch->GetPoint(tri[0]);
+				ver1 = ch->GetPoint(tri[1]);
+				ver2 = ch->GetPoint(tri[2]);
+				vol = fabs(std::min(vol, Volume(ver0, ver1, ver2, p0)));
+			}
+			pqueue.push(ElementPriorityQueue(v, vol, 0));
+        }
+
+		Real a, b, c;
+		const Real inc = PI * (3.0 - sqrt(5.0));
+		const Real off = 1.0 / angleSampling;
+		Real phi, y, r;
+		int i = 0;
+		ElementPriorityQueue pq(-1, 0.0,0);
+		std::vector< Vec3<Real> > seeds;
+		while ( i < posSampling && pqueue.size() > 0)
+		{
+			pq = pqueue.top();
+			pqueue.pop();
+
+			p0 =  mesh->GetPoint(pq.GetName());
+			const size_t nSpheres = seeds.size();
+			bool inside = false;
+			for(size_t s = 0; s < nSpheres; s++)
+			{
+				if ( (seeds[s]-p0).GetNorm() < radius )
+				{
+					inside = true;
+					break;
+				}
+			}
+//			printf("%f %f %f \t ", p0.X(), p0.Y(), p0.Z());
+			
+			if ( !inside)
+			{	
+//				printf("inside");
+				i++;
+				seeds.push_back(p0);
+				planes.insert(Plane(1.0, 0.0, 0.0, -p0.X()));
+				planes.insert(Plane(0.0, 1.0, 0.0, -p0.Y()));
+				planes.insert(Plane(0.0, 0.0, 1.0, -p0.Z()));
+			
+				for(int j=0; j < angleSampling; ++j)
+				{
+					y = j * off - 1.0 + (off / 2.0);
+					r = sqrt(1.0 - y*y);
+					phi = j * inc;
+					a = cos(phi)*r;
+					b = y;
+					c = sin(phi)*r;
+					planes.insert(Plane(a, b, c, - a * p0.X() - b * p0.Y() - c * p0.Z()));																					
+				}			
+			}
+//			printf("\n");
+		}
+
+		return true;
+	}
+
 	bool ComputeClipPlanes(Real minD, Real maxD, int posSampling, int angleSampling, std::set< Plane > & planes)
 	{
 //		Mesh sphere;
@@ -363,6 +444,7 @@ namespace VHACD
 			planes.insert(Plane(1.0, 0.0, 0.0, d));
 			planes.insert(Plane(0.0, 1.0, 0.0, d));
 			planes.insert(Plane(0.0, 0.0, 1.0, d));
+
 /*
 			if (i == 0)
 			{
@@ -429,6 +511,7 @@ namespace VHACD
 		return true;
 	}
 
+
 	void ComputeBestClippingPlane(const Mesh & inputMesh, 
         Real volume0, 
         Real volume, 
@@ -441,239 +524,266 @@ namespace VHACD
 		Real alpha,
 		CallBackFunction callBack, bool debug)
 	{
-		std::set< Plane >::const_iterator itEnd = planes.end();
-		std::set< Plane >::const_iterator itBegin = planes.begin();
 		int i = 0;
 		int iBest;
 		char fileName[1024];
 		Plane plane;
 		Real balance, concavity;
 
-		printf("Nunber of clipping planes %i\n", planes.size());
 		size_t nV0 = inputMesh.GetNPoints();
+/*
 		long * v2CCLeft = new long[nV0];
 		long * v2CCRight = new long[nV0];
 		long * mapping = new long[nV0];
-		size_t nV;
+*/
+//		size_t nV;
 
-
+		int nPlanes = static_cast<int>(planes.size());
+/*
+		std::set< Plane >::const_iterator itEnd = planes.end();
+		std::set< Plane >::const_iterator itBegin = planes.begin();
 		for (std::set< Plane >::const_iterator it = itBegin; it != itEnd; ++it)
 		{
+*/
+		std::set< Plane >::const_iterator itBegin = planes.begin();
+		#pragma omp parallel for
+		for(int x = 0; x < nPlanes; ++x)
+		{
+			std::set< Plane >::const_iterator it = itBegin;
+			for(int h =0; h < x; ++h) ++it;
+
 			plane  = (*it);
 			Mesh left;
 			Mesh right;				
 			inputMesh.Clip(plane.m_a, plane.m_b, plane.m_c, plane.m_d, &right, &left, true);	
 
-			nV = right.GetNPoints() + left.GetNPoints();
-			if ( nV > nV0)
+			if (right.GetNPoints() > 0 && left.GetNPoints() > 0)
 			{
-				nV0 = nV;
-				delete [] v2CCLeft;
-				delete [] v2CCRight;
-				delete [] mapping;
-				v2CCLeft  = new long[nV0];
-				v2CCRight = new long[nV0];
-				mapping   = new long[nV0];
-			}
+				nV0 = right.GetNPoints() + left.GetNPoints();
+				long * v2CCLeft = new long[nV0];
+				long * v2CCRight = new long[nV0];
+				long * mapping = new long[nV0];
 
-			right.CleanDuplicatedVectices();
-			left.CleanDuplicatedVectices();
-
-			Mesh leftCH;
-			Mesh rightCH;
-
-			// Extract CCs of left
-			size_t nCCRight = right.ComputeConnectedComponents(v2CCRight);
-			size_t nCCLeft  = left.ComputeConnectedComponents(v2CCLeft);
-			size_t nCC      = nCCRight + nCCLeft;
-			
-			if ( nCCLeft > 1 || nCCRight > 1)
-			{
-				std::vector< Mesh * > parts;
-				std::vector< Mesh > CCs;
-				parts.resize(nCC);
-				CCs.resize(nCC);
-
-				for(size_t n = 0; n < nCC; n++)
-				{
-					parts[n] = new Mesh;
-				}
-
-				for(size_t n = 0; n < nCCLeft; n++)
-				{
-					left.ExtractConnectedComponent(n, v2CCLeft, mapping, CCs[n+nCCRight]);
-					CCs[n+nCCRight].ComputeConvexHull(*(parts[n+nCCRight]));
-					if (debug)
-					{
-//						sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\left_%06i_CC_%i.wrl", i, n);
-//						parts[n+nCCRight]->SaveVRML2(fileName);
-					}
-				}
-
-				for(size_t n = 0; n < nCCRight; n++)
-				{
-					right.ExtractConnectedComponent(n, v2CCRight, mapping, CCs[n]);
-					CCs[n].ComputeConvexHull(*(parts[n]));
-					if (debug)
-					{
-//						sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\right_%06i_CC_%i.wrl", i, n);
-//						parts[n]->SaveVRML2(fileName);
-					}
-				}
-
-				VHACD vhacd;
-
-				vhacd.SetNClusters(2);										// minimum number of clusters
-				vhacd.SetConcavity(std::numeric_limits<double>::max());     // maximum concavity
-				vhacd.SetCallBack(0 /*callBack*/);
-				vhacd.SetInitialConvexHulls(& parts);
-
-				vhacd.Init();
 				/*
-				for(size_t n1 = 0; n1 < nCCRight; n1++)
+				nV = right.GetNPoints() + left.GetNPoints();
+				if ( nV > nV0)
 				{
-					for(size_t n2 = n1+1; n2 < nCCRight; n2++)
-					{
-						vhacd.AddEdge(n1, n2);
-					}
-				}
-				for(size_t n1 = nCCRight; n1 < nCC; n1++)
-				{
-					for(size_t n2 = n1+1; n2 < nCC; n2++)
-					{
-						vhacd.AddEdge(n1, n2);
-					}
+					nV0 = nV;
+					delete [] v2CCLeft;
+					delete [] v2CCRight;
+					delete [] mapping;
+					v2CCLeft  = new long[nV0];
+					v2CCRight = new long[nV0];
+					mapping   = new long[nV0];
 				}
 				*/
+				right.CleanDuplicatedVectices();
+				left.CleanDuplicatedVectices();
 
-				for(size_t n1 = 0; n1 < nCC; n1++)
-				{
-					for(size_t n2 = n1+1; n2 < nCC; n2++)
-					{
-						vhacd.AddEdge(n1, n2);
-					}
-				}
-				vhacd.Compute();
+				Mesh leftCH;
+				Mesh rightCH;
 
-				const std::vector< long > &	 res = vhacd.GetFinalConvexHullsIndices();
-				const SArray<long, SARRAY_DEFAULT_MIN_SIZE> &  ancestors0 = vhacd.GetVertexAncestors(res[0]);
-				const SArray<long, SARRAY_DEFAULT_MIN_SIZE> &  ancestors1 = vhacd.GetVertexAncestors(res[1]);
-				
-				left  = CCs[res[0]];
-				right = CCs[res[1]];
-				Vec3< long > tri;
-				for(size_t n = 0; n < ancestors0.Size(); ++n)
-				{
-					size_t shiftPts = left.GetNPoints();
-					size_t shiftTris = left.GetNTriangles();
-					const Mesh & mesh = CCs[ancestors0[n]];
-					size_t nPts  = mesh.GetNPoints();
-					size_t nTris = mesh.GetNTriangles();
-					left.ResizePoints(shiftPts   + nPts);
-					left.ResizeTriangles(shiftTris + nTris);
-					for(size_t v = 0; v < nPts; ++v)
-					{
-						left.SetPoint(v + shiftPts, mesh.GetPoint(v)); 
-					}
-					for(size_t t = 0; t < nTris; ++t)
-					{
-						tri = mesh.GetTriangle(t);
-						tri += shiftPts;
-						left.SetTriangle(t + shiftTris, tri); 
-					}
-				}
-				for(size_t n = 0; n < ancestors1.Size(); ++n)
-				{
-					size_t shiftPts = right.GetNPoints();
-					size_t shiftTris = right.GetNTriangles();
-					const Mesh & mesh = CCs[ancestors1[n]];
-					size_t nPts  = mesh.GetNPoints();
-					size_t nTris = mesh.GetNTriangles();
-					right.ResizePoints(shiftPts   + nPts);
-					right.ResizeTriangles(shiftTris + nTris);
-					for(size_t v = 0; v < nPts; ++v)
-					{
-						right.SetPoint(v + shiftPts, mesh.GetPoint(v)); 
-					}
-					for(size_t t = 0; t < nTris; ++t)
-					{
-						tri = mesh.GetTriangle(t);
-						tri += shiftPts;
-						right.SetTriangle(t + shiftTris, tri); 
-					}
-				}
-				for(size_t n = 0; n < nCC; n++)
-				{
-					delete parts[n];
-				}
-				if (ancestors1.Size() > 0)
-				{
-					right.CleanDuplicatedVectices();
-				}
-				if (ancestors0.Size() > 0)
-				{
-					left.CleanDuplicatedVectices();
-				}
-			}
-
-			if (left.GetNPoints() > 0)
-			{
-				left.ComputeConvexHull(leftCH);
-			}
-			if (right.GetNPoints() > 0)
-			{
-				right.ComputeConvexHull(rightCH);
-			}
-
-			Real volumeLeft    = fabs(left.ComputeVolume());
-			Real volumeRight   = fabs(right.ComputeVolume());
+				// Extract CCs of left
+				size_t nCCRight = right.ComputeConnectedComponents(v2CCRight);
+				size_t nCCLeft  = left.ComputeConnectedComponents(v2CCLeft);
+				size_t nCC      = nCCRight + nCCLeft;
 			
-			Real volumeLeftCH  = 0.0;
-			Real volumeRightCH = 0.0;
+				if ( nCCLeft > 1 || nCCRight > 1)
+				{
+					std::vector< Mesh * > parts;
+					std::vector< Mesh > CCs;
+					parts.resize(nCC);
+					CCs.resize(nCC);
 
-			if (leftCH.GetNPoints() > 0)
-			{
-				volumeLeftCH  = leftCH.ComputeVolume();
-			}
-			if (rightCH.GetNPoints() > 0)
-			{
-				volumeRightCH = rightCH.ComputeVolume();
-			}
+					for(size_t n = 0; n < nCC; n++)
+					{
+						parts[n] = new Mesh;
+					}
+
+					for(size_t n = 0; n < nCCLeft; n++)
+					{
+						left.ExtractConnectedComponent(n, v2CCLeft, mapping, CCs[n+nCCRight]);
+						CCs[n+nCCRight].ComputeConvexHull(*(parts[n+nCCRight]));
+						if (debug)
+						{
+	//						sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\left_%06i_CC_%i.wrl", i, n);
+	//						parts[n+nCCRight]->SaveVRML2(fileName);
+						}
+					}
+
+					for(size_t n = 0; n < nCCRight; n++)
+					{
+						right.ExtractConnectedComponent(n, v2CCRight, mapping, CCs[n]);
+						CCs[n].ComputeConvexHull(*(parts[n]));
+						if (debug)
+						{
+	//						sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\right_%06i_CC_%i.wrl", i, n);
+	//						parts[n]->SaveVRML2(fileName);
+						}
+					}
+
+					VHACD vhacd;
+
+					vhacd.SetNClusters(2);										// minimum number of clusters
+					vhacd.SetConcavity(std::numeric_limits<double>::max());     // maximum concavity
+					vhacd.SetCallBack(0 /*callBack*/);
+					vhacd.SetInitialConvexHulls(& parts);
+
+					vhacd.Init();
+					/*
+					for(size_t n1 = 0; n1 < nCCRight; n1++)
+					{
+						for(size_t n2 = n1+1; n2 < nCCRight; n2++)
+						{
+							vhacd.AddEdge(n1, n2);
+						}
+					}
+					for(size_t n1 = nCCRight; n1 < nCC; n1++)
+					{
+						for(size_t n2 = n1+1; n2 < nCC; n2++)
+						{
+							vhacd.AddEdge(n1, n2);
+						}
+					}
+					*/
+
+					for(size_t n1 = 0; n1 < nCC; n1++)
+					{
+						for(size_t n2 = n1+1; n2 < nCC; n2++)
+						{
+							vhacd.AddEdge(n1, n2);
+						}
+					}
+					vhacd.Compute();
+
+					const std::vector< long > &	 res = vhacd.GetFinalConvexHullsIndices();
+					const SArray<long, SARRAY_DEFAULT_MIN_SIZE> &  ancestors0 = vhacd.GetVertexAncestors(res[0]);
+					const SArray<long, SARRAY_DEFAULT_MIN_SIZE> &  ancestors1 = vhacd.GetVertexAncestors(res[1]);
 				
-			concavity = (volumeLeftCH + volumeRightCH - volume) / volume0;
-			balance = fabs(volumeLeft-volumeRight) / volume0;
-			if (debug)
-			{
-//				printf("-> V=%f \t VL=%f \t VR=%f (%f) \n \t VL_CH=%f \t VR_CH=%f C = %f\n", volume, volumeLeft, volumeRight, volume - volumeLeft - volumeRight, volumeLeftCH, volumeRightCH, concavity);
+					left  = CCs[res[0]];
+					right = CCs[res[1]];
+					Vec3< long > tri;
+					for(size_t n = 0; n < ancestors0.Size(); ++n)
+					{
+						size_t shiftPts = left.GetNPoints();
+						size_t shiftTris = left.GetNTriangles();
+						const Mesh & mesh = CCs[ancestors0[n]];
+						size_t nPts  = mesh.GetNPoints();
+						size_t nTris = mesh.GetNTriangles();
+						left.ResizePoints(shiftPts   + nPts);
+						left.ResizeTriangles(shiftTris + nTris);
+						for(size_t v = 0; v < nPts; ++v)
+						{
+							left.SetPoint(v + shiftPts, mesh.GetPoint(v)); 
+						}
+						for(size_t t = 0; t < nTris; ++t)
+						{
+							tri = mesh.GetTriangle(t);
+							tri += shiftPts;
+							left.SetTriangle(t + shiftTris, tri); 
+						}
+					}
+					for(size_t n = 0; n < ancestors1.Size(); ++n)
+					{
+						size_t shiftPts = right.GetNPoints();
+						size_t shiftTris = right.GetNTriangles();
+						const Mesh & mesh = CCs[ancestors1[n]];
+						size_t nPts  = mesh.GetNPoints();
+						size_t nTris = mesh.GetNTriangles();
+						right.ResizePoints(shiftPts   + nPts);
+						right.ResizeTriangles(shiftTris + nTris);
+						for(size_t v = 0; v < nPts; ++v)
+						{
+							right.SetPoint(v + shiftPts, mesh.GetPoint(v)); 
+						}
+						for(size_t t = 0; t < nTris; ++t)
+						{
+							tri = mesh.GetTriangle(t);
+							tri += shiftPts;
+							right.SetTriangle(t + shiftTris, tri); 
+						}
+					}
+					for(size_t n = 0; n < nCC; n++)
+					{
+						delete parts[n];
+					}
+					if (ancestors1.Size() > 0)
+					{
+						right.CleanDuplicatedVectices();
+					}
+					if (ancestors0.Size() > 0)
+					{
+						left.CleanDuplicatedVectices();
+					}
+					delete [] v2CCRight;
+					delete [] v2CCLeft;
+					delete [] mapping;
+				}
 
-				printf("-> C=%f \t B=%f \t E=%f\n", concavity, balance, volume - volumeLeft - volumeRight);
+				if (left.GetNPoints() > 0)
+				{
+					left.ComputeConvexHull(leftCH);
+				}
+				if (right.GetNPoints() > 0)
+				{
+					right.ComputeConvexHull(rightCH);
+				}
 
-				sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\left_%06i.wrl", i);
-				left.SaveVRML2(fileName);
+				Real volumeLeft    = fabs(left.ComputeVolume());
+				Real volumeRight   = fabs(right.ComputeVolume());
+			
+				Real volumeLeftCH  = 0.0;
+				Real volumeRightCH = 0.0;
 
-				sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\right_%06i.wrl", i);
-				right.SaveVRML2(fileName);		
+				if (leftCH.GetNPoints() > 0)
+				{
+					volumeLeftCH  = leftCH.ComputeVolume();
+				}
+				if (rightCH.GetNPoints() > 0)
+				{
+					volumeRightCH = rightCH.ComputeVolume();
+				}
+				
+				concavity = (volumeLeftCH + volumeRightCH - volume) / volume0;
+				balance = fabs(volumeLeft-volumeRight) / volume0;
+				if (debug)
+				{
+	//				printf("-> V=%f \t VL=%f \t VR=%f (%f) \n \t VL_CH=%f \t VR_CH=%f C = %f\n", volume, volumeLeft, volumeRight, volume - volumeLeft - volumeRight, volumeLeftCH, volumeRightCH, concavity);
 
-				sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\leftCH_%06i.wrl", i);
-				leftCH.SaveVRML2(fileName);
+					printf("-> C=%f \t B=%f \t E=%f\n", concavity, balance, volume - volumeLeft - volumeRight);
 
-				sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\rightCH_%06i.wrl", i);
-				rightCH.SaveVRML2(fileName);		
-			}
-			if (concavity + alpha * balance <  minConcavity + alpha * minBalance)
-			{
-				bestPlane    = plane;
-				minConcavity = concavity;
-				iBest	     = i;
-				bestLeft	 = left;
-				bestRight	 = right;
-				minBalance   = balance;
+					sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\left_%06i.wrl", i);
+					left.SaveVRML2(fileName);
+
+					sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\right_%06i.wrl", i);
+					right.SaveVRML2(fileName);		
+
+					sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\leftCH_%06i.wrl", i);
+					leftCH.SaveVRML2(fileName);
+
+					sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\rightCH_%06i.wrl", i);
+					rightCH.SaveVRML2(fileName);		
+				}
+				#pragma omp critical
+				{
+					if (concavity + alpha * balance <  minConcavity + alpha * minBalance)
+					{
+						bestPlane    = plane;
+						minConcavity = concavity;
+						iBest	     = i;
+						bestLeft	 = left;
+						bestRight	 = right;
+						minBalance   = balance;
+					}
+				}
 			}
 			i++;
 		}
+/*
 		delete [] v2CCRight;
 		delete [] v2CCLeft;
 		delete [] mapping;
+*/
 		printf("Best %i \t C=%f \t B=%f \t (%f, %f, %f, %f)\n", iBest,  minConcavity, minBalance, bestPlane.m_a, bestPlane.m_b, bestPlane.m_c, bestPlane.m_d);
 	}
 
@@ -736,9 +846,13 @@ namespace VHACD
 		            Vec3< Real > p1 = mesh->GetMaxBB();
 		            Real minD = std::min(std::min(p0.X(), p0.Y()), p0.Z());
 		            Real maxD = std::max(std::max(p1.X(), p1.Y()), p1.Z());
+					Real radius = (p1-p0).GetNorm() / 2.0;
 
 		            std::set< Plane > planes;
 		            ComputeClipPlanes(minD, maxD, posSampling, angleSampling, planes);
+					printf("[Regular sampling] Nunber of clipping planes %i\n", planes.size());
+					ComputeClipPlanes(mesh, &ch, radius/posSampling, 3, angleSampling, planes);
+					printf("[High concavity points] Nunber of clipping planes %i\n", planes.size());
 		            Plane bestPlane;
 		            Mesh  * bestLeft = new Mesh;
 		            Mesh  * bestRight = new Mesh;
@@ -757,15 +871,17 @@ namespace VHACD
 		            sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\best_right_sub%i_part%i.wrl", sub, p);
 		            bestRight->SaveVRML2(fileName);		
 #endif 
-					if (angleRefine > 0 && posRefine > 0)
+					if (angleRefine > 0 && posRefine >= 0)
 					{
 						Real delta   = (maxD - minD) / (posSampling);
 						Real minDRef = bestPlane.m_d - delta;
 						Real maxDRef = bestPlane.m_d + delta;
 						std::set< Plane > planesRef;
 
-						printf("Refine \t");
-						RefineClipPlanes(bestPlane, minDRef, maxDRef, posRefine, angleRefine * angleSampling, planesRef);
+						
+						RefineClipPlanes(bestPlane, minDRef, maxDRef, posRefine, angleRefine, planesRef);
+						printf("[Refining] Nunber of clipping planes %i\n", planesRef.size());
+						printf("[Refining] \t");
 						ComputeBestClippingPlane(*mesh, volume0, volume, planesRef, bestPlane, *bestLeft, *bestRight, minConcavity,  minBalance, alpha, callBack, false);
 	#ifdef VHACD_DEBUG
 						sprintf(fileName, "C:\\git\\v-hacd\\data\\test\\best_sub%i_part%i_ref.wrl", sub, 2*p);
