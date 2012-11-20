@@ -111,18 +111,16 @@ namespace VHACD
 			//! Constructor
 			//! @param name edge's id
 			//! @param priority edge's priority
-													ElementPriorityQueue(long name, Real priority, long v)
+													ElementPriorityQueue(long name, Real priority)
 													{
 														m_name = name;
 														m_priority = priority;
-														m_v = v;
 													}
 			//! Destructor
 													~ElementPriorityQueue(void){}
 		private:
 			long									m_name;						//!< edge name
 			Real                                    m_priority;					//!< priority
-			long									m_v;						//!< priority
 		//! Operator < for GraphEdgePQ
         friend bool                                 operator<(const ElementPriorityQueue & lhs, const ElementPriorityQueue & rhs);
 		//! Operator > for GraphEdgePQ
@@ -131,18 +129,10 @@ namespace VHACD
     };
     inline bool										operator<(const ElementPriorityQueue & lhs, const ElementPriorityQueue & rhs)
 													{
-														if (fabs(lhs.m_priority - rhs.m_priority) < EPSILON)
-														{
-															return lhs.m_v < rhs.m_v;
-														}
 														return (lhs.m_priority<rhs.m_priority);
 													}
     inline bool										operator>(const ElementPriorityQueue & lhs, const ElementPriorityQueue & rhs)
 													{
-														if (fabs(lhs.m_priority - rhs.m_priority) < EPSILON)
-														{
-															return lhs.m_v > rhs.m_v;
-														}
 														return lhs.m_priority>rhs.m_priority;
 													}
     typedef void (*CallBackFunction)(const char *);

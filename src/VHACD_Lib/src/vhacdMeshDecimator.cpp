@@ -300,6 +300,38 @@ namespace VHACD
 		}
 		delete [] map;
 	}
+	void MeshDecimator::GetMeshData(Mesh & mesh) const
+	{
+		long * map = new long [m_nPoints];
+		long counter = 0;
+		mesh.Clear();
+		mesh.ResizePoints(m_nVertices);
+		mesh.ResizeTriangles(m_nTriangles);
+		for (size_t v = 0; v < m_nPoints; ++v)
+		{
+			if ( m_vertices[v].m_tag )
+			{
+				mesh.SetPoint(counter, m_points[v]);
+				map[v] = counter++;
+			}
+		}
+		counter = 0;
+		Vec3< long > tri;
+		for (size_t t = 0; t < m_nInitialTriangles; ++t)
+		{
+			if ( m_trianglesTags[t] )
+			{
+				tri.X() = map[m_triangles[t].X()];
+				tri.Y() = map[m_triangles[t].Y()];
+				tri.Z() = map[m_triangles[t].Z()];
+				mesh.SetTriangle(counter, tri);
+				counter++;
+			}
+		}
+		delete [] map;
+	}
+
+
 
 	void MeshDecimator::InitializeQEM()
 	{

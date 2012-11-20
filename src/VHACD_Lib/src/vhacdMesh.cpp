@@ -375,6 +375,8 @@ namespace VHACD
 	  b5 = s2 >= 0.0;
 	  b6 = s3 >= 0.0;
 
+//	  printf("%f %f %f\n", (float)s1, (float)s2, (float)s3);
+
 	  return ( ((b1 == b2) && (b2 == b3)) || ((b4 == b5) && (b5 == b6)));
 	}
 #ifdef DEBUG_VHACD
@@ -575,7 +577,6 @@ namespace VHACD
 			triPolys.push_back(triContours);
 
 
-
 #ifdef DEBUG_VHACD
 			char fileName[1024];
 			sprintf(fileName, "%striPolys_%05i.wrl", g_root, g_it); 
@@ -626,6 +627,7 @@ namespace VHACD
 							for(size_t tt = 0; tt < nT; ++tt)
 							{
 								const Vec3< long > & tri = m1->GetTriangle(tt);
+//								printf("[%i, %i]\t", v, tt);
 								if (PointIn2DTriangle(pt, m1->GetPoint(tri[0]), m1->GetPoint(tri[1]), m1->GetPoint(tri[2])))
 								{
 									inside = true;
@@ -1033,6 +1035,83 @@ namespace VHACD
         }
         return totalVolume;
     }
+
+    void Mesh::Subdivide(int n)
+    {
+		Vec3<Real> v[3];
+		long i[3], a, b;
+		unsigned long long e;
+		Vec3<long> tri;
+		for(int j = 0; j < n; ++j)
+		{
+			size_t nT = GetNTriangles();
+
+
+			std::map<unsigned long long, long> e2p;
+			std::map<unsigned long long, long>::iterator it;
+			
+			for(size_t t = 0; t < nT; t++)
+			{
+				tri = GetTriangle(t);
+
+				for(int k = 0; k < 3; ++k)
+				{
+					v[k] = GetPoint(tri[k]);
+				}
+				
+				for(int k = 0; k < 3; ++k)
+				{
+					a = tri[k];
+					b = tri[(k+1)%3];
+					e  = EdgeID(a, b);
+					it = e2p.find(e);
+					if (it == e2p.end())
+					{
+						i[k] = GetNPoints();
+						AddPoint(0.5 * (v[k]+v[(k+1)%3]));
+						e2p[e] = i[k];
+					}
+					else
+					{
+						i[k] = it->second;
+					}
+				}
+				SetTriangle(t, Vec3<long>(i[2], tri[0], i[0]));
+				AddTriangle(Vec3<long>(i[0], i[1], i[2]));
+				AddTriangle(Vec3<long>(i[1], i[0], tri[1]));
+				AddTriangle(Vec3<long>(tri[2], i[2], i[1]));
+			}
+		}
+	}
+	void Mesh::ComputeNormals()
+	{
+		const size_t nV = GetNPoints();
+		ResizeNormals(nV);
+        for(size_t v = 0; v < nV; v++)
+        {
+			SetNormal(v, 0.0);
+		}
+				
+        size_t nT = GetNTriangles();
+        Vec3<Real> ver0, ver1, ver2, normal, n;
+        for(size_t t = 0; t < nT; t++)
+        {
+			const Vec3<long> & tri = GetTriangle(t);
+            ver0 = GetPoint(tri[0]);
+			ver1 = GetPoint(tri[1]);
+			ver2 = GetPoint(tri[2]);
+			n = (ver1 - ver0) ^ (ver2 - ver0);
+			for(int k = 0; k < 3; ++k)
+			{
+				GetNormal(tri[k]) += n;
+			}
+        }
+        for(size_t v = 0; v < nV; v++)
+        {
+			GetNormal(v).Normalize();
+		}
+	}
+	 
 	
     void Mesh::ComputeConvexHull(Mesh & meshCH) const
     {
@@ -1492,6 +1571,9 @@ namespace VHACD
         mesh.AddPoint(Vec3<Real>( d.X(), d.Y(), 0.0));
         mesh.AddTriangle(Vec3< long > (0, 1, 3));
         mesh.AddTriangle(Vec3< long > (0, 3, 2));
+
+		mesh.Subdivide(3);
+
 #ifdef DEBUG_VHACD
         char fileName[1024];
 #endif       
@@ -1593,9 +1675,6 @@ namespace VHACD
 
 		for(size_t t = 0; t < nEdges; ++t)
 		{
-#ifdef DEBUG_VHACD
-			printf("%i / %i\n", t, nEdges);
-#endif
             edge = GetEdge(t);
 			pt0_2 = GetPoint(edge.X());
 			pt1_2 = GetPoint(edge.Y());
@@ -1633,7 +1712,6 @@ namespace VHACD
                          (ipt0==iA && ipt1==iC) || (ipt0==iC && ipt1==iA)  ) // edge already exists
 			        {
 						constraintEdges.insert(EdgeID(ipt0, ipt1));
-//						printf("CE \t (%i, %i) \n", ipt0, ipt1);
 				        break;
 			        }
                     else            
@@ -1694,7 +1772,6 @@ namespace VHACD
 							if (n==2 && e[0] != e[1])
 							{
 								constraintEdges.insert(EdgeID(e[0], e[1]));
-	//							printf("CE \t (%i, %i) \n", e[0], e[1]);
 							}
 
 							if (tri[0]  != tri[1] && tri[1] != tri[2] && tri[2] != tri[0])
@@ -1795,15 +1872,32 @@ namespace VHACD
 				}
 			}			
 		}
-
-
-        
-        const size_t nPtsMesh = mesh.GetNPoints();
-        meshF.ResizePoints(nPtsMesh-4);
-        
-    	for(size_t vertex = 4; vertex < nPtsMesh; ++vertex)
+		const size_t nPtsMesh = mesh.GetNPoints();
+		size_t nFinalPoints = 0;
+		std::vector<long> map;
+		map.resize(nPtsMesh, -1);
+    	for(size_t t = 0; t < nTrisMesh; ++t)
     	{
-            meshF.SetPoint(vertex-4, mesh.GetPoint(vertex));
+            const Vec3<long> & tri = mesh.GetTriangle(t);
+            if (tags[t] == 0)
+            {
+				for (int k = 0; k <3; ++k)
+				{
+					if (map[tri[k]] == -1)
+					{
+						map[tri[k]] = nFinalPoints++;
+					}
+				}
+            }
+        }
+		meshF.ResizePoints(nFinalPoints);
+        
+    	for(size_t vertex = 0; vertex < nPtsMesh; ++vertex)
+    	{
+			if (map[vertex] != -1)
+			{
+				meshF.SetPoint(map[vertex], mesh.GetPoint(vertex));
+			}            
         }
 		
     	for(size_t t = 0; t < nTrisMesh; ++t)
@@ -1811,7 +1905,7 @@ namespace VHACD
             const Vec3<long> & tri = mesh.GetTriangle(t);
             if (tags[t] == 0)
             {
-				Vec3<long> tri1(tri.X() - 4, tri.Y() - 4,   tri.Z() - 4);
+				Vec3<long> tri1(map[tri.X()], map[tri.Y()],   map[tri.Z()]);
                 meshF.AddTriangle(tri1);
             }
         }
@@ -1850,4 +1944,5 @@ namespace VHACD
 	{ 
 		return (a > b)? (static_cast<unsigned long long>(a) << 32) + b : (static_cast<unsigned long long>(b) << 32) + a; 
 	}
+
 }

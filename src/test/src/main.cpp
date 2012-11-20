@@ -25,6 +25,10 @@
 #include <VHACDMeshDecimator.h>
 #include <VHACDMesh.h>
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #ifdef WIN32
 #define PATH_SEP "\\"
 #else
@@ -65,6 +69,7 @@ int main(int argc, char * argv[])
     return 0;
 */
 	// C:\work\git\v-hacd\data\test\block.off 30 0.01 0 16 32 8 64 0.01 2000
+
     if (argc != 11)
     { 
         std::cout << "Usage: ./testVHACD fileName.off depth maxConcavity invertInputFaces posSampling angleSampling posRefine angleRefine alpha targetNTrianglesDecimatedMesh"<< std::endl;
@@ -175,6 +180,8 @@ int main(int argc, char * argv[])
         delete parts[p];
     }
     
+_CrtDumpMemoryLeaks();
+
     return 0;
 }
 

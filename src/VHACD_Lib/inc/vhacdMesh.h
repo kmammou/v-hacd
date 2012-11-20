@@ -94,15 +94,22 @@ namespace VHACD
     class Mesh
 	{            
     public:	
+		void													AddNormal(const Vec3<Real> & pt)				{ m_normals.push_back(pt);};
+		void													SetNormal(long index, const Vec3<Real> & pt)	{ m_normals[index] = pt; };
+		const Vec3<Real> &										GetNormal(long index) const						{ return m_normals[index]; };
+		Vec3<Real> &											GetNormal(long index)							{ return m_normals[index]; };
+		size_t													GetNNormals() const								{ return m_normals.size();};
+		const Real *											GetNormals() const								{ return (Real *) (&(m_normals[0]));} // ugly
+
 		void													AddPoint(const Vec3<Real> & pt)					{ m_points.push_back(pt);};
-		void													SetPoint(long index, const Vec3<Real> & pt)		{ m_points[index] = pt;};
-		const Vec3<Real> &										GetPoint(long index) const						{ return m_points[index];};
-		Vec3<Real> &											GetPoint(long index)							{ return m_points[index];};
+		void													SetPoint(long index, const Vec3<Real> & pt)		{ m_points[index] = pt; };
+		const Vec3<Real> &										GetPoint(long index) const						{ return m_points[index]; };
+		Vec3<Real> &											GetPoint(long index)							{ return m_points[index]; };
 		size_t													GetNPoints() const								{ return m_points.size();};
 		const Real *											GetPoints() const								{ return (Real *) (&(m_points[0]));} // ugly
 
 		void													AddTriangle(const Vec3<long> & tri)			    { m_triangles.push_back(tri);};
-		void													SetTriangle(long index, const Vec3<long> & tri) { m_triangles[index] = tri;};
+		void													SetTriangle(long index, const Vec3<long> & tri) { m_triangles[index] = tri; };
 		const Vec3<long> &										GetTriangle(long index) const  				    { return m_triangles[index];};
 		Vec3<long> &											GetTriangle(long index)		  				    { return m_triangles[index];};
 		size_t													GetNTriangles() const							{ return m_triangles.size();};
@@ -112,9 +119,11 @@ namespace VHACD
 		const Vec3<Real> &										GetMinBB() const								{ return m_minBB;}
 		const Vec3<Real> &										GetMaxBB() const								{ return m_maxBB;}
 
+		void													ClearNormals()									{ m_normals.clear();}
 		void													ClearPoints()									{ m_points.clear();}
 		void													ClearTriangles()								{ m_triangles.clear();}
 		void													Clear()											{ ClearPoints(); ClearTriangles();}
+		void													ResizeNormals(size_t nNormals)					{ m_normals.resize(nNormals);}
 		void													ResizePoints(size_t nPts)						{ m_points.resize(nPts);}
 		void													ResizeTriangles(size_t nTri)					{ m_triangles.resize(nTri);}
 		void													Clip(const Real a, const Real b, const Real c, const Real d,  // ax + by + cz + d = 0
@@ -137,7 +146,9 @@ namespace VHACD
 		void													ComputeConvexHull(Mesh & meshCH) const;
         long                                                    FindPoint(const Vec3<Real> & pt) const;
         long                                                    InsertPoint(const Vec3<Real> & pt);
-
+		void													Subdivide(int n);
+		void													ComputeNormals();
+		
 
 		//! Constructor.
 																Mesh();
@@ -145,6 +156,7 @@ namespace VHACD
 																~Mesh(void);
 
 		private:
+			std::vector< Vec3<Real> >							m_normals;
 			std::vector< Vec3<Real> >							m_points;
 			std::vector< Vec3<long> >							m_triangles;
 			Vec3<Real>											m_minBB;
