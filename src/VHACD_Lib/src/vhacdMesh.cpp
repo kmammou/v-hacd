@@ -196,8 +196,8 @@ namespace VHACD
                     m_points[p][0] = x;
                     m_points[p][1] = y;
                     m_points[p][2] = z;
-                }        
-                long i, j, k, s;
+                }
+                int i, j, k, s;
                 for (long t = 0; t < nf ; ++t) {
                     fscanf(fid, "%i", &s);
                     if (s == 3)
@@ -235,7 +235,7 @@ namespace VHACD
 
     Real Mesh::ComputeVolume() const
     {
-        const long nV = GetNPoints();
+        const long nV = (long) GetNPoints();
         if (nV == 0)
         {
             return 0.0;
@@ -247,7 +247,7 @@ namespace VHACD
         }
         bary /= static_cast<Real>(nV);
         
-        const long nT = GetNTriangles();
+        const long nT = (long) GetNTriangles();
         Vec3<Real> ver0, ver1, ver2;
         Real totalVolume = 0.0;
         for(long t = 0; t < nT; t++)

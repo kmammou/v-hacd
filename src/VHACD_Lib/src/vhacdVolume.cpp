@@ -363,7 +363,6 @@ namespace VHACD
         Vec3<Real> * points = new Vec3<Real> [CLUSTER_SIZE];
         size_t p = 0;
         short i, j, k;
-        int counter = 0;
         while( p < nVoxels)
         {
             size_t q = 0;
@@ -477,7 +476,6 @@ namespace VHACD
                 }
                 else
                 {
-                    bool onSurf = false;
                     if (fabs(d) <= d0)
                     {
                         voxel.m_data = VOXEL_ON_CLIP_PLANE;
@@ -907,7 +905,6 @@ namespace VHACD
         vset.m_voxels.Allocate(m_numVoxelsInsideSurface + m_numVoxelsOnSurface);
         vset.m_scale      = m_scale;
         vset.m_unitVolume = m_scale * m_scale * m_scale;
-        Real maxDim       = (Real) std::max(std::max(m_dim[0], m_dim[1]), m_dim[2]);
         const short i0 = (short) m_dim[0];
         const short j0 = (short) m_dim[1];
         const short k0 = (short) m_dim[2];

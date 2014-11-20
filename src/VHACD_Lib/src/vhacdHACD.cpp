@@ -186,7 +186,7 @@ namespace VHACD
         int  iBest    = -1;
         int  nPlanes  = (int) static_cast<int>(planes.Size());
         Real minTotal = minConcavity + minBalance + minSymmetry;
-#if USE_THREAD == 1
+#if USE_THREAD == 1 && _OPENMP
         #pragma omp parallel for
 #endif
         for(int x = 0; x < nPlanes; ++x)
@@ -210,7 +210,7 @@ namespace VHACD
                 Real symmetry      = beta * w * (1.0 - preferredCuttingDirection[0] * plane.m_a - preferredCuttingDirection[1] * plane.m_b - preferredCuttingDirection[2] * plane.m_c);
                 Real total         = concavity +  balance +  symmetry;
 
-#if USE_THREAD == 1
+#if USE_THREAD == 1 && _OPENMP
                 #pragma omp critical
 #endif
                 {
@@ -551,7 +551,7 @@ namespace VHACD
         int  iBest    = -1;
         int  nPlanes  = (int) static_cast<int>(planes.Size());
         Real minTotal = minConcavity + minBalance + minSymmetry;
-#if USE_THREAD == 1
+#if USE_THREAD == 1 && _OPENMP
         #pragma omp parallel for
 #endif
         for(int x = 0; x < nPlanes; ++x)
@@ -576,7 +576,7 @@ namespace VHACD
                 Real symmetry      = beta * w * d;
                 Real total         = concavity +  balance +  symmetry;
 
-#if USE_THREAD == 1
+#if USE_THREAD == 1 && _OPENMP
                 #pragma omp critical
 #endif
                 {
