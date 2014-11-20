@@ -21,7 +21,7 @@
 #include <string>
 #include <iosfwd>
 #include <btConvexHullComputer.h>
-#include <VHACDMesh.h>
+#include <vhacdMesh.h>
 
 namespace VHACD
 {

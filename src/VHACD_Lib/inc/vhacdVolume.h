@@ -15,9 +15,9 @@
 #pragma once
 #ifndef VHACD_VOLUME_H
 #define VHACD_VOLUME_H
-#include <VHACDVersion.h>
-#include <VHACDVector.h>
-#include <VHACDMesh.h>
+#include <vhacdVersion.h>
+#include <vhacdVector.h>
+#include <vhacdMesh.h>
 #include <assert.h>
 
 #ifdef LINUX

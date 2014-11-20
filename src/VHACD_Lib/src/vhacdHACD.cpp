@@ -15,7 +15,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <VHACDHACD.h>
+#include <vhacdHACD.h>
 #include <fstream>
 #include <sstream>
 #include <limits>

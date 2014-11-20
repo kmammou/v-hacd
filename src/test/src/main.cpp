@@ -23,10 +23,10 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
-#include <VHACDHACD.h>
-#include <VHACDMesh.h>
-#include <VHACDVolume.h>
-#include <VHACDTimer.h>
+#include <vhacdHACD.h>
+#include <vhacdMesh.h>
+#include <vhacdVolume.h>
+#include <vhacdTimer.h>
 #include <vector>
 
 /*
