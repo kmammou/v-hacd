@@ -57,7 +57,7 @@ int main(int argc, char * argv[])
     if (argc != 12)
     { 
         cout << "Usage: ./testVHACD fileName.off resolution maxNumVoxels maxDepth maxConcavity planeDownsampling convexhullDownsampling alpha beta mode outFileName.wrl"<< endl;
-        cout << "Recommended parameters: ./testVHACD fileName.off 100000 10 0.01 1 8 0.05 0.05 0 0 VHACD_CHs.wrl"<< endl;
+        cout << "Recommended parameters: ./testVHACD fileName.off 100000 20 0.0025 4 4 0.05 0.05 0 0 VHACD_CHs.wrl"<< endl;
         return -1;
     }
 
@@ -77,6 +77,11 @@ int main(int argc, char * argv[])
     planeDownsampling      = (planeDownsampling < 1 )? 1  : planeDownsampling;
     convexhullDownsampling = (convexhullDownsampling < 1 )? 1  : convexhullDownsampling;
 
+#ifdef _OPENMP
+    cout << "+ OpenMP (ON)"<< std::endl;
+#else
+    cout << "+ OpenMP (OFF)" << std::endl;
+#endif
     cout << "+ Parameters" << std::endl;
     cout << "\t input                      " << fileName               << std::endl;
     cout << "\t resolution                 " << resolution             << std::endl;
