@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6.0 FATAL_ERROR)
-project(VVHACD)
+project(VHACD)
 set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/output" CACHE PATH "project install prefix" FORCE)
 set(CMAKE_COMMON_INC "${CMAKE_SOURCE_DIR}/../scripts/cmake_common.cmake")
 add_subdirectory ("${CMAKE_SOURCE_DIR}/VHACD_Lib")

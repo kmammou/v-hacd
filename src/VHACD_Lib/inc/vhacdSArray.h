@@ -23,11 +23,11 @@
 
 namespace VHACD
 {
-	//!	SArray.
-    template < typename T, size_t N > class SArray
+    //!    SArray.
+    template < typename T, size_t N = 64 > class SArray
     {
         public:
-            T &                     operator[](size_t i)       
+            T &                     operator[](size_t i)
                                     {
                                         T * const data = Data();
                                         return data[i];
@@ -37,7 +37,7 @@ namespace VHACD
                                         const T * const data = Data();
                                         return data[i];
                                     }
-            size_t                  Size() const               
+            size_t                  Size() const
                                     { 
                                         return m_size;
                                     }
@@ -60,28 +60,28 @@ namespace VHACD
                                     {
                                         --m_size;
                                     }
-			void                    Allocate(size_t size)
-									{
-										if (size > m_maxSize)
-										{
+            void                    Allocate(size_t size)
+                                    {
+                                        if (size > m_maxSize)
+                                        {
                                             T * temp = new T[size];
-											memcpy(temp, Data(), m_size*sizeof(T));
+                                            memcpy(temp, Data(), m_size*sizeof(T));
                                             delete [] m_data;
                                             m_data = temp;
                                             m_maxSize = size;
-										}
-									}
-			void                    Resize(size_t size)
-									{
-										Allocate(size);
-										m_size = size;
-									}
+                                        }
+                                    }
+            void                    Resize(size_t size)
+                                    {
+                                        Allocate(size);
+                                        m_size = size;
+                                    }
 
             void                    PushBack(const T &  value)
                                     {
                                         if (m_size==m_maxSize)
                                         {
-                                            size_t maxSize = (m_maxSize << 1);                                            
+                                            size_t maxSize = (m_maxSize << 1);
                                             T * temp = new T[maxSize];
                                             memcpy(temp, Data(), m_maxSize*sizeof(T));
                                             delete [] m_data;
@@ -118,7 +118,7 @@ namespace VHACD
                                         }
                                         return false;
                                     }
-            void                    operator=(const SArray & rhs)       
+            void                    operator=(const SArray & rhs)
                                     {
                                         if (m_maxSize < rhs.m_size)
                                         {

@@ -15,6 +15,6 @@
 #pragma once
 #ifndef VHACD_VERSION_H
 #define VHACD_VERSION_H
-#define VHACD_VERSION_MAJOR 0
+#define VHACD_VERSION_MAJOR 2
 #define VHACD_VERSION_MINOR 0
 #endif
