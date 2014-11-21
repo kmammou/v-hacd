@@ -23,7 +23,7 @@
 #include <omp.h>
 #endif // _OPENMP
 
-#define USE_THREAD 1
+#define USE_THREAD 0
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define ABS(a) (((a)<0) ? -(a) : (a))
@@ -39,28 +39,29 @@ namespace VHACD
         Real vx = (ey-ez)*(ey-ez);
         Real vy = (ex-ez)*(ex-ez);
         Real vz = (ex-ey)*(ex-ey);
-        Real e  = vx + vy + vz;
-        if (e==0.0) e = 1.0;
         if (vx < vy && vx < vz)
         {
-            dir[0] = 1.0;
+			Real e = ey*ey + ez*ez;
+			dir[0] = 1.0;
             dir[1] = 0.0;
             dir[2] = 0.0;
-            return (vy + vz) /e;
+            return (e == 0.0) ? 0.0 : 1.0 - vx / e;
         }
         else if (vy < vx && vy < vz)
         {
-            dir[0] = 0.0;
+			Real e = ex*ex + ez*ez;
+			dir[0] = 0.0;
             dir[1] = 1.0;
             dir[2] = 0.0;
-            return (vx + vz)/e;
+			return (e == 0.0) ? 0.0 : 1.0 - vy / e;
         }
         else
         {
-            dir[0] = 0.0;
+			Real e = ex*ex + ey*ey;
+			dir[0] = 0.0;
             dir[1] = 0.0;
             dir[2] = 1.0;
-            return (vx + vy)/e;
+			return (e == 0.0) ? 0.0 : 1.0 - vz / e;
         }
     }
     void ComputeAxesAlignedClippingPlanes(const VoxelSet & vset, 
@@ -209,7 +210,8 @@ namespace VHACD
                 Real volumeRightCH = rightCH.ComputeVolume();
                 Real concavity     = fabs(volumeLeftCH + volumeRightCH - volume) / volume0;
                 Real balance       = alpha * pow( pow(volumeLeft - volumeRight, 2.0), 0.5)/ volume0;
-                Real symmetry      = beta * w * (1.0 - preferredCuttingDirection[0] * plane.m_a - preferredCuttingDirection[1] * plane.m_b - preferredCuttingDirection[2] * plane.m_c);
+				Real d             = w * (preferredCuttingDirection[0] * plane.m_a + preferredCuttingDirection[1] * plane.m_b + preferredCuttingDirection[2] * plane.m_c);
+                Real symmetry      = beta * d;
                 Real total         = concavity +  balance +  symmetry;
 
 #if USE_THREAD == 1 && _OPENMP
@@ -221,7 +223,10 @@ namespace VHACD
                         if (callBack)
                         {
                             char msg[1024];
-                            sprintf(msg, "\t\t\t Plane %04i T=%2.3f C=%2.3f B=%2.3f S=%2.3f (%1.1f, %1.1f, %1.1f, %3.3f)\n", x, total, concavity, balance, symmetry, plane.m_a, plane.m_b, plane.m_c, plane.m_d);
+                            sprintf(msg, "\t\t\t Plane %04i T=%2.3f C=%2.3f B=%2.3f S=%2.3f D=%1.6f W=%1.6f [%1.1f, %1.1f, %1.1f](%1.1f, %1.1f, %1.1f, %3.3f) \n", 
+										x, total, concavity, balance, symmetry, d, w, 
+										preferredCuttingDirection[0], preferredCuttingDirection[1], preferredCuttingDirection[2],
+										plane.m_a, plane.m_b, plane.m_c, plane.m_d);
                             (*callBack)(msg);
                         }
                         bestPlane     = plane;
@@ -396,35 +401,36 @@ namespace VHACD
     }
     Real ComputePreferredCuttingDirection(const TetrahedronSet & tset, Vec3<Real> & dir)
     {
-        Real ex = tset.GetEigenValue(AXIS_X);
-        Real ey = tset.GetEigenValue(AXIS_Y);
-        Real ez = tset.GetEigenValue(AXIS_Z);
-        Real vx = (ey-ez)*(ey-ez);
-        Real vy = (ex-ez)*(ex-ez);
-        Real vz = (ex-ey)*(ex-ey);
-        Real e  = vx + vy + vz;
-        if (e==0.0) e = 1.0;
-        if (vx < vy && vx < vz)
-        {
-            dir[0] = 1.0;
-            dir[1] = 0.0;
-            dir[2] = 0.0;
-            return (vy + vz) /e;
-        }
-        else if (vy < vx && vy < vz)
-        {
-            dir[0] = 0.0;
-            dir[1] = 1.0;
-            dir[2] = 0.0;
-            return (vx + vz)/e;
-        }
-        else
-        {
-            dir[0] = 0.0;
-            dir[1] = 0.0;
-            dir[2] = 1.0;
-            return (vx + vy)/e;
-        }
+		Real ex = tset.GetEigenValue(AXIS_X);
+		Real ey = tset.GetEigenValue(AXIS_Y);
+		Real ez = tset.GetEigenValue(AXIS_Z);
+		Real vx = (ey - ez)*(ey - ez);
+		Real vy = (ex - ez)*(ex - ez);
+		Real vz = (ex - ey)*(ex - ey);
+		if (vx < vy && vx < vz)
+		{
+			Real e = ey*ey + ez*ez;
+			dir[0] = 1.0;
+			dir[1] = 0.0;
+			dir[2] = 0.0;
+			return (e == 0.0) ? 0.0 : 1.0 - vx / e;
+		}
+		else if (vy < vx && vy < vz)
+		{
+			Real e = ex*ex + ez*ez;
+			dir[0] = 0.0;
+			dir[1] = 1.0;
+			dir[2] = 0.0;
+			return (e == 0.0) ? 0.0 : 1.0 - vy / e;
+		}
+		else
+		{
+			Real e = ex*ex + ey*ey;
+			dir[0] = 0.0;
+			dir[1] = 0.0;
+			dir[2] = 1.0;
+			return (e == 0.0) ? 0.0 : 1.0 - vz / e;
+		}
     }
     void ComputeAxesAlignedClippingPlanes(const TetrahedronSet & tset, 
                                           const short            downsampling, 
@@ -574,22 +580,26 @@ namespace VHACD
                 Real volumeRightCH = rightCH.ComputeVolume();
                 Real concavity     = fabs(volumeLeftCH + volumeRightCH - volume) / volume0;
                 Real balance       = alpha * pow( pow(volumeLeft - volumeRight, 2.0), 0.5)/ volume0;
-                Real d             = (1.0 - preferredCuttingDirection[0] * plane.m_a - preferredCuttingDirection[1] * plane.m_b - preferredCuttingDirection[2] * plane.m_c);
-                Real symmetry      = beta * w * d;
-                Real total         = concavity +  balance +  symmetry;
+				Real d             = w * (preferredCuttingDirection[0] * plane.m_a + preferredCuttingDirection[1] * plane.m_b + preferredCuttingDirection[2] * plane.m_c);
+				Real symmetry      = beta * d;
+				Real total         = concavity + balance + symmetry;
 
 #if USE_THREAD == 1 && _OPENMP
-                #pragma omp critical
+#pragma omp critical
 #endif
-                {
-                    if (total <  minTotal)
-                    {    
-                        if (callBack)
-                        {
-                            char msg[1024];
-                            sprintf(msg, "\t\t\t Plane %04i T=%2.3f C=%2.3f B=%2.3f S=%2.3f (%1.1f, %1.1f, %1.1f, %3.3f)\n", x, total, concavity, balance, symmetry, plane.m_a, plane.m_b, plane.m_c, plane.m_d);
-                            (*callBack)(msg);
-                        }
+				{
+					if (total <  minTotal)
+					{
+						if (callBack)
+						{
+							char msg[1024];
+							sprintf(msg, "\t\t\t Plane %04i T=%2.3f C=%2.3f B=%2.3f S=%2.3f D=%1.6f W=%1.6f [%1.1f, %1.1f, %1.1f](%1.1f, %1.1f, %1.1f, %3.3f) \n",
+								x, total, concavity, balance, symmetry, d, w,
+								preferredCuttingDirection[0], preferredCuttingDirection[1], preferredCuttingDirection[2],
+								plane.m_a, plane.m_b, plane.m_c, plane.m_d);
+							(*callBack)(msg);
+						}
+
                         bestPlane     = plane;
                         minTotal      = total;
                         minConcavity  = concavity;
