@@ -19,7 +19,9 @@
 #include <fstream>
 #include <sstream>
 #include <limits>
+#if _OPENMP
 #include <omp.h>
+#endif // _OPENMP
 
 #define USE_THREAD 1
 #define MAX(a,b) (((a)>(b))?(a):(b))

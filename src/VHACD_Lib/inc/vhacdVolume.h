@@ -75,7 +75,7 @@ namespace VHACD
 
         size_t                                      GetNVoxels() const { return m_voxels.Size();}
         Real                                        ComputeVolume() const { return m_unitVolume * m_voxels.Size();}
-        Real                                        ComputeMaxVolumeError() const { return 0.5 * m_unitVolume * m_numVoxelsOnSurface;}
+        Real                                        ComputeMaxVolumeError() const { return m_unitVolume * m_numVoxelsOnSurface;}
         void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling) const;
         const Vec3<short> &                         GetMinBBVoxels()  const { return m_minBBVoxels;}
         const Vec3<short> &                         GetMaxBBVoxels()  const { return m_maxBBVoxels;}
