@@ -8,5 +8,14 @@ if(OPENMP_FOUND)
 endif()
 add_executable(testVHACD ${PROJECT_CPP_FILES} ${PROJECT_C_FILES} ${PROJECT_INC_FILES} ${PROJECT_INL_FILES})
 
+
+IF(WIN32)
 target_link_libraries(testVHACD VHACD_LIB)
+ELSEIF(APPLE)
+target_link_libraries(testVHACD VHACD_LIB)
+ELSE ()
+set(CMAKE_CXX_FLAGS "-g -Wall")
+target_link_libraries(testVHACD VHACD_LIB rt)
+ENDIF()
+
 include_directories("${CMAKE_SOURCE_DIR}/VHACD_Lib/inc")
