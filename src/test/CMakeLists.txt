@@ -14,7 +14,7 @@ target_link_libraries(testVHACD VHACD_LIB)
 ELSEIF(APPLE)
 target_link_libraries(testVHACD VHACD_LIB)
 ELSE ()
-set(CMAKE_CXX_FLAGS "-g -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall")
 target_link_libraries(testVHACD VHACD_LIB rt)
 ENDIF()
 
