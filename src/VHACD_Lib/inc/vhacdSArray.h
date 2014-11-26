@@ -15,10 +15,11 @@
 #pragma once
 #ifndef VHACD_SARRAY_H
 #define VHACD_SARRAY_H
-#include<vhacdVersion.h>
-#include<stdio.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "vhacdVersion.h"
+
 #define SARRAY_DEFAULT_MIN_SIZE 16
 
 namespace VHACD

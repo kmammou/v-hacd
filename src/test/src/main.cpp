@@ -23,17 +23,19 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
-#include <vhacdHACD.h>
-#include <vhacdMesh.h>
-#include <vhacdVolume.h>
-#include <vhacdTimer.h>
 #include <vector>
 
-/*
-#define _CRTDBG_MAP_ALLOC
+//#define _CRTDBG_MAP_ALLOC
+
+#ifdef _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
-*/
+#endif // _CRTDBG_MAP_ALLOC
+
+#include "vhacdHACD.h"
+#include "vhacdMesh.h"
+#include "vhacdVolume.h"
+#include "vhacdTimer.h"
 
 using namespace VHACD;
 using namespace std;
@@ -54,10 +56,10 @@ void GetFileExtension(const string & fileName, string & fileExtension);
 
 int main(int argc, char * argv[])
 {
-    if (argc != 12)
+    if (argc != 13)
     { 
-        cout << "Usage: ./testVHACD fileName.off resolution maxNumVoxels maxDepth maxConcavity planeDownsampling convexhullDownsampling alpha beta mode outFileName.wrl"<< endl;
-        cout << "Recommended parameters: ./testVHACD fileName.off 100000 20 0.0025 4 4 0.05 0.05 0 0 VHACD_CHs.wrl"<< endl;
+        cout << "Usage: ./testVHACD fileName.off resolution maxNumVoxels maxDepth maxConcavity planeDownsampling convexhullDownsampling alpha beta gamma mode outFileName.wrl"<< endl;
+        cout << "Recommended parameters: ./testVHACD fileName.off 100000 20 0.0025 4 4 0.05 0.05 0.001 0 0 VHACD_CHs.wrl"<< endl;
         return -1;
     }
 
@@ -69,9 +71,10 @@ int main(int argc, char * argv[])
     int           convexhullDownsampling  = atoi(argv[6]);  // 4
     double        alpha                   = atof(argv[7]);  // 0.05
     double        beta                    = atof(argv[8]);  // 0.05
-    int           pca                     = atoi(argv[9]);  // 1
-    int           mode                    = atoi(argv[10]); // 0: voxel-based (recommended), 1: tethedron-based
-    const string  fileNameOut(argv[11]);                    // VHACD_CHs.wrl
+    double        gamma                   = atof(argv[9]);  // 0.0001
+    int           pca                     = atoi(argv[10]); // 0
+    int           mode                    = atoi(argv[11]); // 0: voxel-based (recommended), 1: tethedron-based
+    const string  fileNameOut(argv[12]);                    // VHACD_CHs.wrl
 
     resolution             = (resolution   < 0)? 0 : resolution;
     planeDownsampling      = (planeDownsampling < 1 )? 1  : planeDownsampling;
@@ -91,6 +94,7 @@ int main(int argc, char * argv[])
     cout << "\t convexhull downsampling    " << convexhullDownsampling << std::endl;
     cout << "\t alpha                      " << alpha                  << std::endl;
     cout << "\t beta                       " << beta                   << std::endl;
+    cout << "\t gamma                      " << gamma                  << std::endl;
     cout << "\t pca                        " << pca                    << std::endl;
     cout << "\t mode                       " << mode                   << std::endl;
     cout << "\t output                     " << fileNameOut            << std::endl;
@@ -197,6 +201,9 @@ int main(int argc, char * argv[])
     timer.Toc();
     cout << "\t time " << timer.GetElapsedTime() / 1000.0 << "s" << endl;
 
+    Mesh ** convexHulls  = 0;
+    size_t  nConvexHulls = 0;
+    Real    volume0;
     if (mode == 0)
     {
         cout << "+ Convert volume to vset " << endl;
@@ -221,53 +228,21 @@ int main(int argc, char * argv[])
                                        alpha, 
                                        beta, 
                                        concavity, 
+                                       volume0, 
                                        partsVoxelSet, 
                                        &CallBack);
         timer.Toc();
         cout << "\t time " << timer.GetElapsedTime() / 1000.0 << "s" << endl;
 
-        const size_t nParts = partsVoxelSet.Size();
-        cout << "+ Generate output: " << nParts << " convex-hulls " << endl;
+
+        nConvexHulls = partsVoxelSet.Size();
+        cout << "+ Generate " << nConvexHulls << " convex-hulls " << endl;
         timer.Tic();
-        ofstream foutCH(fileNameOut.c_str());
-        if (foutCH.is_open()) 
+        convexHulls = new Mesh * [nConvexHulls];
+        for(size_t p = 0; p < nConvexHulls; ++p)
         {
-            Material mat;
-            for(size_t p = 0; p < nParts; ++p)
-            {
-                mat.m_diffuseColor.X() = mat.m_diffuseColor.Y() = mat.m_diffuseColor.Z() = 0.0;
-                while (mat.m_diffuseColor.X() == mat.m_diffuseColor.Y() ||
-                       mat.m_diffuseColor.Z() == mat.m_diffuseColor.Y() ||
-                       mat.m_diffuseColor.Z() == mat.m_diffuseColor.X()  )
-                {
-                    mat.m_diffuseColor.X() = (rand()%100) / 100.0;
-                    mat.m_diffuseColor.Y() = (rand()%100) / 100.0;
-                    mat.m_diffuseColor.Z() = (rand()%100) / 100.0;
-                }
-                Mesh ch;
-                partsVoxelSet[p]->ComputeConvexHull(ch, 1);
-                if (pca)
-                {
-                    size_t nv = ch.GetNPoints();
-                    Real x, y, z;
-                    for(long i = 0; i < (long) nv; ++i)
-                    {
-                        Vec3<Real> & pt = ch.GetPoint(i);
-                        x     = pt[0];
-                        y     = pt[1];
-                        z     = pt[2];
-                        pt[0] = rot[0][0] * x + rot[0][1] * y + rot[0][2] * z + barycenter[0];
-                        pt[1] = rot[1][0] * x + rot[1][1] * y + rot[1][2] * z + barycenter[1];
-                        pt[2] = rot[2][0] * x + rot[2][1] * y + rot[2][2] * z + barycenter[2];
-                    }
-                }
-                ch.SaveVRML2(foutCH, mat);
-                cout << "\t CH["<< setfill('0') << setw(5) <<  p <<"] " << ch.GetNPoints() << " V, "<< ch.GetNTriangles() << " T" << endl;
-            }
-            foutCH.close();
-        }
-        for(size_t p = 0; p < nParts; ++p)
-        {
+            convexHulls[p] = new Mesh;
+            partsVoxelSet[p]->ComputeConvexHull(*convexHulls[p], 1);
             delete partsVoxelSet[p];
         }
         timer.Toc();
@@ -297,38 +272,62 @@ int main(int argc, char * argv[])
                                        beta, 
                                        concavity, 
                                        (pca!=0),
+                                       volume0,
                                        partsTetrahedronSet, 
                                        &CallBack);
         timer.Toc();
         cout << "\t time " << timer.GetElapsedTime() / 1000.0 << "s" << endl;
 
-        const size_t nParts = partsTetrahedronSet.Size();
-        cout << "+ Generate output: " << nParts << " convex-hulls " << endl;
+        nConvexHulls = partsTetrahedronSet.Size();
+
+        cout << "+ Generate " << nConvexHulls << " convex-hulls " << endl;
         timer.Tic();
-        ofstream foutCH(fileNameOut.c_str());
-        if (foutCH.is_open()) 
+        convexHulls = new Mesh * [nConvexHulls];
+        for(size_t p = 0; p < nConvexHulls; ++p)
         {
-            Material mat;
-            for(size_t p = 0; p < nParts; ++p)
+            convexHulls[p] = new Mesh;
+            partsTetrahedronSet[p]->ComputeConvexHull(*convexHulls[p], 1);
+            delete partsTetrahedronSet[p];
+        }
+        timer.Toc();
+        cout << "\t time " << timer.GetElapsedTime() / 1000.0 << "s" << endl;
+    }
+
+
+    cout << "+ Merge " << nConvexHulls << " convex-hulls " << endl;
+    timer.Tic();
+    size_t nConvexHulls1 = nConvexHulls;
+    MergeConvexHulls(convexHulls, nConvexHulls1, volume0, gamma, &CallBack);
+    timer.Toc();
+    cout << "\t time " << timer.GetElapsedTime() / 1000.0 << "s" << endl;
+
+
+    cout << "+ Generate output: " << nConvexHulls1 << " convex-hulls " << endl;
+    timer.Tic();
+    ofstream foutCH(fileNameOut.c_str());
+    if (foutCH.is_open()) 
+    {
+        Material mat;
+        for(size_t p = 0; p < nConvexHulls; ++p)
+        {
+            if (convexHulls[p])
             {
                 mat.m_diffuseColor.X() = mat.m_diffuseColor.Y() = mat.m_diffuseColor.Z() = 0.0;
                 while (mat.m_diffuseColor.X() == mat.m_diffuseColor.Y() ||
-                       mat.m_diffuseColor.Z() == mat.m_diffuseColor.Y() ||
-                       mat.m_diffuseColor.Z() == mat.m_diffuseColor.X()  )
+                        mat.m_diffuseColor.Z() == mat.m_diffuseColor.Y() ||
+                        mat.m_diffuseColor.Z() == mat.m_diffuseColor.X()  )
                 {
                     mat.m_diffuseColor.X() = (rand()%100) / 100.0;
                     mat.m_diffuseColor.Y() = (rand()%100) / 100.0;
                     mat.m_diffuseColor.Z() = (rand()%100) / 100.0;
                 }
-                Mesh ch;
-                partsTetrahedronSet[p]->ComputeConvexHull(ch, 1);
                 if (pca)
                 {
-                    size_t nv = ch.GetNPoints();
+                    size_t nv = convexHulls[p]->GetNPoints();
                     Real x, y, z;
                     for(long i = 0; i < (long) nv; ++i)
                     {
-                        Vec3<Real> & pt = ch.GetPoint(i);
+                        Vec3<Real> & pt = convexHulls[p]->GetPoint(i);
                         x     = pt[0];
                         y     = pt[1];
                         z     = pt[2];
@@ -337,20 +336,20 @@ int main(int argc, char * argv[])
                         pt[2] = rot[2][0] * x + rot[2][1] * y + rot[2][2] * z + barycenter[2];
                     }
                 }
-                ch.SaveVRML2(foutCH, mat);
-                cout << "\t CH["<< setfill('0') << setw(5) <<  p <<"] " << ch.GetNPoints() << " V, "<< ch.GetNTriangles() << " T" << endl;
+                convexHulls[p]->SaveVRML2(foutCH, mat);
+                cout << "\t CH["<< setfill('0') << setw(5) <<  p <<"] " << convexHulls[p]->GetNPoints() << " V, "<< convexHulls[p]->GetNTriangles() << " T" << endl;
+                delete convexHulls[p];
             }
-            foutCH.close();
         }
-        for(size_t p = 0; p < nParts; ++p)
-        {
-            delete partsTetrahedronSet[p];
-        }
-        timer.Toc();
-        cout << "\t time " << timer.GetElapsedTime() / 1000.0 << "s" << endl;
+        foutCH.close();
     }
+    delete [] convexHulls;
+    timer.Toc();
+    cout << "\t time " << timer.GetElapsedTime() / 1000.0 << "s" << endl;
 
-//    _CrtDumpMemoryLeaks();
+#ifdef _CRTDBG_MAP_ALLOC
+    _CrtDumpMemoryLeaks();
+#endif // _CRTDBG_MAP_ALLOC
     return 0;
 }
 

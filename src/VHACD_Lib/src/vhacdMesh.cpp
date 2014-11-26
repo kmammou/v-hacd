@@ -20,8 +20,8 @@
 #include <fstream>
 #include <string>
 #include <iosfwd>
-#include <btConvexHullComputer.h>
-#include <vhacdMesh.h>
+#include "btConvexHullComputer.h"
+#include "vhacdMesh.h"
 
 namespace VHACD
 {

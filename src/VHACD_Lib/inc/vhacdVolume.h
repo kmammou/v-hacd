@@ -15,14 +15,15 @@
 #pragma once
 #ifndef VHACD_VOLUME_H
 #define VHACD_VOLUME_H
-#include <vhacdVersion.h>
-#include <vhacdVector.h>
-#include <vhacdMesh.h>
 #include <assert.h>
+#include "vhacdVersion.h"
+#include "vhacdVector.h"
+#include "vhacdMesh.h"
+
 
 #ifdef LINUX
     #define int64 long 
-#elif WIN32
+#elif _WIN32
     #define int64 long long
 #endif
 

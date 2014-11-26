@@ -15,7 +15,6 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <vhacdHACD.h>
 #include <fstream>
 #include <sstream>
 #include <limits>
@@ -23,7 +22,11 @@
 #include <omp.h>
 #endif // _OPENMP
 
-#define USE_THREAD 0
+#include "vhacdHACD.h"
+#include "btConvexHullComputer.h"
+
+
+#define USE_THREAD 1
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define ABS(a) (((a)<0) ? -(a) : (a))
@@ -41,27 +44,27 @@ namespace VHACD
         Real vz = (ex-ey)*(ex-ey);
         if (vx < vy && vx < vz)
         {
-			Real e = ey*ey + ez*ez;
-			dir[0] = 1.0;
+            Real e = ey*ey + ez*ez;
+            dir[0] = 1.0;
             dir[1] = 0.0;
             dir[2] = 0.0;
             return (e == 0.0) ? 0.0 : 1.0 - vx / e;
         }
         else if (vy < vx && vy < vz)
         {
-			Real e = ex*ex + ez*ez;
-			dir[0] = 0.0;
+            Real e = ex*ex + ez*ez;
+            dir[0] = 0.0;
             dir[1] = 1.0;
             dir[2] = 0.0;
-			return (e == 0.0) ? 0.0 : 1.0 - vy / e;
+            return (e == 0.0) ? 0.0 : 1.0 - vy / e;
         }
         else
         {
-			Real e = ex*ex + ey*ey;
-			dir[0] = 0.0;
+            Real e = ex*ex + ey*ey;
+            dir[0] = 0.0;
             dir[1] = 0.0;
             dir[2] = 1.0;
-			return (e == 0.0) ? 0.0 : 1.0 - vz / e;
+            return (e == 0.0) ? 0.0 : 1.0 - vz / e;
         }
     }
     void ComputeAxesAlignedClippingPlanes(const VoxelSet & vset, 
@@ -210,7 +213,7 @@ namespace VHACD
                 Real volumeRightCH = rightCH.ComputeVolume();
                 Real concavity     = fabs(volumeLeftCH + volumeRightCH - volume) / volume0;
                 Real balance       = alpha * pow( pow(volumeLeft - volumeRight, 2.0), 0.5)/ volume0;
-				Real d             = w * (preferredCuttingDirection[0] * plane.m_a + preferredCuttingDirection[1] * plane.m_b + preferredCuttingDirection[2] * plane.m_c);
+                Real d             = w * (preferredCuttingDirection[0] * plane.m_a + preferredCuttingDirection[1] * plane.m_b + preferredCuttingDirection[2] * plane.m_c);
                 Real symmetry      = beta * d;
                 Real total         = concavity +  balance +  symmetry;
 
@@ -224,9 +227,9 @@ namespace VHACD
                         {
                             char msg[1024];
                             sprintf(msg, "\t\t\t Plane %04i T=%2.3f C=%2.3f B=%2.3f S=%2.3f D=%1.6f W=%1.6f [%1.1f, %1.1f, %1.1f](%1.1f, %1.1f, %1.1f, %3.3f) \n", 
-										x, total, concavity, balance, symmetry, d, w, 
-										preferredCuttingDirection[0], preferredCuttingDirection[1], preferredCuttingDirection[2],
-										plane.m_a, plane.m_b, plane.m_c, plane.m_d);
+                                        x, total, concavity, balance, symmetry, d, w, 
+                                        preferredCuttingDirection[0], preferredCuttingDirection[1], preferredCuttingDirection[2],
+                                        plane.m_a, plane.m_b, plane.m_c, plane.m_d);
                             (*callBack)(msg);
                         }
                         bestPlane     = plane;
@@ -253,16 +256,17 @@ namespace VHACD
                                         const Real             alpha, 
                                         const Real             beta, 
                                         const Real             concavityThreshold,
+                                        Real  &                volume0,
                                         SArray< VoxelSet * > & parts, 
                                         const CallBackFunction callBack)
     {
         SArray< VoxelSet * > inputParts;
         inputParts.PushBack(inputVSet);
-        Real volume0 = 1.0;
         SArray< Plane > planes;
         SArray< Plane > planesRef;
         int sub = 0;
         bool firstIteration = true;
+        volume0 = 1.0;
         while( sub++ < depth && inputParts.Size() > 0)
         {
             if (callBack)
@@ -401,36 +405,36 @@ namespace VHACD
     }
     Real ComputePreferredCuttingDirection(const TetrahedronSet & tset, Vec3<Real> & dir)
     {
-		Real ex = tset.GetEigenValue(AXIS_X);
-		Real ey = tset.GetEigenValue(AXIS_Y);
-		Real ez = tset.GetEigenValue(AXIS_Z);
-		Real vx = (ey - ez)*(ey - ez);
-		Real vy = (ex - ez)*(ex - ez);
-		Real vz = (ex - ey)*(ex - ey);
-		if (vx < vy && vx < vz)
-		{
-			Real e = ey*ey + ez*ez;
-			dir[0] = 1.0;
-			dir[1] = 0.0;
-			dir[2] = 0.0;
-			return (e == 0.0) ? 0.0 : 1.0 - vx / e;
-		}
-		else if (vy < vx && vy < vz)
-		{
-			Real e = ex*ex + ez*ez;
-			dir[0] = 0.0;
-			dir[1] = 1.0;
-			dir[2] = 0.0;
-			return (e == 0.0) ? 0.0 : 1.0 - vy / e;
-		}
-		else
-		{
-			Real e = ex*ex + ey*ey;
-			dir[0] = 0.0;
-			dir[1] = 0.0;
-			dir[2] = 1.0;
-			return (e == 0.0) ? 0.0 : 1.0 - vz / e;
-		}
+        Real ex = tset.GetEigenValue(AXIS_X);
+        Real ey = tset.GetEigenValue(AXIS_Y);
+        Real ez = tset.GetEigenValue(AXIS_Z);
+        Real vx = (ey - ez)*(ey - ez);
+        Real vy = (ex - ez)*(ex - ez);
+        Real vz = (ex - ey)*(ex - ey);
+        if (vx < vy && vx < vz)
+        {
+            Real e = ey*ey + ez*ez;
+            dir[0] = 1.0;
+            dir[1] = 0.0;
+            dir[2] = 0.0;
+            return (e == 0.0) ? 0.0 : 1.0 - vx / e;
+        }
+        else if (vy < vx && vy < vz)
+        {
+            Real e = ex*ex + ez*ez;
+            dir[0] = 0.0;
+            dir[1] = 1.0;
+            dir[2] = 0.0;
+            return (e == 0.0) ? 0.0 : 1.0 - vy / e;
+        }
+        else
+        {
+            Real e = ex*ex + ey*ey;
+            dir[0] = 0.0;
+            dir[1] = 0.0;
+            dir[2] = 1.0;
+            return (e == 0.0) ? 0.0 : 1.0 - vz / e;
+        }
     }
     void ComputeAxesAlignedClippingPlanes(const TetrahedronSet & tset, 
                                           const short            downsampling, 
@@ -580,25 +584,25 @@ namespace VHACD
                 Real volumeRightCH = rightCH.ComputeVolume();
                 Real concavity     = fabs(volumeLeftCH + volumeRightCH - volume) / volume0;
                 Real balance       = alpha * pow( pow(volumeLeft - volumeRight, 2.0), 0.5)/ volume0;
-				Real d             = w * (preferredCuttingDirection[0] * plane.m_a + preferredCuttingDirection[1] * plane.m_b + preferredCuttingDirection[2] * plane.m_c);
-				Real symmetry      = beta * d;
-				Real total         = concavity + balance + symmetry;
+                Real d             = w * (preferredCuttingDirection[0] * plane.m_a + preferredCuttingDirection[1] * plane.m_b + preferredCuttingDirection[2] * plane.m_c);
+                Real symmetry      = beta * d;
+                Real total         = concavity + balance + symmetry;
 
 #if USE_THREAD == 1 && _OPENMP
 #pragma omp critical
 #endif
-				{
-					if (total <  minTotal)
-					{
-						if (callBack)
-						{
-							char msg[1024];
-							sprintf(msg, "\t\t\t Plane %04i T=%2.3f C=%2.3f B=%2.3f S=%2.3f D=%1.6f W=%1.6f [%1.1f, %1.1f, %1.1f](%1.1f, %1.1f, %1.1f, %3.3f) \n",
-								x, total, concavity, balance, symmetry, d, w,
-								preferredCuttingDirection[0], preferredCuttingDirection[1], preferredCuttingDirection[2],
-								plane.m_a, plane.m_b, plane.m_c, plane.m_d);
-							(*callBack)(msg);
-						}
+                {
+                    if (total <  minTotal)
+                    {
+                        if (callBack)
+                        {
+                            char msg[1024];
+                            sprintf(msg, "\t\t\t Plane %04i T=%2.3f C=%2.3f B=%2.3f S=%2.3f D=%1.6f W=%1.6f [%1.1f, %1.1f, %1.1f](%1.1f, %1.1f, %1.1f, %3.3f) \n",
+                                x, total, concavity, balance, symmetry, d, w,
+                                preferredCuttingDirection[0], preferredCuttingDirection[1], preferredCuttingDirection[2],
+                                plane.m_a, plane.m_b, plane.m_c, plane.m_d);
+                            (*callBack)(msg);
+                        }
 
                         bestPlane     = plane;
                         minTotal      = total;
@@ -625,16 +629,17 @@ namespace VHACD
                                         const Real                   beta, 
                                         const Real                   concavityThreshold,
                                         const bool                   pca,
+                                        Real                       & volume0,
                                         SArray< TetrahedronSet * > & parts, 
                                         const CallBackFunction       callBack)
     {
         SArray< TetrahedronSet * > inputParts;
         inputParts.PushBack(inputTSet);
-        Real volume0 = 1.0;
         SArray< Plane > planes;
         SArray< Plane > planesRef;
         int sub = 0;
         bool firstIteration = true;
+        volume0 = 1.0;
         while( sub++ < depth && inputParts.Size() > 0)
         {
             if (callBack)
@@ -779,6 +784,127 @@ namespace VHACD
         for(size_t p = 0; p < nInputParts; ++p)
         {
             parts.PushBack(inputParts[p]);
+        }
+        return true;
+    }
+    void AddPoints(const Mesh * const mesh, SArray< Vec3<Real> > & pts)
+    {
+        const long n = (long) mesh->GetNPoints();
+        for(long i = 0; i < n; ++i)
+        {
+            pts.PushBack(mesh->GetPoint(i));
+        }
+    }
+    void ComputeConvexHull(const Mesh * const     ch1, 
+                           const Mesh * const     ch2,
+                           SArray< Vec3<Real> > & pts,
+                           Mesh * const           combinedCH)
+    {
+        pts.Resize(0);
+        AddPoints(ch1, pts);
+        AddPoints(ch2, pts);
+
+        btConvexHullComputer ch;
+        ch.compute((Real *)pts.Data(), 3 * sizeof(Real), (int)pts.Size(), -1.0, -1.0);
+        combinedCH->ResizePoints   (0);
+        combinedCH->ResizeTriangles(0);
+        for (int v = 0; v < ch.vertices.size(); v++)
+        {
+            combinedCH->AddPoint(Vec3<Real>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
+        }
+        const int nt = ch.faces.size();
+        for (int t = 0; t < nt; ++t)
+        {
+            const btConvexHullComputer::Edge * sourceEdge = &(ch.edges[ch.faces[t]]);
+            int a = sourceEdge->getSourceVertex();
+            int b = sourceEdge->getTargetVertex();
+            const btConvexHullComputer::Edge * edge = sourceEdge->getNextEdgeOfFace();
+            int c = edge->getTargetVertex();
+            while (c != a)
+            {
+                combinedCH->AddTriangle(Vec3<long>(a, b, c));
+                edge = edge->getNextEdgeOfFace();
+                b = c;
+                c = edge->getTargetVertex();
+            }
+        }
+    }
+    bool MergeConvexHulls(      Mesh **          convexHulls, 
+                                size_t         & nConvexHulls, 
+                          const Real             volume0,
+                          const Real             gamma,
+                          const CallBackFunction callBack)
+    {
+        if (nConvexHulls <= 1)
+        {
+            return true;
+        }
+        const size_t nConvexHulls0 = nConvexHulls;
+        const Real threshold = gamma * volume0;
+        SArray< Vec3<Real> > pts;
+        Mesh combinedCH;
+        bool iterate = true;
+
+        while (iterate)
+        {
+            size_t bestp1;
+            size_t bestp2;
+            Real bestCost = std::numeric_limits<Real>::max();;
+            for (size_t p1 = 0; p1 < nConvexHulls0 - 1; ++p1)
+            {
+                if (convexHulls[p1])
+                {
+                    Real volume1 = convexHulls[p1]->ComputeVolume();
+                    size_t p2 = p1 + 1;
+                    while (p2 < nConvexHulls0)
+                    {
+                        if (p1 != p2 && convexHulls[p2])
+                        {
+                            Real volume2 = convexHulls[p2]->ComputeVolume();
+
+                            ComputeConvexHull(convexHulls[p1], convexHulls[p2], pts, &combinedCH);
+
+                            Real combinedVolume = combinedCH.ComputeVolume();
+                            Real cost           = combinedVolume - volume1 - volume2;
+                            if (cost < bestCost)
+                            {
+                                bestCost       = cost;
+                                bestp1         = p1;
+                                bestp2         = p2;
+                                if (callBack)
+                                {
+                                    std::ostringstream msg;
+                                    msg << "\t\t Cost (" << p1 << ", " << p2 << ") " << cost / volume0 << std::endl;
+                                    (*callBack)(msg.str().c_str());
+                                }
+                            }
+                        }
+                        ++p2;
+                    }
+                }
+            }
+
+            if (bestCost < threshold)
+            {
+                if (callBack)
+                {
+                    std::ostringstream msg;
+                    msg << "\t\t Merging (" << bestp1 << ", " << bestp2 << ") " << bestCost / volume0 << std::endl << std::endl;
+                    (*callBack)(msg.str().c_str());
+                }
+                Mesh * cch = new Mesh;
+                ComputeConvexHull(convexHulls[bestp1], convexHulls[bestp2], pts, cch);
+                delete convexHulls[bestp1];
+                delete convexHulls[bestp2];
+                convexHulls[bestp2] = 0;
+                convexHulls[bestp1] = cch;
+                iterate             = true;
+                --nConvexHulls;
+            }
+            else
+            {
+                iterate             = false;
+            }
         }
         return true;
     }

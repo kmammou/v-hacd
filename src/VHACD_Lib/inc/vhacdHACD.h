@@ -15,11 +15,11 @@
 #pragma once
 #ifndef VHACD_VHACD_H
 #define VHACD_VHACD_H
-#include <vhacdVersion.h>
-#include <vhacdVector.h>
-#include <vhacdMesh.h>
-#include <vhacdVolume.h>
-#include <vhacdSArray.h>
+#include "vhacdVersion.h"
+#include "vhacdVector.h"
+#include "vhacdMesh.h"
+#include "vhacdVolume.h"
+#include "vhacdSArray.h"
 
 namespace VHACD
 {
@@ -32,6 +32,7 @@ namespace VHACD
                                             const Real                  alpha, 
                                             const Real                  beta, 
                                             const Real                  concavityThreshold,
+                                            Real                      & volume0,
                                             SArray< VoxelSet * >      & parts, 
                                             const CallBackFunction      callBack);
     bool ApproximateConvexDecomposition(TetrahedronSet * const                inputTSet, 
@@ -42,7 +43,13 @@ namespace VHACD
                                             const Real                        beta, 
                                             const Real                        concavityThreshold,
                                             const bool                        pca,
+                                            Real                            & volume0,
                                             SArray< TetrahedronSet * >      & parts, 
                                             const CallBackFunction            callBack);
+    bool MergeConvexHulls(      Mesh **          convexHulls, 
+                                size_t         & nConvexHulls,
+                          const Real             volume0,
+                          const Real             gamma,
+                          const CallBackFunction callBack);
 }
 #endif

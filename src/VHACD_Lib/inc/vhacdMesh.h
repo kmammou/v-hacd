@@ -15,9 +15,9 @@
 #pragma once
 #ifndef VHACD_MESH_H
 #define VHACD_MESH_H
-#include <vhacdVersion.h>
-#include <vhacdSArray.h>
-#include <vhacdVector.h>
+#include "vhacdVersion.h"
+#include "vhacdSArray.h"
+#include "vhacdVector.h"
 
 namespace VHACD
 {

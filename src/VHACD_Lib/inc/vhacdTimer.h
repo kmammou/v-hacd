@@ -15,15 +15,12 @@
 #pragma once
 #ifndef VHACD_TIMER_H
 #define VHACD_TIMER_H
-#include <vhacdVersion.h>
+#include "vhacdVersion.h"
 
-
-
-#ifdef WIN32
+#ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
-#endif
-
+#endif 
 #include <windows.h>
 #elif __MACH__
 #include <mach/clock.h>
@@ -35,8 +32,7 @@
 
 namespace VHACD
 {
-#ifdef WIN32
-
+#ifdef _WIN32
     class Timer
     {
     public: 
