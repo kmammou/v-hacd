@@ -912,7 +912,7 @@ namespace VHACD
         return true;
     }
     void SimplifyConvexHull(Mesh * const ch,
-        const size_t const  nvertices)
+                            const size_t nvertices)
     {
         if (nvertices <= 4 || ch->GetNPoints() <= nvertices)
         {
