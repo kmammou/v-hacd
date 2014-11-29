@@ -59,7 +59,7 @@ int main(int argc, char * argv[])
     if (argc != 14)
     { 
         cout << "Usage: ./testVHACD fileName.off resolution maxNumVoxels maxDepth maxConcavity planeDownsampling convexhullDownsampling alpha beta gamma mode outFileName.wrl"<< endl;
-        cout << "Recommended parameters: ./testVHACD fileName.off 100000 20 0.0025 4 4 0.05 0.05 0.001 0 0 10 VHACD_CHs.wrl"<< endl;
+        cout << "Recommended parameters: ./testVHACD fileName.off 100000 20 0.0025 4 4 0.05 0.05 0.001 0 0 100 VHACD_CHs.wrl"<< endl;
         return -1;
     }
 

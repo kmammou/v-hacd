@@ -15,6 +15,7 @@
 #pragma once
 #ifndef VHACD_CIRCULAR_LIST_H
 #define VHACD_CIRCULAR_LIST_H
+#include <stdlib.h>
 #include "vhacdVersion.h"
 namespace VHACD
 {
