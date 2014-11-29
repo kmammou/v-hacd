@@ -51,5 +51,9 @@ namespace VHACD
                           const Real             volume0,
                           const Real             gamma,
                           const CallBackFunction callBack);
+    bool SimplifyConvexHulls(Mesh **      convexHulls,
+                             const size_t nConvexHulls,
+                             const size_t maxNumVertices,
+                             const CallBackFunction callBack);
 }
 #endif

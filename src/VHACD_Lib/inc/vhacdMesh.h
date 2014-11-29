@@ -56,14 +56,18 @@ namespace VHACD
         const Vec3<Real> &                                      GetPoint(long index) const                      { return m_points[index]; };
         Vec3<Real> &                                            GetPoint(long index)                            { return m_points[index]; };
         size_t                                                  GetNPoints() const                              { return m_points.Size();};
-        const Real *                                            GetPoints() const                               { return (Real *) m_points.Data();} // ugly
+        const Real * const                                      GetPoints() const                               { return (Real *) m_points.Data();} // ugly
+        const Vec3<Real> * const                                GetPointsBuffer() const                         { return m_points.Data(); } //
+        Vec3<Real> * const                                      GetPointsBuffer()                               { return m_points.Data(); } //
 
         void                                                    AddTriangle(const Vec3<long> & tri)             { m_triangles.PushBack(tri);};
         void                                                    SetTriangle(long index, const Vec3<long> & tri) { m_triangles[index] = tri; };
         const Vec3<long> &                                      GetTriangle(long index) const                   { return m_triangles[index];};
         Vec3<long> &                                            GetTriangle(long index)                         { return m_triangles[index];};
         size_t                                                  GetNTriangles() const                           { return m_triangles.Size();};
-        const long *                                            GetTriangles() const                            { return (long *) m_triangles.Data();} // ugly
+        const long * const                                      GetTriangles() const                            { return (long *) m_triangles.Data();} // ugly
+        const Vec3<long> * const                                GetTrianglesBuffer() const                      { return m_triangles.Data(); }
+        Vec3<long> * const                                      GetTrianglesBuffer()                            { return m_triangles.Data(); }
 
         const Vec3<Real> &                                      GetCenter() const                               { return m_center;}
         const Vec3<Real> &                                      GetMinBB() const                                { return m_minBB;}

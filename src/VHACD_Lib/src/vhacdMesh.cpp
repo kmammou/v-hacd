@@ -22,7 +22,6 @@
 #include <iosfwd>
 #include "btConvexHullComputer.h"
 #include "vhacdMesh.h"
-
 namespace VHACD
 {
     Mesh::Mesh()
@@ -49,7 +48,6 @@ namespace VHACD
         }
         return false;
     }
-
     bool Mesh::SaveVRML2(std::ofstream & fout, const Material & material, const Vec3<Real> * colors) const
     {        
         if (fout.is_open()) 
@@ -160,7 +158,6 @@ namespace VHACD
         }
         return false;
     }
-
     bool Mesh::LoadOFF(const std::string & fileName, bool invert) 
     {    
         FILE * fid = fopen(fileName.c_str(), "r");
@@ -232,7 +229,6 @@ namespace VHACD
         }
         return true;
     }
-
     Real Mesh::ComputeVolume() const
     {
         const long nV = (long) GetNPoints();

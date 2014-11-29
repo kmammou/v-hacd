@@ -56,10 +56,10 @@ void GetFileExtension(const string & fileName, string & fileExtension);
 
 int main(int argc, char * argv[])
 {
-    if (argc != 13)
+    if (argc != 14)
     { 
         cout << "Usage: ./testVHACD fileName.off resolution maxNumVoxels maxDepth maxConcavity planeDownsampling convexhullDownsampling alpha beta gamma mode outFileName.wrl"<< endl;
-        cout << "Recommended parameters: ./testVHACD fileName.off 100000 20 0.0025 4 4 0.05 0.05 0.001 0 0 VHACD_CHs.wrl"<< endl;
+        cout << "Recommended parameters: ./testVHACD fileName.off 100000 20 0.0025 4 4 0.05 0.05 0.001 0 0 10 VHACD_CHs.wrl"<< endl;
         return -1;
     }
 
@@ -74,7 +74,8 @@ int main(int argc, char * argv[])
     double        gamma                   = atof(argv[9]);  // 0.0001
     int           pca                     = atoi(argv[10]); // 0
     int           mode                    = atoi(argv[11]); // 0: voxel-based (recommended), 1: tethedron-based
-    const string  fileNameOut(argv[12]);                    // VHACD_CHs.wrl
+    size_t        maxNumVerticesPerCH     = atoi(argv[12]); // 100
+    const string  fileNameOut(argv[13]);                    // VHACD_CHs.wrl
 
     resolution             = (resolution   < 0)? 0 : resolution;
     planeDownsampling      = (planeDownsampling < 1 )? 1  : planeDownsampling;
@@ -97,7 +98,9 @@ int main(int argc, char * argv[])
     cout << "\t gamma                      " << gamma                  << std::endl;
     cout << "\t pca                        " << pca                    << std::endl;
     cout << "\t mode                       " << mode                   << std::endl;
-    cout << "\t output                     " << fileNameOut            << std::endl;
+    cout << "\t maxNumVerticesPerCH        " << maxNumVerticesPerCH    << std::endl;
+    cout << "\t output                     " << fileNameOut << std::endl;
+    
 
     Timer timer;
 
@@ -300,6 +303,15 @@ int main(int argc, char * argv[])
     MergeConvexHulls(convexHulls, nConvexHulls1, volume0, gamma, &CallBack);
     timer.Toc();
     cout << "\t time " << timer.GetElapsedTime() / 1000.0 << "s" << endl;
+
+    if (maxNumVerticesPerCH > 4)
+    {
+        cout << "+ Simplify " << nConvexHulls << " convex-hulls " << endl;
+        timer.Tic();
+        SimplifyConvexHulls(convexHulls, nConvexHulls, maxNumVerticesPerCH, &CallBack);
+        timer.Toc();
+        cout << "\t time " << timer.GetElapsedTime() / 1000.0 << "s" << endl;
+    }
 
 
     cout << "+ Generate output: " << nConvexHulls1 << " convex-hulls " << endl;

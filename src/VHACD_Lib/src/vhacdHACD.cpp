@@ -18,12 +18,15 @@
 #include <fstream>
 #include <sstream>
 #include <limits>
+#include <iostream>
+#include <iomanip>
 #if _OPENMP
 #include <omp.h>
 #endif // _OPENMP
 
 #include "vhacdHACD.h"
 #include "btConvexHullComputer.h"
+#include "vhacdICHull.h"
 
 
 #define USE_THREAD 1
@@ -904,6 +907,43 @@ namespace VHACD
             else
             {
                 iterate             = false;
+            }
+        }
+        return true;
+    }
+    void SimplifyConvexHull(Mesh * const ch,
+        const size_t const  nvertices)
+    {
+        if (nvertices <= 4 || ch->GetNPoints() <= nvertices)
+        {
+            return;
+        }
+        ICHull icHull;
+        icHull.AddPoints(ch->GetPointsBuffer(), ch->GetNPoints());
+        icHull.Process((unsigned long)nvertices);
+        TMMesh & mesh = icHull.GetMesh();
+        const size_t nT = mesh.GetNTriangles();
+        const size_t nV = mesh.GetNVertices();
+        ch->ResizePoints(nV);
+        ch->ResizeTriangles(nT);
+        mesh.GetIFS(ch->GetPointsBuffer(), ch->GetTrianglesBuffer());
+    }
+    bool SimplifyConvexHulls(Mesh **      convexHulls,
+                             const size_t nConvexHulls,
+                             const size_t maxNumVertices,
+                             const CallBackFunction callBack)
+    {
+        for (size_t i = 0; i < nConvexHulls; ++i)
+        {
+            if (convexHulls[i] && convexHulls[i]->GetNPoints() > maxNumVertices)
+            {
+                if (callBack)
+                {
+                    std::ostringstream msg;
+                    msg << "\t\t Simplify CH[" << std::setfill('0') << std::setw(5) << i << "] " << convexHulls[i]->GetNPoints() << " V, " << convexHulls[i]->GetNTriangles() << " T" << std::endl;
+                    (*callBack)(msg.str().c_str());
+                }
+                SimplifyConvexHull(convexHulls[i], maxNumVertices);
             }
         }
         return true;
