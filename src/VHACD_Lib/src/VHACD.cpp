@@ -178,7 +178,7 @@ namespace VHACD
         Volume *                    m_volume;
         VoxelSet *                  m_vset;
         TetrahedronSet *            m_tset;
-        volatile bool               m_cancel; 
+        bool                        m_cancel; 
     };
     IVHACD * CreateVHACD(void)
     {
@@ -672,13 +672,25 @@ namespace VHACD
         int  nPlanes   = (int) static_cast<int>(planes.Size());
         double minTotal  = minConcavity + minBalance + minSymmetry;
         int  processed = 0;
+        bool cancel = false;
 #if USE_THREAD == 1 && _OPENMP
         #pragma omp parallel for
 #endif
         for(int x = 0; x < nPlanes; ++x)
         {
-            if (!m_cancel)
+#if USE_THREAD == 1 && _OPENMP
+            #pragma omp flush (cancel)
+#endif
+            if (!cancel)
             {
+                //Update progress
+                if (m_cancel) {
+                    cancel = true;
+#if USE_THREAD == 1 && _OPENMP
+                    #pragma omp flush (cancel)
+#endif
+                }
+
                 Plane plane = planes[x];
                 VoxelSet left;
                 VoxelSet right;
@@ -1135,13 +1147,24 @@ namespace VHACD
         int  nPlanes = (int) static_cast<int>(planes.Size());
         double minTotal = minConcavity + minBalance + minSymmetry;
         int  processed = 0;
+        bool cancel = false;
 #if USE_THREAD == 1 && _OPENMP
-#pragma omp parallel for
+        #pragma omp parallel for
 #endif
         for (int x = 0; x < nPlanes; ++x)
         {
-            if (!m_cancel)
+#if USE_THREAD == 1 && _OPENMP
+            #pragma omp flush (cancel)
+#endif
+            if (!cancel)
             {
+                //Update progress
+                if (m_cancel) {
+                    cancel = true;
+#if USE_THREAD == 1 && _OPENMP
+                    #pragma omp flush (cancel)
+#endif
+                }
                 Plane plane = planes[x];
                 TetrahedronSet left;
                 TetrahedronSet right;
