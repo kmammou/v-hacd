@@ -23,7 +23,7 @@
 #include <vector>
 #include <sstream>
 
-#define _CRTDBG_MAP_ALLOC
+//#define _CRTDBG_MAP_ALLOC
 
 #ifdef _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
