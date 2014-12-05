@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <vector>
 #include <sstream>
+#include <string.h>
 
 //#define _CRTDBG_MAP_ALLOC
 
