@@ -1,7 +1,6 @@
 #pragma once
 #ifndef HACD_CIRCULAR_LIST_INL
 #define HACD_CIRCULAR_LIST_INL
-#include"vhacdVersion.h"
 namespace VHACD
 {
     template < typename T > 

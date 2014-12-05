@@ -15,7 +15,6 @@
 #pragma once
 #ifndef VHACD_TIMER_H
 #define VHACD_TIMER_H
-#include "vhacdVersion.h"
 
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN

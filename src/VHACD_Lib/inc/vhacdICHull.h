@@ -15,7 +15,6 @@
 #pragma once
 #ifndef VHACD_ICHULL_H
 #define VHACD_ICHULL_H
-#include "vhacdVersion.h"
 #include "vhacdManifoldMesh.h"
 #include "vhacdVector.h"
 
@@ -39,17 +38,17 @@ namespace VHACD
             //! Returns the computed mesh
             TMMesh &                                            GetMesh() { return m_mesh;}
             //!    Add one point to the convex-hull    
-            bool                                                AddPoint(const Vec3<Real> & point) {return AddPoints(&point, 1);}
+            bool                                                AddPoint(const Vec3<double> & point) {return AddPoints(&point, 1);}
             //!    Add one point to the convex-hull    
-            bool                                                AddPoint(const Vec3<Real> & point, long id);
+            bool                                                AddPoint(const Vec3<double> & point, int id);
             //!    Add points to the convex-hull
-            bool                                                AddPoints(const Vec3<Real> * points, size_t nPoints);
+            bool                                                AddPoints(const Vec3<double> * points, size_t nPoints);
             //!    
             ICHullError                                         Process();
             //! 
-            ICHullError                                         Process(unsigned long nPointsCH);
+            ICHullError                                         Process(unsigned int nPointsCH);
             //!
-            bool                                                IsInside(const Vec3<Real> & pt0, const double eps = 0.0);
+            bool                                                IsInside(const Vec3<double> & pt0, const double eps = 0.0);
             //!
             const ICHull &                                      operator=(ICHull & rhs);
 
@@ -77,23 +76,23 @@ namespace VHACD
             //!    
             bool                                                CleanEdges();
             //!    
-            bool                                                CleanVertices(unsigned long & addedPoints);
+            bool                                                CleanVertices(unsigned int & addedPoints);
             //!    
             bool                                                CleanTriangles();
             //!    
-            bool                                                CleanUp(unsigned long & addedPoints);
+            bool                                                CleanUp(unsigned int & addedPoints);
             //!
             bool                                                MakeCCW(CircularListElement<TMMTriangle> * f,
                                                                         CircularListElement<TMMEdge> * e, 
                                                                         CircularListElement<TMMVertex> * v);
             void                                                Clear(); 
         private:
-            static const long                                   sc_dummyIndex;
+            static const int                                   sc_dummyIndex;
             TMMesh                                              m_mesh;
             SArray<CircularListElement<TMMEdge> *>              m_edgesToDelete;
             SArray<CircularListElement<TMMEdge> *>              m_edgesToUpdate;
             SArray<CircularListElement<TMMTriangle> *>          m_trianglesToDelete; 
-            Vec3<Real>                                          m_normal;
+            Vec3<double>                                          m_normal;
             bool                                                m_isFlat;
                                                                 ICHull(const ICHull & rhs);
     };

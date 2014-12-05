@@ -18,4 +18,4 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall")
 target_link_libraries(testVHACD VHACD_LIB rt)
 ENDIF()
 
-include_directories("${CMAKE_SOURCE_DIR}/VHACD_Lib/inc")
+include_directories("${CMAKE_SOURCE_DIR}/VHACD_Lib/public")

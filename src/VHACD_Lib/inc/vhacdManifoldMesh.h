@@ -15,7 +15,6 @@ All rights reserved.
 #pragma once
 #ifndef VHACD_MANIFOLD_MESH_H
 #define VHACD_MANIFOLD_MESH_H
-#include "vhacdVersion.h"
 #include "vhacdCircularList.h"
 #include "vhacdVector.h"
 #include "vhacdSArray.h"
@@ -35,8 +34,8 @@ namespace VHACD
                                                                 ~TMMVertex(void);
         
         private:
-            Vec3<Real>                                          m_pos;
-            long                                                m_name;
+            Vec3<double>                                        m_pos;
+            int                                                 m_name;
             size_t                                              m_id;
             CircularListElement<TMMEdge> *                      m_duplicate;        // pointer to incident cone edge (or NULL)
             bool                                                m_onHull;
@@ -117,7 +116,7 @@ namespace VHACD
             //! Print mesh information 
             void                                                Print();
             //!
-            void                                                GetIFS(Vec3<Real> * const points, Vec3<long> * const triangles);
+            void                                                GetIFS(Vec3<double> * const points, Vec3<int> * const triangles);
             //!  
             void                                                Clear();
             //!

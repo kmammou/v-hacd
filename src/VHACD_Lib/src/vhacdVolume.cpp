@@ -89,13 +89,13 @@ namespace VHACD
         rad = fa * boxhalfsize[X] + fb * boxhalfsize[Y];        \
         if(min>rad || max<-rad) return 0;
 
-    int PlaneBoxOverlap(const Vec3<Real> & normal, 
-                        const Vec3<Real> & vert, 
-                        const Vec3<Real> & maxbox)
+    int PlaneBoxOverlap(const Vec3<double> & normal, 
+                        const Vec3<double> & vert, 
+                        const Vec3<double> & maxbox)
     {
         int q;
-        Vec3<Real> vmin,vmax;
-        Real v;
+        Vec3<double> vmin,vmax;
+        double v;
         for(q=X;q<=Z;q++)
         {
             v=vert[q];
@@ -115,11 +115,11 @@ namespace VHACD
         return 0;
     }
 
-    int TriBoxOverlap(const Vec3<Real> & boxcenter, 
-                      const Vec3<Real> & boxhalfsize, 
-                      const Vec3<Real> & triver0,
-                      const Vec3<Real> & triver1,
-                      const Vec3<Real> & triver2)
+    int TriBoxOverlap(const Vec3<double> & boxcenter, 
+                      const Vec3<double> & boxhalfsize, 
+                      const Vec3<double> & triver0,
+                      const Vec3<double> & triver1,
+                      const Vec3<double> & triver2)
     {
       /*    use separating axis theorem to test overlap between triangle and box */
       /*    need to test for overlap in these directions: */
@@ -129,9 +129,9 @@ namespace VHACD
       /*    3) crossproduct(edge from tri, {x,y,z}-directin) */
       /*       this gives 3x3=9 more tests */
 
-        Vec3<Real> v0,v1,v2;
-        Real min,max,p0,p1,p2,rad,fex,fey,fez;        // -NJMP- "d" local variable removed
-        Vec3<Real> normal,e0,e1,e2;
+        Vec3<double> v0,v1,v2;
+        double min,max,p0,p1,p2,rad,fex,fey,fez;        // -NJMP- "d" local variable removed
+        Vec3<double> normal,e0,e1,e2;
 
         /* This is the fastest branch on Sun */
         /* move everything so that the boxcenter is in (0,0,0) */
@@ -200,20 +200,20 @@ namespace VHACD
 
     // Slightly modified version of  Stan Melax's code for 3x3 matrix diagonalization (Thanks Stan!)
     // source: http://www.melax.com/diag.html?attredirects=0
-    void Diagonalize(const Real (&A)[3][3], Real (&Q)[3][3], Real (&D)[3][3])
+    void Diagonalize(const double (&A)[3][3], double (&Q)[3][3], double (&D)[3][3])
     {
         // A must be a symmetric matrix.
         // returns Q and D such that 
         // Diagonal matrix D = QT * A * Q;  and  A = Q*D*QT
         const int maxsteps=24;                                                 // certainly wont need that many.
         int k0, k1, k2;
-        Real o[3], m[3];
-        Real q [4] = {0.0,0.0,0.0,1.0};
-        Real jr[4];
-        Real sqw, sqx, sqy, sqz;
-        Real tmp1, tmp2, mq;
-        Real AQ[3][3];
-        Real thet, sgn, t, c;
+        double o[3], m[3];
+        double q [4] = {0.0,0.0,0.0,1.0};
+        double jr[4];
+        double sqw, sqx, sqy, sqz;
+        double tmp1, tmp2, mq;
+        double AQ[3][3];
+        double thet, sgn, t, c;
         for(int i=0;i < maxsteps;++i)
         {
             // quat to matrix
@@ -299,7 +299,7 @@ namespace VHACD
             q[3]   /= mq;
         }
     }
-    const Real TetrahedronSet::EPS = 0.0000000000001;
+    const double TetrahedronSet::EPS = 0.0000000000001;
 
     VoxelSet::VoxelSet()
     {
@@ -315,8 +315,8 @@ namespace VHACD
         m_numVoxelsOnSurface     = 0;
         m_numVoxelsInsideSurface = 0;
         m_numVoxelsOnClipPlane   = 0;
-        memset(m_Q, 0, sizeof(Real) * 9);
-        memset(m_D, 0, sizeof(Real) * 9);
+        memset(m_Q, 0, sizeof(double) * 9);
+        memset(m_D, 0, sizeof(double) * 9);
     }
 
     VoxelSet::~VoxelSet(void)
@@ -332,7 +332,7 @@ namespace VHACD
             m_minBBVoxels[h] = m_voxels[0].m_coord[h];
             m_maxBBVoxels[h] = m_voxels[0].m_coord[h];
         }
-        Vec3<Real> bary(0.0);
+        Vec3<double> bary(0.0);
         for(size_t p = 0; p < nVoxels; ++p)
         {
             for(int h = 0; h < 3; ++h)
@@ -342,7 +342,7 @@ namespace VHACD
                 if (m_maxBBVoxels[h] < m_voxels[p].m_coord[h]) m_maxBBVoxels[h] = m_voxels[p].m_coord[h];
             }
         }
-        bary /= (Real) nVoxels;
+        bary /= (double) nVoxels;
         for(int h = 0; h < 3; ++h)
         {
             m_minBBPts[h]   = m_minBBVoxels[h] * m_scale +  m_minBB[h];
@@ -357,9 +357,9 @@ namespace VHACD
         if (nVoxels == 0)
             return;
 
-        SArray< Vec3<Real>, 64 > cpoints;
+        SArray< Vec3<double>, 64 > cpoints;
 
-        Vec3<Real> * points = new Vec3<Real> [CLUSTER_SIZE];
+        Vec3<double> * points = new Vec3<double> [CLUSTER_SIZE];
         size_t p = 0;
         short i, j, k;
         while( p < nVoxels)
@@ -377,14 +377,14 @@ namespace VHACD
                         i = m_voxels[p].m_coord[0];
                         j = m_voxels[p].m_coord[1];
                         k = m_voxels[p].m_coord[2];
-                        Vec3<Real> p0((i-0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<Real> p1((i+0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<Real> p2((i+0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<Real> p3((i-0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<Real> p4((i-0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
-                        Vec3<Real> p5((i+0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
-                        Vec3<Real> p6((i+0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
-                        Vec3<Real> p7((i-0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
+                        Vec3<double> p0((i-0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
+                        Vec3<double> p1((i+0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
+                        Vec3<double> p2((i+0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
+                        Vec3<double> p3((i-0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
+                        Vec3<double> p4((i-0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
+                        Vec3<double> p5((i+0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
+                        Vec3<double> p6((i+0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
+                        Vec3<double> p7((i-0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
                         points[q++] = p0 + m_minBB;
                         points[q++] = p1 + m_minBB;
                         points[q++] = p2 + m_minBB;
@@ -398,21 +398,21 @@ namespace VHACD
                 ++p;
            }
            btConvexHullComputer ch;
-           ch.compute((Real *) points, 3 * sizeof(Real), (int) q, -1.0, -1.0); 
+           ch.compute((double *) points, 3 * sizeof(double), (int) q, -1.0, -1.0); 
            for(int v = 0; v < ch.vertices.size(); v++)
            {
-               cpoints.PushBack(Vec3<Real>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
+               cpoints.PushBack(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
            }
         }
         delete [] points;
 
         points  = cpoints.Data();
         btConvexHullComputer ch;
-        ch.compute((Real *) points, 3 * sizeof(Real), (int) cpoints.Size(), -1.0, -1.0); 
+        ch.compute((double *) points, 3 * sizeof(double), (int) cpoints.Size(), -1.0, -1.0); 
         meshCH.Clear();
         for(int v = 0; v < ch.vertices.size(); v++)
         {            
-            meshCH.AddPoint(Vec3<Real>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
+            meshCH.AddPoint(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
         }
         const int nt = ch.faces.size();
         for(int t = 0; t < nt; ++t)
@@ -424,7 +424,7 @@ namespace VHACD
             int c = edge->getTargetVertex();
             while (c != a)
             {                
-                meshCH.AddTriangle(Vec3<long>(a, b, c));
+                meshCH.AddTriangle(Vec3<int>(a, b, c));
                 edge = edge->getNextEdgeOfFace();
                 b = c;
                 c = edge->getTargetVertex();
@@ -453,9 +453,9 @@ namespace VHACD
         negativePart->m_numVoxelsOnClipPlane   = positivePart->m_numVoxelsOnClipPlane      = 0;
 
         double d;
-        Vec3<Real> pt;
+        Vec3<double> pt;
         Voxel voxel;
-        const Real d0 = m_scale;
+        const double d0 = m_scale;
         for(size_t v = 0; v < nVoxels; ++v)
         {
             voxel = m_voxels[v];
@@ -533,15 +533,15 @@ namespace VHACD
                 i = voxel.m_coord[0];
                 j = voxel.m_coord[1];
                 k = voxel.m_coord[2];
-                Vec3<Real> p0((i-0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
-                Vec3<Real> p1((i+0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
-                Vec3<Real> p2((i+0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
-                Vec3<Real> p3((i-0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
-                Vec3<Real> p4((i-0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
-                Vec3<Real> p5((i+0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
-                Vec3<Real> p6((i+0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
-                Vec3<Real> p7((i-0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
-                long s = (long) mesh.GetNPoints();
+                Vec3<double> p0((i-0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
+                Vec3<double> p1((i+0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
+                Vec3<double> p2((i+0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
+                Vec3<double> p3((i-0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
+                Vec3<double> p4((i-0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
+                Vec3<double> p5((i+0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
+                Vec3<double> p6((i+0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
+                Vec3<double> p7((i-0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
+                int s = (int) mesh.GetNPoints();
                 mesh.AddPoint(p0 + m_minBB);
                 mesh.AddPoint(p1 + m_minBB);
                 mesh.AddPoint(p2 + m_minBB);
@@ -550,18 +550,18 @@ namespace VHACD
                 mesh.AddPoint(p5 + m_minBB);
                 mesh.AddPoint(p6 + m_minBB);
                 mesh.AddPoint(p7 + m_minBB);
-                mesh.AddTriangle(Vec3<long>(s + 0, s + 2, s + 1));
-                mesh.AddTriangle(Vec3<long>(s + 0, s + 3, s + 2));
-                mesh.AddTriangle(Vec3<long>(s + 4, s + 5, s + 6));
-                mesh.AddTriangle(Vec3<long>(s + 4, s + 6, s + 7));
-                mesh.AddTriangle(Vec3<long>(s + 7, s + 6, s + 2));
-                mesh.AddTriangle(Vec3<long>(s + 7, s + 2, s + 3));
-                mesh.AddTriangle(Vec3<long>(s + 4,  s + 1, s + 5));
-                mesh.AddTriangle(Vec3<long>(s + 4, s + 0, s + 1));
-                mesh.AddTriangle(Vec3<long>(s + 6, s + 5, s + 1));
-                mesh.AddTriangle(Vec3<long>(s + 6, s + 1, s + 2));
-                mesh.AddTriangle(Vec3<long>(s + 7, s + 0, s + 4));
-                mesh.AddTriangle(Vec3<long>(s + 7, s + 3, s + 0));
+                mesh.AddTriangle(Vec3<int>(s + 0, s + 2, s + 1));
+                mesh.AddTriangle(Vec3<int>(s + 0, s + 3, s + 2));
+                mesh.AddTriangle(Vec3<int>(s + 4, s + 5, s + 6));
+                mesh.AddTriangle(Vec3<int>(s + 4, s + 6, s + 7));
+                mesh.AddTriangle(Vec3<int>(s + 7, s + 6, s + 2));
+                mesh.AddTriangle(Vec3<int>(s + 7, s + 2, s + 3));
+                mesh.AddTriangle(Vec3<int>(s + 4,  s + 1, s + 5));
+                mesh.AddTriangle(Vec3<int>(s + 4, s + 0, s + 1));
+                mesh.AddTriangle(Vec3<int>(s + 6, s + 5, s + 1));
+                mesh.AddTriangle(Vec3<int>(s + 6, s + 1, s + 2));
+                mesh.AddTriangle(Vec3<int>(s + 7, s + 0, s + 4));
+                mesh.AddTriangle(Vec3<int>(s + 7, s + 3, s + 0));
             }
         }
     }
@@ -579,13 +579,13 @@ namespace VHACD
             m_barycenterPCA[1]    += voxel.m_coord[1];
             m_barycenterPCA[2]    += voxel.m_coord[2];
         }
-        m_barycenterPCA /= (Real) nVoxels;
+        m_barycenterPCA /= (double) nVoxels;
 
 
-        Real covMat[3][3] = {{0.0, 0.0, 0.0},
+        double covMat[3][3] = {{0.0, 0.0, 0.0},
                              {0.0, 0.0, 0.0},
                              {0.0, 0.0, 0.0}};
-        Real x, y, z;
+        double x, y, z;
         for(size_t v = 0; v < nVoxels; ++v)
         {
             Voxel & voxel     = m_voxels[v];
@@ -625,18 +625,36 @@ namespace VHACD
     {
         delete [] m_data;
     }
-
-    void Volume::ComputeBB(const size_t nPoints, 
-                           const Vec3<Real> * points)
+    inline void ComputeAlignedPoint(const float * const  points,
+                                    const unsigned int   idx,
+                                    const Vec3<double> & barycenter,
+                                    const double      (& rot)[3][3],
+                                    Vec3<double>       & pt)
     {
-        m_minBB = points[0];
-        m_maxBB = points[0];
-        for (size_t v = 1; v < nPoints ; v++) 
+        double x = points[idx + 0] - barycenter[0];
+        double y = points[idx + 1] - barycenter[1];
+        double z = points[idx + 2] - barycenter[2];
+        pt[0] = rot[0][0] * x + rot[1][0] * y + rot[2][0] * z;
+        pt[1] = rot[0][1] * x + rot[1][1] * y + rot[2][1] * z;
+        pt[2] = rot[0][2] * x + rot[1][2] * y + rot[2][2] * z;
+    }
+    void Volume::ComputeBB(const float * const points,
+                           const unsigned int  stridePoints,
+                           const unsigned int  nPoints,
+                           const Vec3<double> & barycenter,
+                           const double(&rot)[3][3])
+    {
+        Vec3<double> pt;
+        ComputeAlignedPoint(points, 0, barycenter, rot, pt);
+        m_maxBB = pt;
+        m_minBB = pt;
+        for (unsigned int v = 1; v < nPoints; ++v)
         {
+            ComputeAlignedPoint(points, v * stridePoints, barycenter, rot, pt);
             for(int i = 0; i < 3; ++i)
             {
-                if      ( points[v][i] < m_minBB[i]) m_minBB[i] = points[v][i];
-                else if ( points[v][i] > m_maxBB[i]) m_maxBB[i] = points[v][i];
+                if      ( pt[i] < m_minBB[i]) m_minBB[i] = pt[i];
+                else if ( pt[i] > m_maxBB[i]) m_maxBB[i] = pt[i];
             }
         }
     }
@@ -733,20 +751,24 @@ namespace VHACD
             }
         }
     }
-    void Volume::Voxelize(const size_t nPoints, 
-                          const size_t nTriangles,
-                          const Vec3<Real> * points, 
-                          const Vec3<long> * const triangles,
-                          const size_t dim)
+    void Volume::Voxelize(const float * const points,
+                          const unsigned int  stridePoints,
+                          const unsigned int  nPoints,
+                          const int   * const triangles,
+                          const unsigned int  strideTriangles,
+                          const unsigned int  nTriangles,
+                          const size_t dim,
+                          const Vec3<double> & barycenter,
+                          const double(&rot)[3][3])
     {
         if (nPoints == 0)
         {
             return;
         }
-        ComputeBB(nPoints, points);
+        ComputeBB(points, stridePoints, nPoints, barycenter, rot);
 
-        Real d[3] = {m_maxBB[0] - m_minBB[0], m_maxBB[1] - m_minBB[1], m_maxBB[2] - m_minBB[2]};
-        Real r;
+        double d[3] = {m_maxBB[0] - m_minBB[0], m_maxBB[1] - m_minBB[1], m_maxBB[2] - m_minBB[2]};
+        double r;
         if (d[0] > d[1] && d[0] > d[2])
         {
             r        = d[0];
@@ -769,29 +791,32 @@ namespace VHACD
             m_dim[1] = 2 + static_cast<size_t>(dim * d[1] / d[2]);
         }
         
-        m_scale       = r       / (dim-1);
-        Real invScale = (dim-1) / r;
+        m_scale         = r       / (dim-1);
+        double invScale = (dim-1) / r;
 
         Allocate();
         m_numVoxelsOnSurface      = 0;
         m_numVoxelsInsideSurface  = 0;
         m_numVoxelsOutsideSurface = 0;
 
-        Vec3<Real> p[3];
+        Vec3<double> p[3];
         size_t i ,j ,k;
         size_t i0,j0,k0;
         size_t i1,j1,k1;
-        Vec3<Real> boxcenter;
-        const Vec3<Real> boxhalfsize(0.5, 0.5, 0.5);
-        for (size_t t = 0; t < nTriangles; ++t)
+        Vec3<double> boxcenter;
+        Vec3<double> pt;
+        const Vec3<double> boxhalfsize(0.5, 0.5, 0.5);
+        for (size_t t = 0, ti = 0; t < nTriangles; ++t, ti += strideTriangles)
         {
-            const Vec3<long> & tri = triangles[t];
+            Vec3<int> tri(triangles[ti + 0],
+                          triangles[ti + 1],
+                          triangles[ti + 2]);
             for (int c = 0; c < 3; ++c)
             {
-                const Vec3<Real> & pt = points[ tri[c] ] - m_minBB;
-                p[c][0] = pt[0] * invScale;
-                p[c][1] = pt[1] * invScale;
-                p[c][2] = pt[2] * invScale;
+                ComputeAlignedPoint(points, tri[c] * stridePoints, barycenter, rot, pt);
+                p[c][0] = (pt[0] - m_minBB[0]) * invScale;
+                p[c][1] = (pt[1] - m_minBB[1]) * invScale;
+                p[c][2] = (pt[2] - m_minBB[2]) * invScale;
                 i       = static_cast<size_t>(p[c][0] + 0.5);
                 j       = static_cast<size_t>(p[c][1] + 0.5);
                 k       = static_cast<size_t>(p[c][2] + 0.5);
@@ -821,13 +846,13 @@ namespace VHACD
             if (k1 < m_dim[2]) ++k1;
             for(size_t i = i0; i < i1; ++i)
             {
-                boxcenter[0] = (Real) i;
+                boxcenter[0] = (double) i;
                 for(size_t j = j0; j < j1; ++j)
                 {
-                    boxcenter[1] = (Real) j;
+                    boxcenter[1] = (double) j;
                     for(size_t k = k0; k < k1; ++k)
                     {
-                        boxcenter[2] = (Real) k;
+                        boxcenter[2] = (double) k;
                         int res = TriBoxOverlap(boxcenter, boxhalfsize, p[0], p[1], p[2]);
                         unsigned char & value = GetVoxel(i, j, k);
                         if (res == 1 && value == VOXEL_UNDEFINED)
@@ -861,15 +886,15 @@ namespace VHACD
                     const unsigned char & voxel = GetVoxel(i, j, k);
                     if (voxel == value)
                     {
-                        Vec3<Real> p0((i-0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<Real> p1((i+0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<Real> p2((i+0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<Real> p3((i-0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<Real> p4((i-0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
-                        Vec3<Real> p5((i+0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
-                        Vec3<Real> p6((i+0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
-                        Vec3<Real> p7((i-0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
-                        long s = (long) mesh.GetNPoints();
+                        Vec3<double> p0((i-0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
+                        Vec3<double> p1((i+0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
+                        Vec3<double> p2((i+0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
+                        Vec3<double> p3((i-0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
+                        Vec3<double> p4((i-0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
+                        Vec3<double> p5((i+0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
+                        Vec3<double> p6((i+0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
+                        Vec3<double> p7((i-0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
+                        int s = (int) mesh.GetNPoints();
                         mesh.AddPoint(p0 + m_minBB);
                         mesh.AddPoint(p1 + m_minBB);
                         mesh.AddPoint(p2 + m_minBB);
@@ -878,18 +903,18 @@ namespace VHACD
                         mesh.AddPoint(p5 + m_minBB);
                         mesh.AddPoint(p6 + m_minBB);
                         mesh.AddPoint(p7 + m_minBB);
-                        mesh.AddTriangle(Vec3<long>(s + 0, s + 2, s + 1));
-                        mesh.AddTriangle(Vec3<long>(s + 0, s + 3, s + 2));
-                        mesh.AddTriangle(Vec3<long>(s + 4, s + 5, s + 6));
-                        mesh.AddTriangle(Vec3<long>(s + 4, s + 6, s + 7));
-                        mesh.AddTriangle(Vec3<long>(s + 7, s + 6, s + 2));
-                        mesh.AddTriangle(Vec3<long>(s + 7, s + 2, s + 3));
-                        mesh.AddTriangle(Vec3<long>(s + 4,  s + 1, s + 5));
-                        mesh.AddTriangle(Vec3<long>(s + 4, s + 0, s + 1));
-                        mesh.AddTriangle(Vec3<long>(s + 6, s + 5, s + 1));
-                        mesh.AddTriangle(Vec3<long>(s + 6, s + 1, s + 2));
-                        mesh.AddTriangle(Vec3<long>(s + 7, s + 0, s + 4));
-                        mesh.AddTriangle(Vec3<long>(s + 7, s + 3, s + 0));
+                        mesh.AddTriangle(Vec3<int>(s + 0, s + 2, s + 1));
+                        mesh.AddTriangle(Vec3<int>(s + 0, s + 3, s + 2));
+                        mesh.AddTriangle(Vec3<int>(s + 4, s + 5, s + 6));
+                        mesh.AddTriangle(Vec3<int>(s + 4, s + 6, s + 7));
+                        mesh.AddTriangle(Vec3<int>(s + 7, s + 6, s + 2));
+                        mesh.AddTriangle(Vec3<int>(s + 7, s + 2, s + 3));
+                        mesh.AddTriangle(Vec3<int>(s + 4,  s + 1, s + 5));
+                        mesh.AddTriangle(Vec3<int>(s + 4, s + 0, s + 1));
+                        mesh.AddTriangle(Vec3<int>(s + 6, s + 5, s + 1));
+                        mesh.AddTriangle(Vec3<int>(s + 6, s + 1, s + 2));
+                        mesh.AddTriangle(Vec3<int>(s + 7, s + 0, s + 4));
+                        mesh.AddTriangle(Vec3<int>(s + 7, s + 3, s + 0));
                     }
                 }
             }
@@ -962,14 +987,14 @@ namespace VHACD
                     if (value == VOXEL_INSIDE_SURFACE || value == VOXEL_ON_SURFACE)
                     {
                         tetrahedron.m_data = value;
-                        Vec3<Real> p1((i-0.5) * m_scale + m_minBB[0], (j-0.5) * m_scale + m_minBB[1], (k-0.5) * m_scale + m_minBB[2]);
-                        Vec3<Real> p2((i+0.5) * m_scale + m_minBB[0], (j-0.5) * m_scale + m_minBB[1], (k-0.5) * m_scale + m_minBB[2]);
-                        Vec3<Real> p3((i+0.5) * m_scale + m_minBB[0], (j+0.5) * m_scale + m_minBB[1], (k-0.5) * m_scale + m_minBB[2]);
-                        Vec3<Real> p4((i-0.5) * m_scale + m_minBB[0], (j+0.5) * m_scale + m_minBB[1], (k-0.5) * m_scale + m_minBB[2]);
-                        Vec3<Real> p5((i-0.5) * m_scale + m_minBB[0], (j-0.5) * m_scale + m_minBB[1], (k+0.5) * m_scale + m_minBB[2]);
-                        Vec3<Real> p6((i+0.5) * m_scale + m_minBB[0], (j-0.5) * m_scale + m_minBB[1], (k+0.5) * m_scale + m_minBB[2]);
-                        Vec3<Real> p7((i+0.5) * m_scale + m_minBB[0], (j+0.5) * m_scale + m_minBB[1], (k+0.5) * m_scale + m_minBB[2]);
-                        Vec3<Real> p8((i-0.5) * m_scale + m_minBB[0], (j+0.5) * m_scale + m_minBB[1], (k+0.5) * m_scale + m_minBB[2]);
+                        Vec3<double> p1((i-0.5) * m_scale + m_minBB[0], (j-0.5) * m_scale + m_minBB[1], (k-0.5) * m_scale + m_minBB[2]);
+                        Vec3<double> p2((i+0.5) * m_scale + m_minBB[0], (j-0.5) * m_scale + m_minBB[1], (k-0.5) * m_scale + m_minBB[2]);
+                        Vec3<double> p3((i+0.5) * m_scale + m_minBB[0], (j+0.5) * m_scale + m_minBB[1], (k-0.5) * m_scale + m_minBB[2]);
+                        Vec3<double> p4((i-0.5) * m_scale + m_minBB[0], (j+0.5) * m_scale + m_minBB[1], (k-0.5) * m_scale + m_minBB[2]);
+                        Vec3<double> p5((i-0.5) * m_scale + m_minBB[0], (j-0.5) * m_scale + m_minBB[1], (k+0.5) * m_scale + m_minBB[2]);
+                        Vec3<double> p6((i+0.5) * m_scale + m_minBB[0], (j-0.5) * m_scale + m_minBB[1], (k+0.5) * m_scale + m_minBB[2]);
+                        Vec3<double> p7((i+0.5) * m_scale + m_minBB[0], (j+0.5) * m_scale + m_minBB[1], (k+0.5) * m_scale + m_minBB[2]);
+                        Vec3<double> p8((i-0.5) * m_scale + m_minBB[0], (j+0.5) * m_scale + m_minBB[1], (k+0.5) * m_scale + m_minBB[2]);
 
                         tetrahedron.m_pts[0] = p2;
                         tetrahedron.m_pts[1] = p4;
@@ -1015,12 +1040,12 @@ namespace VHACD
     }
 
 
-    void Volume::AlignToPrincipalAxes(Real (&rot)[3][3]) const
+    void Volume::AlignToPrincipalAxes(double (&rot)[3][3]) const
     {
         const short i0 = (short) m_dim[0];
         const short j0 = (short) m_dim[1];
         const short k0 = (short) m_dim[2];
-        Vec3<Real> barycenter(0.0);
+        Vec3<double> barycenter(0.0);
         size_t nVoxels = 0;
         for(short i = 0; i < i0; ++i)
         {
@@ -1039,12 +1064,12 @@ namespace VHACD
                 }
             }
         }
-        barycenter /= (Real) nVoxels;
+        barycenter /= (double) nVoxels;
 
-        Real covMat[3][3] = {{0.0, 0.0, 0.0},
+        double covMat[3][3] = {{0.0, 0.0, 0.0},
                              {0.0, 0.0, 0.0},
                              {0.0, 0.0, 0.0}};
-        Real x, y, z;
+        double x, y, z;
         for(short i = 0; i < i0; ++i)
         {
             for(short j = 0; j < j0; ++j)
@@ -1070,7 +1095,7 @@ namespace VHACD
         covMat[1][0] = covMat[0][1];
         covMat[2][0] = covMat[0][2];
         covMat[2][1] = covMat[1][2];
-        Real D[3][3];
+        double D[3][3];
         Diagonalize(covMat, rot, D);
     }
 
@@ -1085,8 +1110,8 @@ namespace VHACD
         m_numTetrahedraOnSurface     = 0;
         m_numTetrahedraInsideSurface = 0;
         m_numTetrahedraOnClipPlane   = 0;
-        memset(m_Q, 0, sizeof(Real) * 9);
-        memset(m_D, 0, sizeof(Real) * 9);
+        memset(m_Q, 0, sizeof(double) * 9);
+        memset(m_D, 0, sizeof(double) * 9);
     }
 
     TetrahedronSet::~TetrahedronSet(void)
@@ -1114,7 +1139,7 @@ namespace VHACD
                 }
             }
         }
-        m_barycenter /= (Real) (4*nTetrahedra);
+        m_barycenter /= (double) (4*nTetrahedra);
     }
     void TetrahedronSet::ComputeConvexHull(Mesh & meshCH, const size_t sampling) const
     {
@@ -1122,9 +1147,9 @@ namespace VHACD
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0) return;
 
-        SArray< Vec3<Real>, 64 > cpoints;
+        SArray< Vec3<double>, 64 > cpoints;
 
-        Vec3<Real> * points = new Vec3<Real> [CLUSTER_SIZE];
+        Vec3<double> * points = new Vec3<double> [CLUSTER_SIZE];
         size_t p = 0;
         while( p < nTetrahedra)
         {
@@ -1152,21 +1177,21 @@ namespace VHACD
                 ++p;
            }
            btConvexHullComputer ch;
-           ch.compute((Real *) points, 3 * sizeof(Real), (int) q, -1.0, -1.0); 
+           ch.compute((double *) points, 3 * sizeof(double), (int) q, -1.0, -1.0); 
            for(int v = 0; v < ch.vertices.size(); v++)
            {
-               cpoints.PushBack(Vec3<Real>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
+               cpoints.PushBack(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
            }
         }
         delete [] points;
 
         points  = cpoints.Data();
         btConvexHullComputer ch;
-        ch.compute((Real *) points, 3 * sizeof(Real), (int) cpoints.Size(), -1.0, -1.0); 
+        ch.compute((double *) points, 3 * sizeof(double), (int) cpoints.Size(), -1.0, -1.0); 
         meshCH.Clear();
         for(int v = 0; v < ch.vertices.size(); v++)
         {            
-            meshCH.AddPoint(Vec3<Real>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
+            meshCH.AddPoint(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
         }
         const int nt = ch.faces.size();
         for(int t = 0; t < nt; ++t)
@@ -1178,7 +1203,7 @@ namespace VHACD
             int c = edge->getTargetVertex();
             while (c != a)
             {                
-                meshCH.AddTriangle(Vec3<long>(a, b, c));
+                meshCH.AddTriangle(Vec3<int>(a, b, c));
                 edge = edge->getNextEdgeOfFace();
                 b = c;
                 c = edge->getTargetVertex();
@@ -1187,16 +1212,16 @@ namespace VHACD
     }
     inline bool TetrahedronSet::Add(Tetrahedron & tetrahedron)
     {
-        Real v = ComputeVolume4(tetrahedron.m_pts[0], tetrahedron.m_pts[1], tetrahedron.m_pts[2], tetrahedron.m_pts[3]);
+        double v = ComputeVolume4(tetrahedron.m_pts[0], tetrahedron.m_pts[1], tetrahedron.m_pts[2], tetrahedron.m_pts[3]);
 
-        const Real EPS = 0.0000000001;
+        const double EPS = 0.0000000001;
         if (fabs(v) < EPS)
         {
             return false;
         }
         else if ( v < 0.0)
         {
-            Vec3<Real> tmp       = tetrahedron.m_pts[0];
+            Vec3<double> tmp       = tetrahedron.m_pts[0];
             tetrahedron.m_pts[0] = tetrahedron.m_pts[1];
             tetrahedron.m_pts[1] = tmp;
         }
@@ -1213,7 +1238,7 @@ namespace VHACD
         return true;
     }
 
-    void TetrahedronSet::AddClippedTetrahedra(const Vec3<Real> (&pts) [10], const int nPts)
+    void TetrahedronSet::AddClippedTetrahedra(const Vec3<double> (&pts) [10], const int nPts)
     {
         const int tetF[4][3] = {{0, 1, 2}, {2, 1, 3}, {3, 1, 0}, {3, 0, 2}};
         if(nPts < 4)
@@ -1237,13 +1262,13 @@ namespace VHACD
         {
             const int tet[15][4] = { {0, 1, 2, 3}, {1, 2, 3, 4}, {0, 2, 3, 4}, {0, 1, 3, 4}, {0, 1, 2, 4},};
             const int rem[5]     = { 4, 0, 1, 2, 3};
-            Real maxVol   = 0.0;
+            double maxVol   = 0.0;
             int  h0       = -1;
             Tetrahedron tetrahedron0;
             tetrahedron0.m_data   = VOXEL_ON_CLIP_PLANE;
             for(int h = 0; h < 5; ++h)
             {
-                Real v = ComputeVolume4(pts[tet[h][0]], pts[tet[h][1]], pts[tet[h][2]], pts[tet[h][3]]);
+                double v = ComputeVolume4(pts[tet[h][0]], pts[tet[h][1]], pts[tet[h][2]], pts[tet[h][3]]);
                 if ( v > maxVol)
                 {
                     h0 = h;
@@ -1279,7 +1304,7 @@ namespace VHACD
             tetrahedron1.m_data = VOXEL_ON_CLIP_PLANE;
             for (int h = 0; h < 4; ++h)
             {
-                Real v = ComputeVolume4(pts[a], tetrahedron0.m_pts[tetF[h][0]], tetrahedron0.m_pts[tetF[h][1]], tetrahedron0.m_pts[tetF[h][2]]);
+                double v = ComputeVolume4(pts[a], tetrahedron0.m_pts[tetF[h][0]], tetrahedron0.m_pts[tetF[h][1]], tetrahedron0.m_pts[tetF[h][2]]);
                 if ( v > maxVol)
                 {
                     h1                    = h;
@@ -1304,13 +1329,13 @@ namespace VHACD
             const int rem[15][2]  = {{0,1}, {0,2}, {0,3}, {0,4}, {0,5}, 
                                      {1,2}, {1,3}, {1,4}, {1,5}, {2,3}, 
                                      {2,4}, {2,5}, {3,4}, {3,5}, {4,5} };
-            Real maxVol   = 0.0;
+            double maxVol   = 0.0;
             int  h0       = -1;
             Tetrahedron tetrahedron0;
             tetrahedron0.m_data   = VOXEL_ON_CLIP_PLANE;
             for(int h = 0; h < 15; ++h)
             {
-                Real v = ComputeVolume4(pts[tet[h][0]], pts[tet[h][1]], pts[tet[h][2]], pts[tet[h][3]]);
+                double v = ComputeVolume4(pts[tet[h][0]], pts[tet[h][1]], pts[tet[h][2]], pts[tet[h][3]]);
                 if ( v > maxVol)
                 {
                     h0 = h;
@@ -1348,7 +1373,7 @@ namespace VHACD
             maxVol = 0.0;
             for (int h = 0; h < 4; ++h)
             {
-                Real v = ComputeVolume4(pts[a0], tetrahedron0.m_pts[tetF[h][0]], tetrahedron0.m_pts[tetF[h][1]], tetrahedron0.m_pts[tetF[h][2]]);
+                double v = ComputeVolume4(pts[a0], tetrahedron0.m_pts[tetF[h][0]], tetrahedron0.m_pts[tetF[h][1]], tetrahedron0.m_pts[tetF[h][2]]);
                 if ( v > maxVol)
                 {
                     h1                    = h;
@@ -1373,7 +1398,7 @@ namespace VHACD
             tetrahedron2.m_data   = VOXEL_ON_CLIP_PLANE;
             for (int h = 0; h < 4; ++h)
             {
-                Real v = ComputeVolume4(pts[a0], tetrahedron0.m_pts[tetF[h][0]], tetrahedron0.m_pts[tetF[h][1]], tetrahedron0.m_pts[tetF[h][2]]);
+                double v = ComputeVolume4(pts[a0], tetrahedron0.m_pts[tetF[h][0]], tetrahedron0.m_pts[tetF[h][1]], tetrahedron0.m_pts[tetF[h][2]]);
                 if (h == h1) continue;
                 if ( v > maxVol)
                 {
@@ -1389,7 +1414,7 @@ namespace VHACD
             {
                 for (int h = 0; h < 4; ++h)
                 {
-                    Real v = ComputeVolume4(pts[a1], tetrahedron1.m_pts[tetF[h][0]], tetrahedron1.m_pts[tetF[h][1]], tetrahedron1.m_pts[tetF[h][2]]);
+                    double v = ComputeVolume4(pts[a1], tetrahedron1.m_pts[tetF[h][0]], tetrahedron1.m_pts[tetF[h][1]], tetrahedron1.m_pts[tetF[h][2]]);
                     if (h == 1) continue;
                     if ( v > maxVol)
                     {
@@ -1441,15 +1466,15 @@ namespace VHACD
         }
 
         Tetrahedron tetrahedron;
-        Real delta, alpha;
+        double delta, alpha;
         int sign[4];
         int npos, nneg;
-        Vec3<Real> posPts[10];
-        Vec3<Real> negPts[10];
-        Vec3<Real> P0, P1, M;
-        const Vec3<Real> n(plane.m_a, plane.m_b, plane.m_c);
+        Vec3<double> posPts[10];
+        Vec3<double> negPts[10];
+        Vec3<double> P0, P1, M;
+        const Vec3<double> n(plane.m_a, plane.m_b, plane.m_c);
         const int edges [6][2]= {{0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 3}, {2, 3}};
-        Real dist;
+        double dist;
         for(size_t v = 0; v < nTetrahedra; ++v)
         {
             tetrahedron = m_tetrahedra[v];
@@ -1549,24 +1574,24 @@ namespace VHACD
             const Tetrahedron & tetrahedron = m_tetrahedra[v];
             if (tetrahedron.m_data == value)
             {
-                long s = (long) mesh.GetNPoints();
+                int s = (int) mesh.GetNPoints();
                 mesh.AddPoint(tetrahedron.m_pts[0]);
                 mesh.AddPoint(tetrahedron.m_pts[1]);
                 mesh.AddPoint(tetrahedron.m_pts[2]);
                 mesh.AddPoint(tetrahedron.m_pts[3]);
-                mesh.AddTriangle(Vec3<long>(s + 0, s + 1, s + 2));
-                mesh.AddTriangle(Vec3<long>(s + 2, s + 1, s + 3));
-                mesh.AddTriangle(Vec3<long>(s + 3, s + 1, s + 0));
-                mesh.AddTriangle(Vec3<long>(s + 3, s + 0, s + 2));
+                mesh.AddTriangle(Vec3<int>(s + 0, s + 1, s + 2));
+                mesh.AddTriangle(Vec3<int>(s + 2, s + 1, s + 3));
+                mesh.AddTriangle(Vec3<int>(s + 3, s + 1, s + 0));
+                mesh.AddTriangle(Vec3<int>(s + 3, s + 0, s + 2));
             }
         }
     }
-    Real TetrahedronSet::ComputeVolume() const
+    double TetrahedronSet::ComputeVolume() const
     {
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0)
             return 0.0;
-        Real volume = 0.0;
+        double volume = 0.0;
         for(size_t v = 0; v < nTetrahedra; ++v)
         {
             const Tetrahedron & tetrahedron = m_tetrahedra[v];
@@ -1574,12 +1599,12 @@ namespace VHACD
         }
         return volume / 6.0;
     }
-    Real TetrahedronSet::ComputeMaxVolumeError() const
+    double TetrahedronSet::ComputeMaxVolumeError() const
     {
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0)
             return 0.0;
-        Real volume = 0.0;
+        double volume = 0.0;
         for(size_t v = 0; v < nTetrahedra; ++v)
         {
             const Tetrahedron & tetrahedron = m_tetrahedra[v];
@@ -1595,7 +1620,7 @@ namespace VHACD
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0)
             return;
-        Real x, y, z;
+        double x, y, z;
         for(size_t v = 0; v < nTetrahedra; ++v)
         {
             Tetrahedron & tetrahedron     = m_tetrahedra[v];
@@ -1616,10 +1641,10 @@ namespace VHACD
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0)
             return;
-        Real covMat[3][3] = {{0.0, 0.0, 0.0},
+        double covMat[3][3] = {{0.0, 0.0, 0.0},
                              {0.0, 0.0, 0.0},
                              {0.0, 0.0, 0.0}};
-        Real x, y, z;
+        double x, y, z;
         for(size_t v = 0; v < nTetrahedra; ++v)
         {
             Tetrahedron & tetrahedron     = m_tetrahedra[v];
@@ -1636,7 +1661,7 @@ namespace VHACD
                 covMat[1][2]     += y*z;
             }
         }
-        Real n = nTetrahedra * 4.0;
+        double n = nTetrahedra * 4.0;
         covMat[0][0] /= n;
         covMat[1][1] /= n;
         covMat[2][2] /= n;
@@ -1653,7 +1678,7 @@ namespace VHACD
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0)
             return;
-        Real x, y, z;
+        double x, y, z;
         for(size_t v = 0; v < nTetrahedra; ++v)
         {
             Tetrahedron & tetrahedron     = m_tetrahedra[v];

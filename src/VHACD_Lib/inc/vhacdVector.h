@@ -17,11 +17,9 @@
 #define VHACD_VECTOR_H
 #include <math.h>
 #include <iostream>
-#include "vhacdVersion.h"
 
 namespace VHACD
 {
-    typedef double Real;
     //!    Vector dim 3.
     template < typename T > class Vec3
     {
@@ -61,7 +59,6 @@ namespace VHACD
     private:
         T                   m_data[3];
     };
-    typedef double Real;
     //!    Vector dim 2.
     template < typename T > class Vec2
     {

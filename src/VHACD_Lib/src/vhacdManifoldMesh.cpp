@@ -67,7 +67,7 @@ namespace VHACD
     TMMesh::~TMMesh(void)
     {
     }
-    void TMMesh::GetIFS(Vec3<Real> * const points, Vec3<long> * const triangles)
+    void TMMesh::GetIFS(Vec3<double> * const points, Vec3<int> * const triangles)
     {
         size_t nV = m_vertices.GetSize();
         size_t nT = m_triangles.GetSize(); 
@@ -81,9 +81,9 @@ namespace VHACD
         for(size_t f = 0; f < nT; f++)
         {
             TMMTriangle & currentTriangle = m_triangles.GetData();
-            triangles[f].X() = static_cast<long>(currentTriangle.m_vertices[0]->GetData().m_id);
-            triangles[f].Y() = static_cast<long>(currentTriangle.m_vertices[1]->GetData().m_id);
-            triangles[f].Z() = static_cast<long>(currentTriangle.m_vertices[2]->GetData().m_id);
+            triangles[f].X() = static_cast<int>(currentTriangle.m_vertices[0]->GetData().m_id);
+            triangles[f].Y() = static_cast<int>(currentTriangle.m_vertices[1]->GetData().m_id);
+            triangles[f].Z() = static_cast<int>(currentTriangle.m_vertices[2]->GetData().m_id);
             m_triangles.Next();
         }
     }
@@ -103,7 +103,7 @@ namespace VHACD
         for(size_t v = 0; v < nV; v++)
         {
             mesh.m_vertices.GetData().m_id = v;
-            mesh.m_vertices.Next();            
+            mesh.m_vertices.Next();
         }
         for(size_t e = 0; e < nE; e++)
         {

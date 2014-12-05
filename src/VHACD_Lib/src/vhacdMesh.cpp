@@ -22,6 +22,7 @@
 #include <iosfwd>
 #include "btConvexHullComputer.h"
 #include "vhacdMesh.h"
+
 namespace VHACD
 {
     Mesh::Mesh()
@@ -31,15 +32,42 @@ namespace VHACD
     Mesh::~Mesh()
     {
     }
-    bool Mesh::SaveVRML2(const std::string & fileName, const Vec3<Real> * colors) const
+    double Mesh::ComputeVolume() const
     {
-        std::cout << "Saving " <<  fileName << std::endl;
+        const int nV = (int) GetNPoints();
+        if (nV == 0)
+        {
+            return 0.0;
+        }       
+        Vec3<double> bary(0.0, 0.0, 0.0);
+        for(int v = 0; v < nV; v++)
+        {
+            bary +=  GetPoint(v);
+        }
+        bary /= static_cast<double>(nV);
+        
+        const int nT = (int) GetNTriangles();
+        Vec3<double> ver0, ver1, ver2;
+        double totalVolume = 0.0;
+        for(int t = 0; t < nT; t++)
+        {
+            const Vec3<int> & tri = GetTriangle(t);
+            ver0 = GetPoint(tri[0]);
+            ver1 = GetPoint(tri[1]);
+            ver2 = GetPoint(tri[2]);
+            totalVolume += ComputeVolume4(ver0, ver1, ver2, bary);
+        }
+        return totalVolume/6.0;
+    }
+#ifdef VHACD_DEBUG_MESH
+    bool Mesh::SaveVRML2(const std::string & fileName) const
+    {
         std::ofstream fout(fileName.c_str());
-        if (fout.is_open()) 
+        if (fout.is_open())
         {
             const Material material;
-            
-            if (SaveVRML2(fout, material, colors))
+
+            if (SaveVRML2(fout, material))
             {
                 fout.close();
                 return true;
@@ -48,129 +76,113 @@ namespace VHACD
         }
         return false;
     }
-    bool Mesh::SaveVRML2(std::ofstream & fout, const Material & material, const Vec3<Real> * colors) const
-    {        
-        if (fout.is_open()) 
+    bool Mesh::SaveVRML2(std::ofstream & fout, const Material & material) const
+    {
+        if (fout.is_open())
         {
             fout.setf(std::ios::fixed, std::ios::floatfield);
             fout.setf(std::ios::showpoint);
             fout.precision(6);
             size_t nV = m_points.Size();
             size_t nT = m_triangles.Size();
-            fout <<"#VRML V2.0 utf8" << std::endl;
-            fout <<"" << std::endl;
-            fout <<"# Vertices: " << nV << std::endl;        
-            fout <<"# Triangles: " << nT << std::endl;        
-            fout <<"" << std::endl;
-            fout <<"Group {" << std::endl;
-            fout <<"    children [" << std::endl;
-            fout <<"        Shape {" << std::endl;
-            fout <<"            appearance Appearance {" << std::endl;
-            fout <<"                material Material {" << std::endl;
-            fout <<"                    diffuseColor "      << material.m_diffuseColor[0]      << " " 
-                                                            << material.m_diffuseColor[1]      << " "
-                                                            << material.m_diffuseColor[2]      << std::endl;  
-            fout <<"                    ambientIntensity "  << material.m_ambientIntensity      << std::endl;
-            fout <<"                    specularColor "     << material.m_specularColor[0]     << " " 
-                                                            << material.m_specularColor[1]     << " "
-                                                            << material.m_specularColor[2]     << std::endl; 
-            fout <<"                    emissiveColor "     << material.m_emissiveColor[0]     << " " 
-                                                            << material.m_emissiveColor[1]     << " "
-                                                            << material.m_emissiveColor[2]     << std::endl; 
-            fout <<"                    shininess "         << material.m_shininess             << std::endl;
-            fout <<"                    transparency "      << material.m_transparency          << std::endl;
-            fout <<"                }" << std::endl;
-            fout <<"            }" << std::endl;
-            fout <<"            geometry IndexedFaceSet {" << std::endl;
-            fout <<"                ccw TRUE" << std::endl;
-            fout <<"                solid TRUE" << std::endl;
-            fout <<"                convex TRUE" << std::endl;
-            if (colors && nT>0)
+            fout << "#VRML V2.0 utf8" << std::endl;
+            fout << "" << std::endl;
+            fout << "# Vertices: " << nV << std::endl;
+            fout << "# Triangles: " << nT << std::endl;
+            fout << "" << std::endl;
+            fout << "Group {" << std::endl;
+            fout << "    children [" << std::endl;
+            fout << "        Shape {" << std::endl;
+            fout << "            appearance Appearance {" << std::endl;
+            fout << "                material Material {" << std::endl;
+            fout << "                    diffuseColor " << material.m_diffuseColor[0] << " "
+                << material.m_diffuseColor[1] << " "
+                << material.m_diffuseColor[2] << std::endl;
+            fout << "                    ambientIntensity " << material.m_ambientIntensity << std::endl;
+            fout << "                    specularColor " << material.m_specularColor[0] << " "
+                << material.m_specularColor[1] << " "
+                << material.m_specularColor[2] << std::endl;
+            fout << "                    emissiveColor " << material.m_emissiveColor[0] << " "
+                << material.m_emissiveColor[1] << " "
+                << material.m_emissiveColor[2] << std::endl;
+            fout << "                    shininess " << material.m_shininess << std::endl;
+            fout << "                    transparency " << material.m_transparency << std::endl;
+            fout << "                }" << std::endl;
+            fout << "            }" << std::endl;
+            fout << "            geometry IndexedFaceSet {" << std::endl;
+            fout << "                ccw TRUE" << std::endl;
+            fout << "                solid TRUE" << std::endl;
+            fout << "                convex TRUE" << std::endl;
+            if (nV > 0)
             {
-                fout <<"                colorPerVertex FALSE" << std::endl;
-                fout <<"                color Color {" << std::endl;
-                fout <<"                    color [" << std::endl;
-                for(size_t c = 0; c < nT; c++)
+                fout << "                coord DEF co Coordinate {" << std::endl;
+                fout << "                    point [" << std::endl;
+                for (size_t v = 0; v < nV; v++)
                 {
-                    fout <<"                        " << colors[c][0] << " " 
-                                                      << colors[c][1] << " " 
-                                                      << colors[c][2] << "," << std::endl;
+                    fout << "                        " << m_points[v][0] << " "
+                        << m_points[v][1] << " "
+                        << m_points[v][2] << "," << std::endl;
                 }
-                fout <<"                    ]" << std::endl;
-                fout <<"                }" << std::endl;
-                        }
-            if (nV > 0) 
-            {
-                fout <<"                coord DEF co Coordinate {" << std::endl;
-                fout <<"                    point [" << std::endl;
-                for(size_t v = 0; v < nV; v++)
-                {
-                    fout <<"                        " << m_points[v][0] << " " 
-                                                      << m_points[v][1] << " " 
-                                                      << m_points[v][2] << "," << std::endl;
-                }
-                fout <<"                    ]" << std::endl;
-                fout <<"                }" << std::endl;
+                fout << "                    ]" << std::endl;
+                fout << "                }" << std::endl;
             }
-            if (nT > 0) 
+            if (nT > 0)
             {
-                fout <<"                coordIndex [ " << std::endl;
-                for(size_t f = 0; f < nT; f++)
+                fout << "                coordIndex [ " << std::endl;
+                for (size_t f = 0; f < nT; f++)
                 {
-                    fout <<"                        " << m_triangles[f][0] << ", " 
-                                                      << m_triangles[f][1] << ", "                                                  
-                                                      << m_triangles[f][2] << ", -1," << std::endl;
+                    fout << "                        " << m_triangles[f][0] << ", "
+                        << m_triangles[f][1] << ", "
+                        << m_triangles[f][2] << ", -1," << std::endl;
                 }
-                fout <<"                ]" << std::endl;
+                fout << "                ]" << std::endl;
             }
-            fout <<"            }" << std::endl;
-            fout <<"        }" << std::endl;
-            fout <<"    ]" << std::endl;
-            fout <<"}" << std::endl;    
+            fout << "            }" << std::endl;
+            fout << "        }" << std::endl;
+            fout << "    ]" << std::endl;
+            fout << "}" << std::endl;
             return true;
         }
         return false;
     }
     bool Mesh::SaveOFF(const std::string & fileName) const
     {
-        std::cout << "Saving " <<  fileName << std::endl;
         std::ofstream fout(fileName.c_str());
-        if (fout.is_open()) 
-        {           
+        if (fout.is_open())
+        {
             size_t nV = m_points.Size();
             size_t nT = m_triangles.Size();
-            fout <<"OFF" << std::endl;
-            fout << nV << " " << nT << " " << 0<< std::endl;
-            for(size_t v = 0; v < nV; v++)
+            fout << "OFF" << std::endl;
+            fout << nV << " " << nT << " " << 0 << std::endl;
+            for (size_t v = 0; v < nV; v++)
             {
-                fout << m_points[v][0] << " " 
-                     << m_points[v][1] << " " 
-                     << m_points[v][2] << std::endl;
+                fout << m_points[v][0] << " "
+                    << m_points[v][1] << " "
+                    << m_points[v][2] << std::endl;
             }
-            for(size_t f = 0; f < nT; f++)
+            for (size_t f = 0; f < nT; f++)
             {
-                fout <<"3 " << m_triangles[f][0] << " " 
-                            << m_triangles[f][1] << " "
-                            << m_triangles[f][2] << std::endl;
+                fout << "3 " << m_triangles[f][0] << " "
+                    << m_triangles[f][1] << " "
+                    << m_triangles[f][2] << std::endl;
             }
             fout.close();
             return true;
         }
         return false;
     }
-    bool Mesh::LoadOFF(const std::string & fileName, bool invert) 
-    {    
+
+    bool Mesh::LoadOFF(const std::string & fileName, bool invert)
+    {
         FILE * fid = fopen(fileName.c_str(), "r");
-        if (fid) 
+        if (fid)
         {
             const std::string strOFF("OFF");
             char temp[1024];
             fscanf(fid, "%s", temp);
             if (std::string(temp) != strOFF)
             {
-                printf( "Loading error: format not recognized \n");
                 fclose(fid);
-
                 return false;
             }
             else
@@ -183,9 +195,9 @@ namespace VHACD
                 fscanf(fid, "%i", &ne);
                 m_points.Resize(nv);
                 m_triangles.Resize(nf);
-                Vec3<Real> coord;
-                float x,y,z;
-                for (long p = 0; p < nv ; p++) 
+                Vec3<double> coord;
+                float x, y, z;
+                for (int p = 0; p < nv; p++)
                 {
                     fscanf(fid, "%f", &x);
                     fscanf(fid, "%f", &y);
@@ -195,7 +207,7 @@ namespace VHACD
                     m_points[p][2] = z;
                 }
                 int i, j, k, s;
-                for (long t = 0; t < nf ; ++t) {
+                for (int t = 0; t < nf; ++t) {
                     fscanf(fid, "%i", &s);
                     if (s == 3)
                     {
@@ -216,45 +228,18 @@ namespace VHACD
                     }
                     else            // Fix me: support only triangular meshes
                     {
-                        for(long h = 0; h < s; ++h) fscanf(fid, "%i", &s);
+                        for (int h = 0; h < s; ++h) fscanf(fid, "%i", &s);
                     }
                 }
                 fclose(fid);
             }
         }
-        else 
+        else
         {
-            printf( "Loading error: file not found \n");
             return false;
         }
         return true;
     }
-    Real Mesh::ComputeVolume() const
-    {
-        const long nV = (long) GetNPoints();
-        if (nV == 0)
-        {
-            return 0.0;
-        }       
-        Vec3<Real> bary(0.0, 0.0, 0.0);
-        for(long v = 0; v < nV; v++)
-        {
-            bary +=  GetPoint(v);
-        }
-        bary /= static_cast<Real>(nV);
-        
-        const long nT = (long) GetNTriangles();
-        Vec3<Real> ver0, ver1, ver2;
-        Real totalVolume = 0.0;
-        for(long t = 0; t < nT; t++)
-        {
-            const Vec3<long> & tri = GetTriangle(t);
-            ver0 = GetPoint(tri[0]);
-            ver1 = GetPoint(tri[1]);
-            ver2 = GetPoint(tri[2]);
-            totalVolume += ComputeVolume4(ver0, ver1, ver2, bary);
-        }
-        return totalVolume/6.0;
-    }
+#endif // VHACD_DEBUG_MESH
 
 }

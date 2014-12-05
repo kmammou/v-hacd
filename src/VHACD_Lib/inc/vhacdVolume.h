@@ -16,15 +16,14 @@
 #ifndef VHACD_VOLUME_H
 #define VHACD_VOLUME_H
 #include <assert.h>
-#include "vhacdVersion.h"
 #include "vhacdVector.h"
 #include "vhacdMesh.h"
 
 
 #ifdef LINUX
-    #define int64 long 
+    #define int64 int 
 #elif _WIN32
-    #define int64 long long
+    #define int64 int int
 #endif
 
 
@@ -56,10 +55,10 @@ namespace VHACD
 
     struct Plane
     {
-        Real                                        m_a;
-        Real                                        m_b;
-        Real                                        m_c;
-        Real                                        m_d;
+        double                                      m_a;
+        double                                      m_b;
+        double                                      m_c;
+        double                                      m_d;
         AXIS                                        m_axis;
         short                                       m_index;
     };
@@ -75,33 +74,33 @@ namespace VHACD
                                                     VoxelSet();
 
         size_t                                      GetNVoxels() const { return m_voxels.Size();}
-        Real                                        ComputeVolume() const { return m_unitVolume * m_voxels.Size();}
-        Real                                        ComputeMaxVolumeError() const { return m_unitVolume * m_numVoxelsOnSurface;}
+        double                                      ComputeVolume() const { return m_unitVolume * m_voxels.Size();}
+        double                                      ComputeMaxVolumeError() const { return m_unitVolume * m_numVoxelsOnSurface;}
         void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling) const;
         const Vec3<short> &                         GetMinBBVoxels()  const { return m_minBBVoxels;}
         const Vec3<short> &                         GetMaxBBVoxels()  const { return m_maxBBVoxels;}
-        Vec3<Real>                                  GetPoint(Vec3<short> voxel) const
+        Vec3<double>                                GetPoint(Vec3<short> voxel) const
                                                     {
-                                                        return Vec3<Real> (voxel[0] * m_scale +  m_minBB[0], 
+                                                        return Vec3<double> (voxel[0] * m_scale +  m_minBB[0], 
                                                                            voxel[1] * m_scale +  m_minBB[1], 
                                                                            voxel[2] * m_scale +  m_minBB[2]);
                                                     }
-        Vec3<Real>                                  GetPoint(const Voxel & voxel) const
+        Vec3<double>                                  GetPoint(const Voxel & voxel) const
                                                     {
-                                                        return Vec3<Real> (voxel.m_coord[0] * m_scale  +  m_minBB[0], 
+                                                        return Vec3<double> (voxel.m_coord[0] * m_scale  +  m_minBB[0], 
                                                                            voxel.m_coord[1] * m_scale  +  m_minBB[1], 
                                                                            voxel.m_coord[2] * m_scale  +  m_minBB[2]);
                                                     }
-        Vec3<Real>                                  GetPoint(Vec3<Real> voxel) const
+        Vec3<double>                                  GetPoint(Vec3<double> voxel) const
                                                     {
-                                                        return Vec3<Real> (voxel[0] * m_scale +  m_minBB[0], 
+                                                        return Vec3<double> (voxel[0] * m_scale +  m_minBB[0], 
                                                                            voxel[1] * m_scale +  m_minBB[1], 
                                                                            voxel[2] * m_scale +  m_minBB[2]);
                                                     }
         const size_t                                GetNumOnSurfVoxels()      const { return m_numVoxelsOnSurface    ;}
         const size_t                                GetNumInsideSurfVoxels()  const { return m_numVoxelsInsideSurface;}
         const size_t                                GetNumOnClipPlaneVoxels() const { return m_numVoxelsOnClipPlane  ;}
-        const Real                                  GetEigenValue(AXIS axis)      const { return m_D[axis][axis];}
+        const double                                GetEigenValue(AXIS axis)      const { return m_D[axis][axis];}
 
         void                                        Clip(const Plane & plane, VoxelSet * const positivePart, VoxelSet * const negativePart) const;
         void                                        ComputeBB();
@@ -112,25 +111,25 @@ namespace VHACD
         size_t                                      m_numVoxelsOnSurface    ;
         size_t                                      m_numVoxelsInsideSurface;
         size_t                                      m_numVoxelsOnClipPlane;
-        Vec3<Real>                                  m_minBB;
-        Real                                        m_scale;
+        Vec3<double>                                m_minBB;
+        double                                      m_scale;
         SArray< Voxel, 8 >                          m_voxels;
-        Real                                        m_unitVolume;
-        Vec3<Real>                                  m_minBBPts;
-        Vec3<Real>                                  m_maxBBPts;
+        double                                      m_unitVolume;
+        Vec3<double>                                m_minBBPts;
+        Vec3<double>                                m_maxBBPts;
         Vec3<short>                                 m_minBBVoxels;
         Vec3<short>                                 m_maxBBVoxels;
         Vec3<short>                                 m_barycenter;
-        Real                                        m_Q[3][3];
-        Real                                        m_D[3][3];
-        Vec3<Real>                                  m_barycenterPCA;
+        double                                      m_Q[3][3];
+        double                                      m_D[3][3];
+        Vec3<double>                                m_barycenterPCA;
     };
 
 
     struct Tetrahedron
     {
     public:
-        Vec3<Real>                                  m_pts[4];
+        Vec3<double>                                m_pts[4];
         unsigned char                               m_data;
     };
 
@@ -145,17 +144,17 @@ namespace VHACD
                                                     TetrahedronSet();
 
         size_t                                      GetNTetrahedra() const { return m_tetrahedra.Size();}
-        Real                                        ComputeVolume() const;
-        Real                                        ComputeMaxVolumeError() const;
+        double                                      ComputeVolume() const;
+        double                                      ComputeMaxVolumeError() const;
         void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling) const;
         const size_t                                GetNumOnSurfTetrahedra()      const { return m_numTetrahedraOnSurface    ;}
         const size_t                                GetNumInsideSurfTetrahedra()  const { return m_numTetrahedraInsideSurface;}
         const size_t                                GetNumOnClipPlaneTetrahedra() const { return m_numTetrahedraOnClipPlane  ;}
-        const Vec3<Real> &                          GetMinBB()                    const { return m_minBB;}
-        const Vec3<Real> &                          GetMaxBB()                    const { return m_maxBB;}
-        const Vec3<Real> &                          GetBarycenter()               const { return m_barycenter;}
-        const Real                                  GetEigenValue(AXIS axis)      const { return m_D[axis][axis];}
-        const Real                                  GetSacle()                    const { return m_scale;}
+        const Vec3<double> &                        GetMinBB()                    const { return m_minBB;}
+        const Vec3<double> &                        GetMaxBB()                    const { return m_maxBB;}
+        const Vec3<double> &                        GetBarycenter()               const { return m_barycenter;}
+        const double                                GetEigenValue(AXIS axis)      const { return m_D[axis][axis];}
+        const double                                GetSacle()                    const { return m_scale;}
 
         void                                        ComputePrincipalAxes();
         void                                        AlignToPrincipalAxes();
@@ -165,23 +164,23 @@ namespace VHACD
         void                                        Convert(Mesh & mesh, const VOXEL_VALUE value) const;
         inline bool                                 Add(Tetrahedron & tetrahedron);
 
-        static const Real EPS;
+        static const double EPS;
 
     private:
 
 
-        void                                        AddClippedTetrahedra(const Vec3<Real> (&pts) [10], const int nPts);
+        void                                        AddClippedTetrahedra(const Vec3<double> (&pts) [10], const int nPts);
 
         size_t                                      m_numTetrahedraOnSurface    ;
         size_t                                      m_numTetrahedraInsideSurface;
         size_t                                      m_numTetrahedraOnClipPlane;
-        Real                                        m_scale;
-        Vec3<Real>                                  m_minBB;
-        Vec3<Real>                                  m_maxBB;
-        Vec3<Real>                                  m_barycenter;
+        double                                      m_scale;
+        Vec3<double>                                m_minBB;
+        Vec3<double>                                m_maxBB;
+        Vec3<double>                                m_barycenter;
         SArray< Tetrahedron, 8 >                    m_tetrahedra;
-        Real                                        m_Q[3][3];
-        Real                                        m_D[3][3];
+        double                                      m_Q[3][3];
+        double                                      m_D[3][3];
     };
 
 
@@ -197,11 +196,15 @@ namespace VHACD
                                                     Volume();
 
         //! Voxelize
-        void                                        Voxelize(const size_t nPoints, 
-                                                             const size_t nTriangles,
-                                                             const Vec3<Real> * points, 
-                                                             const Vec3<long> * const triangles,
-                                                             const size_t dim);
+        void                                        Voxelize(const float * const points,
+                                                             const unsigned int  stridePoints,
+                                                             const unsigned int  nPoints,
+                                                             const int   * const triangles,
+                                                             const unsigned int  strideTriangles,
+                                                             const unsigned int  nTriangles,
+                                                             const size_t dim,
+                                                             const Vec3<double> & barycenter,
+                                                             const double      (&rot)[3][3]);
         unsigned char &                             GetVoxel(const size_t i, const size_t j, const size_t k)
                                                     {
                                                         assert( i < m_dim[0] || i >= 0);
@@ -221,7 +224,7 @@ namespace VHACD
         void                                        Convert(Mesh & mesh, const VOXEL_VALUE value) const;
         void                                        Convert(VoxelSet  & vset) const;
         void                                        Convert(TetrahedronSet & tset) const;
-        void                                        AlignToPrincipalAxes(Real (&rot)[3][3]) const;
+        void                                        AlignToPrincipalAxes(double (&rot)[3][3]) const;
 
     private:
         void                                        FillOutsideSurface(const size_t i0,
@@ -231,14 +234,17 @@ namespace VHACD
                                                                        const size_t j1,
                                                                        const size_t k1);
         void                                        FillInsideSurface();
-        void                                        ComputeBB(const size_t nPoints,
-                                                              const Vec3<Real> * points);
+        void                                        ComputeBB(const float * const points,
+                                                              const unsigned int  stridePoints,
+                                                              const unsigned int  nPoints,
+                                                              const Vec3<double> & barycenter,
+                                                              const double(&rot)[3][3]);
         void                                        Allocate();
         void                                        Free();
 
-        Vec3<Real>                                  m_minBB;
-        Vec3<Real>                                  m_maxBB;
-        Real                                        m_scale;
+        Vec3<double>                                m_minBB;
+        Vec3<double>                                m_maxBB;
+        double                                      m_scale;
         size_t                                      m_dim[3];                   //>! dim
         size_t                                      m_numVoxelsOnSurface     ;
         size_t                                      m_numVoxelsInsideSurface ;

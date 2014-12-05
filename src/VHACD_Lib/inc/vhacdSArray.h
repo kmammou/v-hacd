@@ -18,7 +18,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "vhacdVersion.h"
 
 #define SARRAY_DEFAULT_MIN_SIZE 16
 

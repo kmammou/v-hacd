@@ -16,13 +16,13 @@
 #include "vhacdICHull.h"
 namespace VHACD
 {   
-    const Real ICHull::sc_eps = 0.000000001;
-    const long   ICHull::sc_dummyIndex = std::numeric_limits<long>::max();
+    const double ICHull::sc_eps = 1.0e-15;
+    const int    ICHull::sc_dummyIndex = std::numeric_limits<int>::max();
     ICHull::ICHull()
     {
         m_isFlat = false;
     }
-    bool ICHull::AddPoints(const Vec3<Real> * points, size_t nPoints)
+    bool ICHull::AddPoints(const Vec3<double> * points, size_t nPoints)
     {
         if (!points)
         {
@@ -35,11 +35,11 @@ namespace VHACD
             vertex->GetData().m_pos.X() = points[i].X();
             vertex->GetData().m_pos.Y() = points[i].Y();
             vertex->GetData().m_pos.Z() = points[i].Z();
-            vertex->GetData().m_name = static_cast<long>(i);
+            vertex->GetData().m_name = static_cast<int>(i);
         }     
         return true;
     }
-    bool ICHull::AddPoint(const Vec3<Real> & point, long id)
+    bool ICHull::AddPoint(const Vec3<double> & point, int id)
     {
         if (AddPoints(&point, 1))
         {
@@ -51,7 +51,7 @@ namespace VHACD
 
     ICHullError ICHull::Process()
     {
-        unsigned long addedPoints = 0;
+        unsigned int addedPoints = 0;
         if (m_mesh.GetNVertices() < 3)
         {
             return ICHullErrorNotEnoughPoints;
@@ -65,9 +65,9 @@ namespace VHACD
             CircularListElement<TMMVertex> * v1 = v0->GetNext();
             CircularListElement<TMMVertex> * v2 = v1->GetNext();
             // Compute the normal to the plane
-            Vec3<Real> p0 = v0->GetData().m_pos;
-            Vec3<Real> p1 = v1->GetData().m_pos;
-            Vec3<Real> p2 = v2->GetData().m_pos;
+            Vec3<double> p0 = v0->GetData().m_pos;
+            Vec3<double> p1 = v1->GetData().m_pos;
+            Vec3<double> p2 = v2->GetData().m_pos;
             m_normal = (p1-p0) ^ (p2-p0);
             m_normal.Normalize();
             t1->GetData().m_vertices[0] = v0;
@@ -194,9 +194,9 @@ namespace VHACD
         }
         return ICHullErrorOK;
     }
-    ICHullError ICHull::Process(unsigned long nPointsCH)
+    ICHullError ICHull::Process(unsigned int nPointsCH)
     {
-        unsigned long addedPoints = 0;  
+        unsigned int addedPoints = 0;  
         if (nPointsCH < 3 || m_mesh.GetNVertices() < 3)
         {
             return ICHullErrorNotEnoughPoints;
@@ -210,9 +210,9 @@ namespace VHACD
             CircularListElement<TMMVertex> * v1 = v0->GetNext();
             CircularListElement<TMMVertex> * v2 = v1->GetNext();
             // Compute the normal to the plane
-            Vec3<Real> p0 = v0->GetData().m_pos;
-            Vec3<Real> p1 = v1->GetData().m_pos;
-            Vec3<Real> p2 = v2->GetData().m_pos;
+            Vec3<double> p0 = v0->GetData().m_pos;
+            Vec3<double> p1 = v1->GetData().m_pos;
+            Vec3<double> p2 = v2->GetData().m_pos;
             m_normal = (p1-p0) ^ (p2-p0);
             m_normal.Normalize();
             t1->GetData().m_vertices[0] = v0;
@@ -351,8 +351,8 @@ namespace VHACD
         CircularListElement<TMMVertex> * vMaxVolume = 0;
         CircularListElement<TMMVertex> * vHeadPrev = vertices.GetHead()->GetPrev();
         
-        Real maxVolume = 0.0;
-        Real volume = 0.0;
+        double maxVolume = 0.0;
+        double volume = 0.0;
         while (!vertices.GetData().m_tag) // not processed
         {
             if (ComputePointVolume(volume, false))
@@ -373,8 +373,8 @@ namespace VHACD
         }
         if (vMaxVolume != vHead)
         {
-            Vec3<Real> pos = vHead->GetData().m_pos;
-            long id = vHead->GetData().m_name;
+            Vec3<double> pos = vHead->GetData().m_pos;
+            int id = vHead->GetData().m_name;
             vHead->GetData().m_pos = vMaxVolume->GetData().m_pos;
             vHead->GetData().m_name = vMaxVolume->GetData().m_name;
             vMaxVolume->GetData().m_pos = pos;
@@ -410,7 +410,7 @@ namespace VHACD
         CircularListElement<TMMVertex> * v3 = v2->GetNext();
         vertices.GetHead() = v3;
 
-        Real vol = ComputeVolume4(v0->GetData().m_pos, v1->GetData().m_pos, v2->GetData().m_pos, v3->GetData().m_pos);
+        double vol = ComputeVolume4(v0->GetData().m_pos, v1->GetData().m_pos, v2->GetData().m_pos, v3->GetData().m_pos);
         while (fabs(vol) < sc_eps && !v3->GetNext()->GetData().m_tag)
         {
             v3 = v3->GetNext();
@@ -419,24 +419,24 @@ namespace VHACD
         if (fabs(vol) < sc_eps)
         {
             // compute the barycenter
-            Vec3<Real> bary(0.0,0.0,0.0);
+            Vec3<double> bary(0.0,0.0,0.0);
             CircularListElement<TMMVertex> * vBary = v0;
             do
             {
                 bary += vBary->GetData().m_pos;
             }
             while ( (vBary = vBary->GetNext()) != v0);
-            bary /= static_cast<Real>(vertices.GetSize());
+            bary /= static_cast<double>(vertices.GetSize());
 
             // Compute the normal to the plane
-            Vec3<Real> p0 = v0->GetData().m_pos;
-            Vec3<Real> p1 = v1->GetData().m_pos;
-            Vec3<Real> p2 = v2->GetData().m_pos;
+            Vec3<double> p0 = v0->GetData().m_pos;
+            Vec3<double> p1 = v1->GetData().m_pos;
+            Vec3<double> p2 = v2->GetData().m_pos;
             m_normal = (p1-p0) ^ (p2-p0);
             m_normal.Normalize();
             // add dummy vertex placed at (bary + normal)
             vertices.GetHead() = v2;
-            Vec3<Real> newPt = bary + m_normal;
+            Vec3<double> newPt = bary + m_normal;
             AddPoint(newPt, sc_dummyIndex); 
             m_isFlat = true;
             v3 = v2->GetNext();
@@ -462,7 +462,7 @@ namespace VHACD
         CircularListElement<TMMEdge> * e0;
         CircularListElement<TMMEdge> * e1;
         CircularListElement<TMMEdge> * e2;
-        long index = 0;
+        int index = 0;
         if (!fold) // if first face to be created
         {
             e0 = m_mesh.AddEdge(); // create the three edges
@@ -520,7 +520,7 @@ namespace VHACD
         }
         return newFace;
     }
-    bool ICHull::ComputePointVolume(Real &totalVolume, bool markVisibleFaces)
+    bool ICHull::ComputePointVolume(double &totalVolume, bool markVisibleFaces)
     {
         // mark visible faces
         CircularListElement<TMMTriangle> * fHead = m_mesh.GetTriangles().GetHead();
@@ -528,12 +528,12 @@ namespace VHACD
         CircularList<TMMVertex> & vertices = m_mesh.GetVertices();
         CircularListElement<TMMVertex> * vertex0 = vertices.GetHead();
         bool visible = false;
-        Vec3<Real> pos0 = Vec3<Real>(vertex0->GetData().m_pos.X(),
+        Vec3<double> pos0 = Vec3<double>(vertex0->GetData().m_pos.X(),
                                          vertex0->GetData().m_pos.Y(),
                                          vertex0->GetData().m_pos.Z());
-        Real vol = 0.0;
+        double vol = 0.0;
         totalVolume = 0.0;
-        Vec3<Real> ver0, ver1, ver2;
+        Vec3<double> ver0, ver1, ver2;
         do 
         {
             ver0.X() = f->GetData().m_vertices[0]->GetData().m_pos.X();
@@ -580,7 +580,7 @@ namespace VHACD
     }
     bool ICHull::ProcessPoint()
     {
-        Real totalVolume = 0.0;
+        double totalVolume = 0.0;
         if (!ComputePointVolume(totalVolume, true))
         {
             return false;
@@ -591,7 +591,7 @@ namespace VHACD
         CircularListElement<TMMEdge> * eHead = m_mesh.GetEdges().GetHead();
         CircularListElement<TMMEdge> * e = eHead;    
         CircularListElement<TMMEdge> * tmp = 0;
-        long nvisible = 0;
+        int nvisible = 0;
         m_edgesToDelete.Resize(0);
         m_edgesToUpdate.Resize(0);
         do 
@@ -635,7 +635,7 @@ namespace VHACD
         }
         
         //  set vertex[0] and vertex[1] to have the same orientation as the corresponding vertices of fv.
-        long i;                                 // index of e->m_vertices[0] in fv
+        int i;                                 // index of e->m_vertices[0] in fv
         CircularListElement<TMMVertex> * v0 = e->GetData().m_vertices[0];
         CircularListElement<TMMVertex> * v1 = e->GetData().m_vertices[1];
         for(i = 0; fv->GetData().m_vertices[i] !=  v0; i++);
@@ -657,7 +657,7 @@ namespace VHACD
         f->GetData().m_vertices[2] = v;
         return true;
     }
-    bool ICHull::CleanUp(unsigned long & addedPoints)
+    bool ICHull::CleanUp(unsigned int & addedPoints)
     {
         bool r0 = CleanEdges();
         bool r1 = CleanTriangles();
@@ -707,7 +707,7 @@ namespace VHACD
         m_trianglesToDelete.Resize(0);
         return true;
     }
-    bool ICHull::CleanVertices(unsigned long & addedPoints)
+    bool ICHull::CleanVertices(unsigned int & addedPoints)
     {
         // mark all vertices incident to some undeleted edge as on the hull
         CircularList<TMMEdge> & edges = m_mesh.GetEdges();
@@ -763,14 +763,14 @@ namespace VHACD
         }
         return (*this);
     }   
-    bool ICHull::IsInside(const Vec3<Real> & pt0, const Real eps)
+    bool ICHull::IsInside(const Vec3<double> & pt0, const double eps)
     {
-        const Vec3<Real> pt(pt0.X(), pt0.Y(), pt0.Z());
+        const Vec3<double> pt(pt0.X(), pt0.Y(), pt0.Z());
         if (m_isFlat)
         {
             size_t nT = m_mesh.m_triangles.GetSize();
-            Vec3<Real> ver0, ver1, ver2, a, b, c;
-            Real u,v;
+            Vec3<double> ver0, ver1, ver2, a, b, c;
+            double u,v;
             for(size_t t = 0; t < nT; t++)
             {
                 ver0.X() = m_mesh.m_triangles.GetHead()->GetData().m_vertices[0]->GetData().m_pos.X();
@@ -798,8 +798,8 @@ namespace VHACD
         else
         {
             size_t nT = m_mesh.m_triangles.GetSize();
-            Vec3<Real> ver0, ver1, ver2;
-            Real vol;
+            Vec3<double> ver0, ver1, ver2;
+            double vol;
             for(size_t t = 0; t < nT; t++)
             {
                 ver0.X() = m_mesh.m_triangles.GetHead()->GetData().m_vertices[0]->GetData().m_pos.X();
