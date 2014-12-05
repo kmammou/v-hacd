@@ -244,7 +244,7 @@ namespace VHACD
         m_operation = "PCA";
         Update(50.0, 0.0, params);
         volume.AlignToPrincipalAxes(m_rot);
-        m_overallProgress = 10.0;
+        m_overallProgress = 1.0;
         Update(100.0, 100.0, params);
 
         m_timer.Toc();
@@ -324,7 +324,7 @@ namespace VHACD
                 break;
             }
         }
-        m_overallProgress = 20.0;
+        m_overallProgress = 10.0;
         Update(100.0, 100.0, params);
 
         m_timer.Toc();
@@ -905,7 +905,7 @@ namespace VHACD
                 }
             }
 
-            Update(95.0*(1.0 - maxConcavity) / (1.0 - params.m_concavity), 100.0, params);
+            Update(90.0*(1.0 - maxConcavity) / (1.0 - params.m_concavity), 100.0, params);
             
             if (m_cancel)
             {
@@ -939,7 +939,7 @@ namespace VHACD
             return;
         }
 
-        m_overallProgress = 80.0;
+        m_overallProgress = 90.0;
         Update(m_stageProgress, 100.0, params);
 
         msg.str("");
@@ -992,7 +992,7 @@ namespace VHACD
             return;
         }
 
-        m_overallProgress = 85.0;
+        m_overallProgress = 95.0;
         Update(100.0, 100.0, params);
         m_timer.Toc();
         if (params.m_logger)
@@ -1413,7 +1413,7 @@ namespace VHACD
             return;
         }
 
-        m_overallProgress = 80.0;
+        m_overallProgress = 90.0;
         Update(m_stageProgress, 100.0, params);
 
 
@@ -1468,7 +1468,7 @@ namespace VHACD
             return;
         }
 
-        m_overallProgress = 85.0;
+        m_overallProgress = 95.0;
         Update(100.0, 100.0, params);
         m_timer.Toc();
         if (params.m_logger)
@@ -1629,7 +1629,7 @@ namespace VHACD
                 m_convexHulls = temp;
             }
         }
-        m_overallProgress = 95.0;
+        m_overallProgress = 99.0;
         Update(100.0, 100.0, params);
         m_timer.Toc();
         if (params.m_logger)

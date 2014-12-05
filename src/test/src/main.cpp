@@ -65,7 +65,7 @@ class MyLogger : public IVHACD::IUserLogger
                                             m_file.flush();
                                         }
                                     };
-        void                        OpenFile(const string & fileName) { m_file.open(fileName); }
+        void                        OpenFile(const string & fileName) { m_file.open(fileName.c_str()); }
     private:
     ofstream                        m_file;
 };
