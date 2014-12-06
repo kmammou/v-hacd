@@ -62,7 +62,7 @@ namespace VHACD
                                                 m_beta                   = 0.05;
                                                 m_gamma                  = 0.0001;
                                                 m_pca                    = 0;
-                                                m_mode                   = 0; // 0: voxel-based (recommended), 1: tethedron-based
+                                                m_mode                   = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
                                                 m_maxNumVerticesPerCH    = 100;
                                                 m_callback               = 0;
                                                 m_logger                 = 0;

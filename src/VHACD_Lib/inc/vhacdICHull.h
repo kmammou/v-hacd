@@ -87,12 +87,12 @@ namespace VHACD
                                                                         CircularListElement<TMMVertex> * v);
             void                                                Clear(); 
         private:
-            static const int                                   sc_dummyIndex;
+            static const int                                    sc_dummyIndex;
             TMMesh                                              m_mesh;
             SArray<CircularListElement<TMMEdge> *>              m_edgesToDelete;
             SArray<CircularListElement<TMMEdge> *>              m_edgesToUpdate;
             SArray<CircularListElement<TMMTriangle> *>          m_trianglesToDelete; 
-            Vec3<double>                                          m_normal;
+            Vec3<double>                                        m_normal;
             bool                                                m_isFlat;
                                                                 ICHull(const ICHull & rhs);
     };

@@ -184,16 +184,6 @@ namespace VHACD
                                             msg << "\t dim = " << m_dim << "\t-> " << n << " voxels" << std::endl;
                                             params.m_logger->Log(msg.str().c_str());
                                         }
-
-                            #ifdef VHACD_DEBUG_ALIGN_MESH
-                                        Mesh meshOnSurf;
-                                        volume.Convert(meshOnSurf, VOXEL_ON_SURFACE);
-                                        meshOnSurf.SaveOFF("meshOnSurf.off");
-                                        Mesh meshInSurf;
-                                        volume.Convert(meshInSurf, VOXEL_INSIDE_SURFACE);
-                                        meshInSurf.SaveOFF("meshInSurf.off");
-                            #endif
-
                                         if (GetCancel())
                                         {
                                             return;
@@ -291,15 +281,6 @@ namespace VHACD
                                             msg << "\t time " << m_timer.GetElapsedTime() / 1000.0 << "s" << std::endl;
                                             params.m_logger->Log(msg.str().c_str());
                                         }
-
-                            #ifdef VHACD_DEBUG_VOXELIZATION
-                                        Mesh meshOnSurf;
-                                        m_volume->Convert(meshOnSurf, VOXEL_ON_SURFACE);
-                                        meshOnSurf.SaveOFF("meshOnSurf.off");
-                                        Mesh meshInSurf;
-                                        m_volume->Convert(meshInSurf, VOXEL_INSIDE_SURFACE);
-                                        meshInSurf.SaveOFF("meshInSurf.off");
-                            #endif
                                     }
         template <class T>
         bool                        ComputeACD(const T * const     points,

@@ -20,6 +20,7 @@
 
 namespace VHACD
 {
+#ifdef VHACD_DEBUG_MESH
     struct Material
     {
 
@@ -45,6 +46,7 @@ namespace VHACD
                                                 m_transparency      = 0.0;
                                             };
     };
+#endif // VHACD_DEBUG_MESH
 
     //! Triangular mesh data structure
     class Mesh

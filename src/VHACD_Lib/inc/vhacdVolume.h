@@ -105,14 +105,14 @@ namespace VHACD
         Vec3<double>                                GetPoint(const Voxel & voxel) const
                                                     {
                                                         return Vec3<double> (voxel.m_coord[0] * m_scale  +  m_minBB[0], 
-                                                                           voxel.m_coord[1] * m_scale  +  m_minBB[1], 
-                                                                           voxel.m_coord[2] * m_scale  +  m_minBB[2]);
+                                                                             voxel.m_coord[1] * m_scale  +  m_minBB[1], 
+                                                                             voxel.m_coord[2] * m_scale  +  m_minBB[2]);
                                                     }
         Vec3<double>                                GetPoint(Vec3<double> voxel) const
                                                     {
                                                         return Vec3<double> (voxel[0] * m_scale +  m_minBB[0], 
-                                                                           voxel[1] * m_scale +  m_minBB[1], 
-                                                                           voxel[2] * m_scale +  m_minBB[2]);
+                                                                             voxel[1] * m_scale +  m_minBB[1], 
+                                                                             voxel[2] * m_scale +  m_minBB[2]);
                                                     }
         void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling) const;
         void                                        Clip(const Plane & plane,

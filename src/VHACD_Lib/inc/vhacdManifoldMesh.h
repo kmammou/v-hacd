@@ -140,7 +140,6 @@ namespace VHACD
             // not defined
                                                                 TMMesh(const TMMesh & rhs);
             friend class ICHull;
-            friend class HACD;
     };
 }
 #endif // VHACD_MANIFOLD_MESH_H

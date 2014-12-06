@@ -1,5 +1,5 @@
 message("[VHACD] Generating " ${PROJECT_NAME} "...")
-file(GLOB PROJECT_INC_FILES "inc/*.h")
+file(GLOB PROJECT_INC_FILES "inc/*.h" "public/*.h")
 file(GLOB PROJECT_INL_FILES "inc/*.inl")
 file(GLOB PROJECT_CPP_FILES "src/*.cpp")
 file(GLOB PROJECT_C_FILES "src/*.c")
