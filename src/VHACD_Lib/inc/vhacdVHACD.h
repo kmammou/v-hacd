@@ -116,6 +116,8 @@ namespace VHACD
                                         m_overallProgress = 0.0;
                                         m_stageProgress = 0.0;
                                         m_operationProgress = 0.0;
+                                        m_stage = "";
+                                        m_operation = "";
                                         m_barycenter[0] = m_barycenter[1] = m_barycenter[2] = 0.0;
                                         m_rot[0][0] = m_rot[1][1] = m_rot[2][2] = 1.0;
                                         SetCancel(false);

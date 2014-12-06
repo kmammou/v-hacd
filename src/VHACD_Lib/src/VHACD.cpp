@@ -23,25 +23,6 @@
 #endif // _OPENMP
 
 
-#if defined(WIN32)
-
-#define _WIN32_WINNT 0x400
-#include <windows.h>
-#pragma comment(lib,"winmm.lib")
-#endif
-
-#if defined(__linux__)
-//#include <sys/time.h>
-#include <time.h>
-#include <unistd.h>
-#include <errno.h>
-#define __stdcall
-#endif
-
-#if defined(__APPLE__) || defined(__linux__)
-#include <pthread.h>
-#endif
-
 #include "../public/VHACD.h"
 #include "btConvexHullComputer.h"
 #include "vhacdMesh.h"
@@ -57,15 +38,6 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define ABS(a) (((a)<0) ? -(a) : (a))
 #define ZSGN(a) (((a)<0) ? -1 : (a)>0 ? 1 : 0)
-
-#define VHACD_DEBUG
-
-#define VHACD_NDEBUG
-#ifdef  VHACD_NDEBUG
-#define VHACD_VERIFY( x ) (x)
-#else
-#define VHACD_VERIFY( x ) assert((x))
-#endif
 
 namespace VHACD
 {

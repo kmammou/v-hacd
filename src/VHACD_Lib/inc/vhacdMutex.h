@@ -50,6 +50,40 @@
 #ifndef VHACD_MUTEX_H
 #define VHACD_MUTEX_H
 
+
+#if defined(WIN32)
+
+#define _WIN32_WINNT 0x400
+#include <windows.h>
+#pragma comment(lib,"winmm.lib")
+#endif
+
+#if defined(__linux__)
+//#include <sys/time.h>
+#include <time.h>
+#include <unistd.h>
+#include <errno.h>
+#define __stdcall
+#endif
+
+#if defined(__APPLE__) || defined(__linux__)
+#include <pthread.h>
+#endif
+
+#if defined(__APPLE__)
+#define PTHREAD_MUTEX_RECURSIVE_NP PTHREAD_MUTEX_RECURSIVE
+#endif
+
+
+#define VHACD_DEBUG
+
+#define VHACD_NDEBUG
+#ifdef  VHACD_NDEBUG
+#define VHACD_VERIFY( x ) (x)
+#else
+#define VHACD_VERIFY( x ) assert((x))
+#endif
+
 namespace VHACD
 {
     class Mutex
