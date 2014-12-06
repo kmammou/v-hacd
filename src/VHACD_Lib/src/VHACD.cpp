@@ -396,7 +396,6 @@ namespace VHACD
         int  iBest = -1;
         int  nPlanes = (int) static_cast<int>(planes.Size());
         double minTotal = minConcavity + minBalance + minSymmetry;
-        int  processed = 0;
         bool cancel = false;
 #if USE_THREAD == 1 && _OPENMP
 #pragma omp parallel for
@@ -700,7 +699,7 @@ namespace VHACD
         if (GetCancel())
         {
             const size_t nParts = parts.Size();
-            for (size_t p = 0; p < nInputParts; ++p)
+            for (size_t p = 0; p < nParts; ++p)
             {
                 delete parts[p];
             }
@@ -744,7 +743,7 @@ namespace VHACD
         }
 
         const size_t nParts = parts.Size();
-        for (size_t p = 0; p < nInputParts; ++p)
+        for (size_t p = 0; p < nParts; ++p)
         {
             delete parts[p];
             parts[p] = 0;
