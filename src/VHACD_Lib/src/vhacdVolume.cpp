@@ -432,8 +432,10 @@ namespace VHACD
         }
     }
 
-    void VoxelSet::Clip(const Plane & plane, VoxelSet * const positivePart, VoxelSet * const negativePart) const
+    void VoxelSet::Clip(const Plane & plane, PrimitiveSet * const positivePartP, PrimitiveSet * const negativePartP) const
     {
+        VoxelSet * const positivePart = (VoxelSet *) positivePartP;
+        VoxelSet * const negativePart = (VoxelSet *) negativePartP;
         const size_t nVoxels = m_voxels.Size();
         if (nVoxels == 0)
             return;
@@ -625,39 +627,6 @@ namespace VHACD
     {
         delete [] m_data;
     }
-    inline void ComputeAlignedPoint(const float * const  points,
-                                    const unsigned int   idx,
-                                    const Vec3<double> & barycenter,
-                                    const double      (& rot)[3][3],
-                                    Vec3<double>       & pt)
-    {
-        double x = points[idx + 0] - barycenter[0];
-        double y = points[idx + 1] - barycenter[1];
-        double z = points[idx + 2] - barycenter[2];
-        pt[0] = rot[0][0] * x + rot[1][0] * y + rot[2][0] * z;
-        pt[1] = rot[0][1] * x + rot[1][1] * y + rot[2][1] * z;
-        pt[2] = rot[0][2] * x + rot[1][2] * y + rot[2][2] * z;
-    }
-    void Volume::ComputeBB(const float * const points,
-                           const unsigned int  stridePoints,
-                           const unsigned int  nPoints,
-                           const Vec3<double> & barycenter,
-                           const double(&rot)[3][3])
-    {
-        Vec3<double> pt;
-        ComputeAlignedPoint(points, 0, barycenter, rot, pt);
-        m_maxBB = pt;
-        m_minBB = pt;
-        for (unsigned int v = 1; v < nPoints; ++v)
-        {
-            ComputeAlignedPoint(points, v * stridePoints, barycenter, rot, pt);
-            for(int i = 0; i < 3; ++i)
-            {
-                if      ( pt[i] < m_minBB[i]) m_minBB[i] = pt[i];
-                else if ( pt[i] > m_maxBB[i]) m_maxBB[i] = pt[i];
-            }
-        }
-    }
     void Volume::Allocate()
     {
         delete [] m_data;
@@ -750,127 +719,6 @@ namespace VHACD
                 }
             }
         }
-    }
-    void Volume::Voxelize(const float * const points,
-                          const unsigned int  stridePoints,
-                          const unsigned int  nPoints,
-                          const int   * const triangles,
-                          const unsigned int  strideTriangles,
-                          const unsigned int  nTriangles,
-                          const size_t dim,
-                          const Vec3<double> & barycenter,
-                          const double(&rot)[3][3])
-    {
-        if (nPoints == 0)
-        {
-            return;
-        }
-        ComputeBB(points, stridePoints, nPoints, barycenter, rot);
-
-        double d[3] = {m_maxBB[0] - m_minBB[0], m_maxBB[1] - m_minBB[1], m_maxBB[2] - m_minBB[2]};
-        double r;
-        if (d[0] > d[1] && d[0] > d[2])
-        {
-            r        = d[0];
-            m_dim[0] = dim;
-            m_dim[1] = 2 + static_cast<size_t>(dim * d[1] / d[0]);
-            m_dim[2] = 2 + static_cast<size_t>(dim * d[2] / d[0]);
-        }
-        else if (d[1] > d[0] && d[1] > d[2])
-        {
-            r        = d[1];
-            m_dim[1] = dim;
-            m_dim[0] = 2 + static_cast<size_t>(dim * d[0] / d[1]);
-            m_dim[2] = 2 + static_cast<size_t>(dim * d[2] / d[1]);
-        }
-        else
-        {
-            r        = d[2];
-            m_dim[2] = dim;
-            m_dim[0] = 2 + static_cast<size_t>(dim * d[0] / d[2]);
-            m_dim[1] = 2 + static_cast<size_t>(dim * d[1] / d[2]);
-        }
-        
-        m_scale         = r       / (dim-1);
-        double invScale = (dim-1) / r;
-
-        Allocate();
-        m_numVoxelsOnSurface      = 0;
-        m_numVoxelsInsideSurface  = 0;
-        m_numVoxelsOutsideSurface = 0;
-
-        Vec3<double> p[3];
-        size_t i ,j ,k;
-        size_t i0,j0,k0;
-        size_t i1,j1,k1;
-        Vec3<double> boxcenter;
-        Vec3<double> pt;
-        const Vec3<double> boxhalfsize(0.5, 0.5, 0.5);
-        for (size_t t = 0, ti = 0; t < nTriangles; ++t, ti += strideTriangles)
-        {
-            Vec3<int> tri(triangles[ti + 0],
-                          triangles[ti + 1],
-                          triangles[ti + 2]);
-            for (int c = 0; c < 3; ++c)
-            {
-                ComputeAlignedPoint(points, tri[c] * stridePoints, barycenter, rot, pt);
-                p[c][0] = (pt[0] - m_minBB[0]) * invScale;
-                p[c][1] = (pt[1] - m_minBB[1]) * invScale;
-                p[c][2] = (pt[2] - m_minBB[2]) * invScale;
-                i       = static_cast<size_t>(p[c][0] + 0.5);
-                j       = static_cast<size_t>(p[c][1] + 0.5);
-                k       = static_cast<size_t>(p[c][2] + 0.5);
-                assert( i < m_dim[0] && i >= 0 && j < m_dim[1] && j >= 0 && k < m_dim[2] && k >= 0);
-
-                if (c == 0)
-                {
-                    i0 = i1 = i;
-                    j0 = j1 = j;
-                    k0 = k1 = k;
-                }
-                else
-                {
-                    if (i < i0) i0 = i;
-                    if (j < j0) j0 = j;
-                    if (k < k0) k0 = k;
-                    if (i > i1) i1 = i;
-                    if (j > j1) j1 = j;
-                    if (k > k1) k1 = k;
-                }
-            }
-            if (i0 > 0) --i0;
-            if (j0 > 0) --j0;
-            if (k0 > 0) --k0;
-            if (i1 < m_dim[0]) ++i1;
-            if (j1 < m_dim[1]) ++j1;
-            if (k1 < m_dim[2]) ++k1;
-            for(size_t i = i0; i < i1; ++i)
-            {
-                boxcenter[0] = (double) i;
-                for(size_t j = j0; j < j1; ++j)
-                {
-                    boxcenter[1] = (double) j;
-                    for(size_t k = k0; k < k1; ++k)
-                    {
-                        boxcenter[2] = (double) k;
-                        int res = TriBoxOverlap(boxcenter, boxhalfsize, p[0], p[1], p[2]);
-                        unsigned char & value = GetVoxel(i, j, k);
-                        if (res == 1 && value == VOXEL_UNDEFINED)
-                        {
-                            value = VOXEL_ON_SURFACE;
-                            ++m_numVoxelsOnSurface;
-                        }
-                    }
-                }
-            }
-        }
-        FillOutsideSurface(0, 0, 0           , m_dim[0], m_dim[1], 1       );
-        FillOutsideSurface(0, 0, m_dim[2] - 1, m_dim[0], m_dim[1], m_dim[2]);
-        FillOutsideSurface(0, 0           , 0, m_dim[0], 1       , m_dim[2]);
-        FillOutsideSurface(0, m_dim[1] - 1, 0, m_dim[0], m_dim[1], m_dim[2]);
-        FillOutsideSurface(0           , 0, 0, 1       , m_dim[1], m_dim[2]);
-        FillOutsideSurface(m_dim[0] - 1, 0, 0, m_dim[0], m_dim[1], m_dim[2]);
-        FillInsideSurface();
     }
     void Volume::Convert(Mesh & mesh, const VOXEL_VALUE value) const
     {
@@ -1438,8 +1286,10 @@ namespace VHACD
         }
     }
 
-    void TetrahedronSet::Clip(const Plane & plane, TetrahedronSet * const positivePart, TetrahedronSet * const negativePart) const
+    void TetrahedronSet::Clip(const Plane & plane, PrimitiveSet * const positivePartP, PrimitiveSet * const negativePartP) const
     {
+        TetrahedronSet * const positivePart = (TetrahedronSet *)positivePartP;
+        TetrahedronSet * const negativePart = (TetrahedronSet *)negativePartP;
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0) return;
         positivePart->m_tetrahedra.Resize(0);
@@ -1586,7 +1436,7 @@ namespace VHACD
             }
         }
     }
-    double TetrahedronSet::ComputeVolume() const
+    const double TetrahedronSet::ComputeVolume() const
     {
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0)
@@ -1599,7 +1449,7 @@ namespace VHACD
         }
         return volume / 6.0;
     }
-    double TetrahedronSet::ComputeMaxVolumeError() const
+    const double TetrahedronSet::ComputeMaxVolumeError() const
     {
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0)

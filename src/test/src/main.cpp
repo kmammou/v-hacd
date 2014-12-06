@@ -131,7 +131,7 @@ int main(int argc, char * argv[])
         const string  fileName   (argv[1 ]);               // table.obj
         const string  fileNameOut(argv[13]);               // VHACD_CHs.wrl
         const string  fileNameLog(argv[14]);               // VHACD_CHs.wrl
-        params.m_resolution = atoi(argv[2]);  // 1000000 voxels
+        params.m_resolution             = atoi(argv[2]);  // 1000000 voxels
         params.m_depth                  = atoi(argv[3]);  // 20
         params.m_concavity              = atof(argv[4]);  // 0.0025
         params.m_planeDownsampling      = atoi(argv[5]);  // 4

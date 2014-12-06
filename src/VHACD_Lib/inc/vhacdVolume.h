@@ -19,14 +19,6 @@
 #include "vhacdVector.h"
 #include "vhacdMesh.h"
 
-
-#ifdef LINUX
-    #define int64 int 
-#elif _WIN32
-    #define int64 int int
-#endif
-
-
 namespace VHACD
 {
 
@@ -63,8 +55,30 @@ namespace VHACD
         short                                       m_index;
     };
 
+    class PrimitiveSet {
+    public:
+        virtual                                     ~PrimitiveSet() {};
+        virtual PrimitiveSet *                      Create()                    const = 0;
+        virtual const size_t                        GetNPrimitives()            const = 0;
+        virtual const size_t                        GetNPrimitivesOnSurf()      const = 0;
+        virtual const size_t                        GetNPrimitivesInsideSurf()  const = 0;
+        virtual const size_t                        GetNPrimitivesOnClipPlane() const = 0;
+        virtual const double                        GetEigenValue(AXIS axis)    const = 0;
+        virtual const double                        ComputeMaxVolumeError()     const = 0;
+        virtual const double                        ComputeVolume()             const = 0;
+        virtual void                                Clip(const Plane & plane,
+                                                         PrimitiveSet * const positivePart, 
+                                                         PrimitiveSet * const negativePart) const = 0;
+        virtual void                                ComputeConvexHull(Mesh & meshCH, const size_t sampling) const = 0;
+        virtual void                                ComputeBB() = 0;
+        virtual void                                ComputePrincipalAxes() = 0;
+        virtual void                                AlignToPrincipalAxes() = 0;
+        virtual void                                RevertAlignToPrincipalAxes() = 0;
+
+    };
+
     //!
-    class VoxelSet
+    class VoxelSet : public PrimitiveSet
     {            
         friend class Volume;
     public:
@@ -73,39 +87,46 @@ namespace VHACD
         //! Constructor.
                                                     VoxelSet();
 
-        size_t                                      GetNVoxels() const { return m_voxels.Size();}
-        double                                      ComputeVolume() const { return m_unitVolume * m_voxels.Size();}
-        double                                      ComputeMaxVolumeError() const { return m_unitVolume * m_numVoxelsOnSurface;}
-        void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling) const;
-        const Vec3<short> &                         GetMinBBVoxels()  const { return m_minBBVoxels;}
-        const Vec3<short> &                         GetMaxBBVoxels()  const { return m_maxBBVoxels;}
+        const size_t                                GetNPrimitives()            const { return m_voxels.Size();}
+        const size_t                                GetNPrimitivesOnSurf()      const { return m_numVoxelsOnSurface; }
+        const size_t                                GetNPrimitivesInsideSurf()  const { return m_numVoxelsInsideSurface; }
+        const size_t                                GetNPrimitivesOnClipPlane() const { return m_numVoxelsOnClipPlane; }
+        const double                                GetEigenValue(AXIS axis)    const { return m_D[axis][axis]; }
+        const double                                ComputeVolume()             const { return m_unitVolume * m_voxels.Size(); }
+        const double                                ComputeMaxVolumeError()     const { return m_unitVolume * m_numVoxelsOnSurface;}
+        const Vec3<short> &                         GetMinBBVoxels()            const { return m_minBBVoxels;}
+        const Vec3<short> &                         GetMaxBBVoxels()            const { return m_maxBBVoxels;}
         Vec3<double>                                GetPoint(Vec3<short> voxel) const
                                                     {
                                                         return Vec3<double> (voxel[0] * m_scale +  m_minBB[0], 
-                                                                           voxel[1] * m_scale +  m_minBB[1], 
-                                                                           voxel[2] * m_scale +  m_minBB[2]);
+                                                                             voxel[1] * m_scale +  m_minBB[1], 
+                                                                             voxel[2] * m_scale +  m_minBB[2]);
                                                     }
-        Vec3<double>                                  GetPoint(const Voxel & voxel) const
+        Vec3<double>                                GetPoint(const Voxel & voxel) const
                                                     {
                                                         return Vec3<double> (voxel.m_coord[0] * m_scale  +  m_minBB[0], 
                                                                            voxel.m_coord[1] * m_scale  +  m_minBB[1], 
                                                                            voxel.m_coord[2] * m_scale  +  m_minBB[2]);
                                                     }
-        Vec3<double>                                  GetPoint(Vec3<double> voxel) const
+        Vec3<double>                                GetPoint(Vec3<double> voxel) const
                                                     {
                                                         return Vec3<double> (voxel[0] * m_scale +  m_minBB[0], 
                                                                            voxel[1] * m_scale +  m_minBB[1], 
                                                                            voxel[2] * m_scale +  m_minBB[2]);
                                                     }
-        const size_t                                GetNumOnSurfVoxels()      const { return m_numVoxelsOnSurface    ;}
-        const size_t                                GetNumInsideSurfVoxels()  const { return m_numVoxelsInsideSurface;}
-        const size_t                                GetNumOnClipPlaneVoxels() const { return m_numVoxelsOnClipPlane  ;}
-        const double                                GetEigenValue(AXIS axis)      const { return m_D[axis][axis];}
-
-        void                                        Clip(const Plane & plane, VoxelSet * const positivePart, VoxelSet * const negativePart) const;
+        void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling) const;
+        void                                        Clip(const Plane & plane,
+                                                         PrimitiveSet * const positivePart,
+                                                         PrimitiveSet * const negativePart) const;
         void                                        ComputeBB();
         void                                        Convert(Mesh & mesh, const VOXEL_VALUE value) const;
         void                                        ComputePrincipalAxes();
+        PrimitiveSet *                              Create() const 
+                                                    { 
+                                                        return new VoxelSet();
+                                                    }
+        void                                        AlignToPrincipalAxes() {};
+        void                                        RevertAlignToPrincipalAxes() {};
 
     private:
         size_t                                      m_numVoxelsOnSurface    ;
@@ -134,7 +155,7 @@ namespace VHACD
     };
 
     //!
-    class TetrahedronSet
+    class TetrahedronSet : public PrimitiveSet
     {            
         friend class Volume;
     public:
@@ -143,27 +164,32 @@ namespace VHACD
         //! Constructor.
                                                     TetrahedronSet();
 
-        size_t                                      GetNTetrahedra() const { return m_tetrahedra.Size();}
-        double                                      ComputeVolume() const;
-        double                                      ComputeMaxVolumeError() const;
+        const size_t                                GetNPrimitives()            const { return m_tetrahedra.Size();}
+        const size_t                                GetNPrimitivesOnSurf()      const { return m_numTetrahedraOnSurface; }
+        const size_t                                GetNPrimitivesInsideSurf()  const { return m_numTetrahedraInsideSurface; }
+        const size_t                                GetNPrimitivesOnClipPlane() const { return m_numTetrahedraOnClipPlane; }
+        const Vec3<double> &                        GetMinBB()                  const { return m_minBB; }
+        const Vec3<double> &                        GetMaxBB()                  const { return m_maxBB; }
+        const Vec3<double> &                        GetBarycenter()             const { return m_barycenter; }
+        const double                                GetEigenValue(AXIS axis)    const { return m_D[axis][axis]; }
+        const double                                GetSacle()                  const { return m_scale; }
+        const double                                ComputeVolume()             const;
+        const double                                ComputeMaxVolumeError()     const;
         void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling) const;
-        const size_t                                GetNumOnSurfTetrahedra()      const { return m_numTetrahedraOnSurface    ;}
-        const size_t                                GetNumInsideSurfTetrahedra()  const { return m_numTetrahedraInsideSurface;}
-        const size_t                                GetNumOnClipPlaneTetrahedra() const { return m_numTetrahedraOnClipPlane  ;}
-        const Vec3<double> &                        GetMinBB()                    const { return m_minBB;}
-        const Vec3<double> &                        GetMaxBB()                    const { return m_maxBB;}
-        const Vec3<double> &                        GetBarycenter()               const { return m_barycenter;}
-        const double                                GetEigenValue(AXIS axis)      const { return m_D[axis][axis];}
-        const double                                GetSacle()                    const { return m_scale;}
 
         void                                        ComputePrincipalAxes();
         void                                        AlignToPrincipalAxes();
         void                                        RevertAlignToPrincipalAxes();
-        void                                        Clip(const Plane & plane, TetrahedronSet * const positivePart, TetrahedronSet * const negativePart) const;
+        void                                        Clip(const Plane & plane,
+                                                         PrimitiveSet * const positivePart,
+                                                         PrimitiveSet * const negativePart) const;
         void                                        ComputeBB();
         void                                        Convert(Mesh & mesh, const VOXEL_VALUE value) const;
         inline bool                                 Add(Tetrahedron & tetrahedron);
-
+        PrimitiveSet *                              Create() const
+                                                    {
+                                                        return new TetrahedronSet();
+                                                    }
         static const double EPS;
 
     private:
@@ -196,7 +222,8 @@ namespace VHACD
                                                     Volume();
 
         //! Voxelize
-        void                                        Voxelize(const float * const points,
+        template <class T>
+        void                                        Voxelize(const T * const     points,
                                                              const unsigned int  stridePoints,
                                                              const unsigned int  nPoints,
                                                              const int   * const triangles,
@@ -219,8 +246,8 @@ namespace VHACD
                                                         assert( k < m_dim[0] || k >= 0);
                                                         return m_data[i + j * m_dim[0] + k * m_dim[0] * m_dim[1]];
                                                     }
-        const size_t                                GetNumOnSurfVoxels()     const { return m_numVoxelsOnSurface;}
-        const size_t                                GetNumInsideSurfVoxels() const { return m_numVoxelsInsideSurface;}
+        const size_t                                GetNPrimitivesOnSurf()     const { return m_numVoxelsOnSurface;}
+        const size_t                                GetNPrimitivesInsideSurf() const { return m_numVoxelsInsideSurface;}
         void                                        Convert(Mesh & mesh, const VOXEL_VALUE value) const;
         void                                        Convert(VoxelSet  & vset) const;
         void                                        Convert(TetrahedronSet & tset) const;
@@ -234,11 +261,12 @@ namespace VHACD
                                                                        const size_t j1,
                                                                        const size_t k1);
         void                                        FillInsideSurface();
-        void                                        ComputeBB(const float * const points,
-                                                              const unsigned int  stridePoints,
-                                                              const unsigned int  nPoints,
+        template <class T>
+        void                                        ComputeBB(const T * const      points,
+                                                              const unsigned int   stridePoints,
+                                                              const unsigned int   nPoints,
                                                               const Vec3<double> & barycenter,
-                                                              const double(&rot)[3][3]);
+                                                              const double      (& rot)[3][3]);
         void                                        Allocate();
         void                                        Free();
 
@@ -251,6 +279,189 @@ namespace VHACD
         size_t                                      m_numVoxelsOutsideSurface;
         unsigned char *                             m_data;
     };
+    int TriBoxOverlap(const Vec3<double> & boxcenter,
+                      const Vec3<double> & boxhalfsize,
+                      const Vec3<double> & triver0,
+                      const Vec3<double> & triver1,
+                      const Vec3<double> & triver2);
+    template <class T>
+    inline void ComputeAlignedPoint(const T * const      points,
+                                    const unsigned int   idx,
+                                    const Vec3<double> & barycenter,
+                                    const double      (& rot)[3][3],
+                                    Vec3<double>       & pt)
+    {};
+    template <>
+    inline void ComputeAlignedPoint<float>(const float * const  points,
+                                           const unsigned int   idx,
+                                           const Vec3<double> & barycenter,
+                                           const double      (& rot)[3][3],
+                                           Vec3<double>       & pt)
+    {
+        double x = points[idx + 0] - barycenter[0];
+        double y = points[idx + 1] - barycenter[1];
+        double z = points[idx + 2] - barycenter[2];
+        pt[0] = rot[0][0] * x + rot[1][0] * y + rot[2][0] * z;
+        pt[1] = rot[0][1] * x + rot[1][1] * y + rot[2][1] * z;
+        pt[2] = rot[0][2] * x + rot[1][2] * y + rot[2][2] * z;
+    }
+    template <>
+    inline void ComputeAlignedPoint<double>(const double * const points,
+                                            const unsigned int   idx,
+                                            const Vec3<double> & barycenter,
+                                            const double      (& rot)[3][3],
+                                            Vec3<double>       & pt)
+    {                                       
+        double x = points[idx + 0] - barycenter[0];
+        double y = points[idx + 1] - barycenter[1];
+        double z = points[idx + 2] - barycenter[2];
+        pt[0] = rot[0][0] * x + rot[1][0] * y + rot[2][0] * z;
+        pt[1] = rot[0][1] * x + rot[1][1] * y + rot[2][1] * z;
+        pt[2] = rot[0][2] * x + rot[1][2] * y + rot[2][2] * z;
+    }
+    template <class T>
+    void Volume::ComputeBB(const T * const      points,
+                           const unsigned int   stridePoints,
+                           const unsigned int   nPoints,
+                           const Vec3<double> & barycenter,
+                           const double      (& rot)[3][3])
+    {
+        Vec3<double> pt;
+        ComputeAlignedPoint(points, 0, barycenter, rot, pt);
+        m_maxBB = pt;
+        m_minBB = pt;
+        for (unsigned int v = 1; v < nPoints; ++v)
+        {
+            ComputeAlignedPoint(points, v * stridePoints, barycenter, rot, pt);
+            for (int i = 0; i < 3; ++i)
+            {
+                if      (pt[i] < m_minBB[i]) m_minBB[i] = pt[i];
+                else if (pt[i] > m_maxBB[i]) m_maxBB[i] = pt[i];
+            }
+        }
+    }
+    template <class T>
+    void Volume::Voxelize(const T * const      points,
+                          const unsigned int   stridePoints,
+                          const unsigned int   nPoints,
+                          const int   * const  triangles,
+                          const unsigned int   strideTriangles,
+                          const unsigned int   nTriangles,
+                          const size_t         dim,
+                          const Vec3<double> & barycenter,
+                          const double      (& rot)[3][3])
+    {
+        if (nPoints == 0)
+        {
+            return;
+        }
+        ComputeBB(points, stridePoints, nPoints, barycenter, rot);
+
+        double d[3] = { m_maxBB[0] - m_minBB[0], m_maxBB[1] - m_minBB[1], m_maxBB[2] - m_minBB[2] };
+        double r;
+        if (d[0] > d[1] && d[0] > d[2])
+        {
+            r = d[0];
+            m_dim[0] = dim;
+            m_dim[1] = 2 + static_cast<size_t>(dim * d[1] / d[0]);
+            m_dim[2] = 2 + static_cast<size_t>(dim * d[2] / d[0]);
+        }
+        else if (d[1] > d[0] && d[1] > d[2])
+        {
+            r = d[1];
+            m_dim[1] = dim;
+            m_dim[0] = 2 + static_cast<size_t>(dim * d[0] / d[1]);
+            m_dim[2] = 2 + static_cast<size_t>(dim * d[2] / d[1]);
+        }
+        else
+        {
+            r = d[2];
+            m_dim[2] = dim;
+            m_dim[0] = 2 + static_cast<size_t>(dim * d[0] / d[2]);
+            m_dim[1] = 2 + static_cast<size_t>(dim * d[1] / d[2]);
+        }
+
+        m_scale = r / (dim - 1);
+        double invScale = (dim - 1) / r;
+
+        Allocate();
+        m_numVoxelsOnSurface = 0;
+        m_numVoxelsInsideSurface = 0;
+        m_numVoxelsOutsideSurface = 0;
+
+        Vec3<double> p[3];
+        size_t i, j, k;
+        size_t i0, j0, k0;
+        size_t i1, j1, k1;
+        Vec3<double> boxcenter;
+        Vec3<double> pt;
+        const Vec3<double> boxhalfsize(0.5, 0.5, 0.5);
+        for (size_t t = 0, ti = 0; t < nTriangles; ++t, ti += strideTriangles)
+        {
+            Vec3<int> tri(triangles[ti + 0],
+                triangles[ti + 1],
+                triangles[ti + 2]);
+            for (int c = 0; c < 3; ++c)
+            {
+                ComputeAlignedPoint(points, tri[c] * stridePoints, barycenter, rot, pt);
+                p[c][0] = (pt[0] - m_minBB[0]) * invScale;
+                p[c][1] = (pt[1] - m_minBB[1]) * invScale;
+                p[c][2] = (pt[2] - m_minBB[2]) * invScale;
+                i = static_cast<size_t>(p[c][0] + 0.5);
+                j = static_cast<size_t>(p[c][1] + 0.5);
+                k = static_cast<size_t>(p[c][2] + 0.5);
+                assert(i < m_dim[0] && i >= 0 && j < m_dim[1] && j >= 0 && k < m_dim[2] && k >= 0);
+
+                if (c == 0)
+                {
+                    i0 = i1 = i;
+                    j0 = j1 = j;
+                    k0 = k1 = k;
+                }
+                else
+                {
+                    if (i < i0) i0 = i;
+                    if (j < j0) j0 = j;
+                    if (k < k0) k0 = k;
+                    if (i > i1) i1 = i;
+                    if (j > j1) j1 = j;
+                    if (k > k1) k1 = k;
+                }
+            }
+            if (i0 > 0) --i0;
+            if (j0 > 0) --j0;
+            if (k0 > 0) --k0;
+            if (i1 < m_dim[0]) ++i1;
+            if (j1 < m_dim[1]) ++j1;
+            if (k1 < m_dim[2]) ++k1;
+            for (size_t i = i0; i < i1; ++i)
+            {
+                boxcenter[0] = (double)i;
+                for (size_t j = j0; j < j1; ++j)
+                {
+                    boxcenter[1] = (double)j;
+                    for (size_t k = k0; k < k1; ++k)
+                    {
+                        boxcenter[2] = (double)k;
+                        int res = TriBoxOverlap(boxcenter, boxhalfsize, p[0], p[1], p[2]);
+                        unsigned char & value = GetVoxel(i, j, k);
+                        if (res == 1 && value == VOXEL_UNDEFINED)
+                        {
+                            value = VOXEL_ON_SURFACE;
+                            ++m_numVoxelsOnSurface;
+                        }
+                    }
+                }
+            }
+        }
+        FillOutsideSurface(0, 0, 0, m_dim[0], m_dim[1], 1);
+        FillOutsideSurface(0, 0, m_dim[2] - 1, m_dim[0], m_dim[1], m_dim[2]);
+        FillOutsideSurface(0, 0, 0, m_dim[0], 1, m_dim[2]);
+        FillOutsideSurface(0, m_dim[1] - 1, 0, m_dim[0], m_dim[1], m_dim[2]);
+        FillOutsideSurface(0, 0, 0, 1, m_dim[1], m_dim[2]);
+        FillOutsideSurface(m_dim[0] - 1, 0, 0, m_dim[0], m_dim[1], m_dim[2]);
+        FillInsideSurface();
+    }
 }
 #endif // VHACD_VOLUME_H
 

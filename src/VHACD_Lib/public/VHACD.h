@@ -90,6 +90,13 @@ namespace VHACD
                                                     const unsigned int  strideTriangles,
                                                     const unsigned int    countTriangles,
                                                     const Parameters &  params) = 0;
+        virtual bool                        Compute(const double * const points,
+                                                    const unsigned int  stridePoints,
+                                                    const unsigned int  countPoints,
+                                                    const int   * const triangles,
+                                                    const unsigned int  strideTriangles,
+                                                    const unsigned int    countTriangles,
+                                                    const Parameters &  params) = 0;
         virtual unsigned int                GetNConvexHulls() const = 0;
         virtual void                        GetConvexHull(const unsigned int index, ConvexHull & ch) const = 0;
         virtual void                        Clean(void) = 0; // release internally allocated memory
