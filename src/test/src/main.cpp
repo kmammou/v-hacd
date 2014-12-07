@@ -122,15 +122,15 @@ int main(int argc, char * argv[])
         if (argc != 15)
         {
             
-            cout << "Usage: ./testVHACD fileName.off resolution maxNumVoxels maxDepth maxConcavity planeDownsampling convexhullDownsampling alpha beta gamma pca mode maxCHVertices outFileName.wrl log.txt" << endl;
+            cout << "Usage: ./testVHACD fileName.off resolution maxDepth maxConcavity planeDownsampling convexhullDownsampling alpha beta gamma pca mode maxCHVertices outFileName.wrl log.txt" << endl;
             cout << "Recommended parameters: ./testVHACD fileName.off 1000000 20 0.001 4 4 0.05 0.05 0.0001 0 0 256 VHACD_CHs.wrl log.txt" << endl;
             return -1;
         }
         // set parameters
         IVHACD::Parameters    params;
-        const string  fileName   (argv[1 ]);               // table.obj
-        const string  fileNameOut(argv[13]);               // VHACD_CHs.wrl
-        const string  fileNameLog(argv[14]);               // VHACD_CHs.wrl
+        const string  fileName   (argv[1 ]);              // table.obj
+        const string  fileNameOut(argv[13]);              // VHACD_CHs.wrl
+        const string  fileNameLog(argv[14]);              // VHACD_CHs.wrl
         params.m_resolution             = atoi(argv[2]);  // 1000000 voxels
         params.m_depth                  = atoi(argv[3]);  // 20
         params.m_concavity              = atof(argv[4]);  // 0.0025
