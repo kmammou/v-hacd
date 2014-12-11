@@ -36,7 +36,7 @@ namespace VHACD
                                     }
         void                        Cancel()
                                     {
-                                        SetCancel(false);
+                                        SetCancel(true);
                                     }
         void                        GetConvexHull(const unsigned int index, ConvexHull & ch) const
                                     {
