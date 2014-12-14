@@ -55,15 +55,15 @@ namespace VHACD
                                             {
                                                 m_resolution             = 1000000;
                                                 m_depth                  = 20;     
-                                                m_concavity              = 0.001;  
+                                                m_concavity              = 0.0025;  
                                                 m_planeDownsampling      = 4;
                                                 m_convexhullDownsampling = 4;
                                                 m_alpha                  = 0.05;
                                                 m_beta                   = 0.05;
-                                                m_gamma                  = 0.0001;
+                                                m_gamma                  = 0.00125;
                                                 m_pca                    = 0;
                                                 m_mode                   = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
-                                                m_maxNumVerticesPerCH    = 100;
+                                                m_maxNumVerticesPerCH    = 255;
                                                 m_callback               = 0;
                                                 m_logger                 = 0;
                                             }
