@@ -53,7 +53,7 @@ namespace VHACD
                                             Parameters(void) { Init(); }
             void                            Init(void)
                                             {
-                                                m_resolution             = 1000000;
+                                                m_resolution             = 100000;
                                                 m_depth                  = 20;     
                                                 m_concavity              = 0.0025;  
                                                 m_planeDownsampling      = 4;
