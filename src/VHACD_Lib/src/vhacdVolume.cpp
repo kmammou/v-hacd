@@ -576,30 +576,30 @@ namespace VHACD
         m_barycenterPCA[0] = m_barycenterPCA[1] = m_barycenterPCA[2] = 0.0;
         for(size_t v = 0; v < nVoxels; ++v)
         {
-            Voxel & voxel     = m_voxels[v];
-            m_barycenterPCA[0]    += voxel.m_coord[0];
-            m_barycenterPCA[1]    += voxel.m_coord[1];
-            m_barycenterPCA[2]    += voxel.m_coord[2];
+            Voxel & voxel       = m_voxels[v];
+            m_barycenterPCA[0] += voxel.m_coord[0];
+            m_barycenterPCA[1] += voxel.m_coord[1];
+            m_barycenterPCA[2] += voxel.m_coord[2];
         }
         m_barycenterPCA /= (double) nVoxels;
 
 
         double covMat[3][3] = {{0.0, 0.0, 0.0},
-                             {0.0, 0.0, 0.0},
-                             {0.0, 0.0, 0.0}};
+                               {0.0, 0.0, 0.0},
+                               {0.0, 0.0, 0.0}};
         double x, y, z;
         for(size_t v = 0; v < nVoxels; ++v)
         {
-            Voxel & voxel     = m_voxels[v];
-            x                 = voxel.m_coord[0] - m_barycenter[0];
-            y                 = voxel.m_coord[1] - m_barycenter[1];
-            z                 = voxel.m_coord[2] - m_barycenter[2];
-            covMat[0][0]     += x*x;
-            covMat[1][1]     += y*y;
-            covMat[2][2]     += z*z;
-            covMat[0][1]     += x*y;
-            covMat[0][2]     += x*z;
-            covMat[1][2]     += y*z;
+            Voxel & voxel = m_voxels[v];
+            x             = voxel.m_coord[0] - m_barycenter[0];
+            y             = voxel.m_coord[1] - m_barycenter[1];
+            z             = voxel.m_coord[2] - m_barycenter[2];
+            covMat[0][0] += x*x;
+            covMat[1][1] += y*y;
+            covMat[2][2] += z*z;
+            covMat[0][1] += x*y;
+            covMat[0][2] += x*z;
+            covMat[1][2] += y*z;
         }
         covMat[0][0] /= nVoxels;
         covMat[1][1] /= nVoxels;
@@ -607,9 +607,9 @@ namespace VHACD
         covMat[0][1] /= nVoxels;
         covMat[0][2] /= nVoxels;
         covMat[1][2] /= nVoxels;
-        covMat[1][0] = covMat[0][1];
-        covMat[2][0] = covMat[0][2];
-        covMat[2][1] = covMat[1][2];
+        covMat[1][0]  = covMat[0][1];
+        covMat[2][0]  = covMat[0][2];
+        covMat[2][1]  = covMat[1][2];
         Diagonalize(covMat, m_Q, m_D);
     }
     Volume::Volume()
@@ -946,10 +946,7 @@ namespace VHACD
         double D[3][3];
         Diagonalize(covMat, rot, D);
     }
-
-
-//----------------------------------
-        TetrahedronSet::TetrahedronSet()
+    TetrahedronSet::TetrahedronSet()
     {
         m_minBB[0]      = m_minBB[1]      = m_minBB[2]      = 0.0;
         m_maxBB[0]      = m_maxBB[1]      = m_maxBB[2]      = 1.0;
@@ -961,7 +958,6 @@ namespace VHACD
         memset(m_Q, 0, sizeof(double) * 9);
         memset(m_D, 0, sizeof(double) * 9);
     }
-
     TetrahedronSet::~TetrahedronSet(void)
     {
     }
@@ -1178,7 +1174,7 @@ namespace VHACD
                                      {1,2}, {1,3}, {1,4}, {1,5}, {2,3}, 
                                      {2,4}, {2,5}, {3,4}, {3,5}, {4,5} };
             double maxVol   = 0.0;
-            int  h0       = -1;
+            int  h0         = -1;
             Tetrahedron tetrahedron0;
             tetrahedron0.m_data   = VOXEL_ON_CLIP_PLANE;
             for(int h = 0; h < 15; ++h)
@@ -1492,8 +1488,8 @@ namespace VHACD
         if (nTetrahedra == 0)
             return;
         double covMat[3][3] = {{0.0, 0.0, 0.0},
-                             {0.0, 0.0, 0.0},
-                             {0.0, 0.0, 0.0}};
+                               {0.0, 0.0, 0.0},
+                               {0.0, 0.0, 0.0}};
         double x, y, z;
         for(size_t v = 0; v < nTetrahedra; ++v)
         {
@@ -1518,9 +1514,9 @@ namespace VHACD
         covMat[0][1] /= n;
         covMat[0][2] /= n;
         covMat[1][2] /= n;
-        covMat[1][0] = covMat[0][1];
-        covMat[2][0] = covMat[0][2];
-        covMat[2][1] = covMat[1][2];
+        covMat[1][0]  = covMat[0][1];
+        covMat[2][0]  = covMat[0][2];
+        covMat[2][1]  = covMat[1][2];
         Diagonalize(covMat, m_Q, m_D);
     }
     void TetrahedronSet::AlignToPrincipalAxes()

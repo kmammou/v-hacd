@@ -398,20 +398,21 @@ namespace VHACD
         double minTotal = minConcavity + minBalance + minSymmetry;
         bool cancel = false;
 #if USE_THREAD == 1 && _OPENMP
-#pragma omp parallel for
+        #pragma omp parallel for
 #endif
         for (int x = 0; x < nPlanes; ++x)
         {
 #if USE_THREAD == 1 && _OPENMP
-#pragma omp flush (cancel)
+            #pragma omp flush (cancel)
 #endif
             if (!cancel)
             {
                 //Update progress
-                if (GetCancel()) {
+                if (GetCancel()) 
+                {
                     cancel = true;
 #if USE_THREAD == 1 && _OPENMP
-#pragma omp flush (cancel)
+                    #pragma omp flush (cancel)
 #endif
                 }
 
@@ -437,7 +438,7 @@ namespace VHACD
                     double total = concavity + balance + symmetry;
 
 #if USE_THREAD == 1 && _OPENMP
-#pragma omp critical
+                    #pragma omp critical
 #endif
                     {
                         if (total <  minTotal)

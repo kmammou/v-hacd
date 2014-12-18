@@ -13,7 +13,7 @@ namespace VHACD
     {
         return m_data[0];
     }
-    template <typename T>    
+    template <typename T> 
     inline  T &    Vec3<T>::Y() 
     {
         return m_data[1];
@@ -23,40 +23,40 @@ namespace VHACD
     {
         return m_data[2];
     }
-    template <typename T>    
+    template <typename T> 
     inline  const T & Vec3<T>::X() const 
     {
         return m_data[0];
     }
-    template <typename T>    
+    template <typename T> 
     inline  const T & Vec3<T>::Y() const 
     {
         return m_data[1];
     }
-    template <typename T>    
+    template <typename T> 
     inline  const T & Vec3<T>::Z() const 
     {
         return m_data[2];
     }
-    template <typename T>    
+    template <typename T> 
     inline  void Vec3<T>::Normalize()
     {
         T n = sqrt(m_data[0]*m_data[0]+m_data[1]*m_data[1]+m_data[2]*m_data[2]);
         if (n != 0.0) (*this) /= n;
     }
-    template <typename T>    
+    template <typename T> 
     inline  T Vec3<T>::GetNorm() const 
     { 
         return sqrt(m_data[0]*m_data[0]+m_data[1]*m_data[1]+m_data[2]*m_data[2]);
     }
-    template <typename T>    
+    template <typename T> 
     inline  void Vec3<T>::operator= (const Vec3 & rhs)
     { 
         this->m_data[0] = rhs.m_data[0]; 
         this->m_data[1] = rhs.m_data[1]; 
         this->m_data[2] = rhs.m_data[2]; 
     }
-    template <typename T>    
+    template <typename T> 
     inline  void Vec3<T>::operator+=(const Vec3 & rhs)
     { 
         this->m_data[0] += rhs.m_data[0]; 
@@ -70,21 +70,21 @@ namespace VHACD
         this->m_data[1] -= rhs.m_data[1]; 
         this->m_data[2] -= rhs.m_data[2]; 
     }
-    template <typename T>  
+    template <typename T> 
     inline void Vec3<T>::operator-=(T a)
     { 
         this->m_data[0] -= a; 
         this->m_data[1] -= a; 
         this->m_data[2] -= a; 
     }
-    template <typename T>  
+    template <typename T> 
     inline void Vec3<T>::operator+=(T a)
     { 
         this->m_data[0] += a; 
         this->m_data[1] += a; 
         this->m_data[2] += a; 
     }
-    template <typename T>  
+    template <typename T> 
     inline void Vec3<T>::operator/=(T a)
     { 
         this->m_data[0] /= a; 
@@ -98,7 +98,7 @@ namespace VHACD
         this->m_data[1] *= a; 
         this->m_data[2] *= a; 
     }  
-    template <typename T>    
+    template <typename T> 
     inline Vec3<T> Vec3<T>::operator^ (const Vec3<T> & rhs) const
     {
         return Vec3<T>(m_data[1] * rhs.m_data[2] - m_data[2] * rhs.m_data[1],
@@ -201,7 +201,6 @@ namespace VHACD
         }
         return (X()>rhs[0]);
     } 
-//----------------------------------------
     template <typename T> 
     inline Vec2<T> operator*(T lhs, const Vec2<T> & rhs)
     {
@@ -280,7 +279,7 @@ namespace VHACD
         this->m_data[0] *= a; 
         this->m_data[1] *= a; 
     }  
-    template <typename T>    
+    template <typename T> 
     inline T Vec2<T>::operator^ (const Vec2<T> & rhs) const
     {
         return m_data[0] * rhs.m_data[1] - m_data[1] * rhs.m_data[0];
