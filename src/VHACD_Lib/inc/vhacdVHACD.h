@@ -135,6 +135,8 @@ namespace VHACD
                                                              const double            alpha,
                                                              const double            beta,
                                                              const int               convexhullDownsampling,
+                                                             const double            progress0,
+                                                             const double            progress1,
                                                              Plane                 & bestPlane,
                                                              double                & minConcavity,
                                                              double                & minBalance,

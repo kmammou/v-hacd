@@ -382,6 +382,8 @@ namespace VHACD
                                          const double            alpha,
                                          const double            beta,
                                          const int               convexhullDownsampling,
+                                         const double            progress0,
+                                         const double            progress1,
                                          Plane                 & bestPlane,
                                          double                & minConcavity,
                                          double                & minBalance,
@@ -397,21 +399,23 @@ namespace VHACD
         int  nPlanes = (int) static_cast<int>(planes.Size());
         double minTotal = minConcavity + minBalance + minSymmetry;
         bool cancel = false;
+        int done = 0;
 #if USE_THREAD == 1 && _OPENMP
-#pragma omp parallel for
+        #pragma omp parallel for
 #endif
         for (int x = 0; x < nPlanes; ++x)
         {
 #if USE_THREAD == 1 && _OPENMP
-#pragma omp flush (cancel)
+            #pragma omp flush (cancel)
 #endif
             if (!cancel)
             {
                 //Update progress
-                if (GetCancel()) {
+                if (GetCancel()) 
+                {
                     cancel = true;
 #if USE_THREAD == 1 && _OPENMP
-#pragma omp flush (cancel)
+                    #pragma omp flush (cancel)
 #endif
                 }
 
@@ -437,7 +441,7 @@ namespace VHACD
                     double total = concavity + balance + symmetry;
 
 #if USE_THREAD == 1 && _OPENMP
-#pragma omp critical
+                    #pragma omp critical
 #endif
                     {
                         if (total <  minTotal)
@@ -461,6 +465,14 @@ namespace VHACD
                 }
                 delete left;
                 delete right;
+#if USE_THREAD == 1 && _OPENMP
+                #pragma omp critical
+#endif
+                {
+                    ++done;
+                    double progress = done * (progress1 - progress0) / nPlanes + progress0;
+                    Update(m_stageProgress, progress, params);
+                }
             }
         }
         if (params.m_logger)
@@ -515,7 +527,12 @@ namespace VHACD
             Update(m_stageProgress, 0.0, params);
             for (size_t p = 0; p < nInputParts && !m_cancel; ++p)
             {
-                Update(m_stageProgress, p * 100.0 / nInputParts, params);
+                const double progress0 = p          * 100.0 / nInputParts;
+                const double progress1 = (p + 0.75) * 100.0 / nInputParts;
+                const double progress2 = (p + 1.00) * 100.0 / nInputParts;
+
+                Update(m_stageProgress, progress0, params);
+                
 
                 PrimitiveSet * pset = inputParts[p];
                 inputParts[p] = 0;
@@ -596,6 +613,8 @@ namespace VHACD
                                              concavity * params.m_alpha,
                                              concavity * params.m_beta,
                                              params.m_convexhullDownsampling,
+                                             progress0,
+                                             progress1,
                                              bestPlane,
                                              minConcavity,
                                              minBalance,
@@ -623,8 +642,8 @@ namespace VHACD
                             params.m_logger->Log(msg.str().c_str());
                         }
                         minConcavity = 1.0;
-                        minBalance = 1.0;
-                        minSymmetry = 1.0;
+                        minBalance   = 1.0;
+                        minSymmetry  = 1.0;
                         ComputeBestClippingPlane(pset,
                                                  m_volume0,
                                                  volume,
@@ -634,6 +653,8 @@ namespace VHACD
                                                  concavity * params.m_alpha,
                                                  concavity * params.m_beta,
                                                  1,                 // convexhullDownsampling = 1
+                                                 progress1,
+                                                 progress2,
                                                  bestPlane,
                                                  minConcavity,
                                                  minBalance,

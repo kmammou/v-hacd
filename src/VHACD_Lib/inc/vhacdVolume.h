@@ -24,18 +24,18 @@ namespace VHACD
 
     enum VOXEL_VALUE
     {
-        VOXEL_UNDEFINED                 = 0,
-        VOXEL_OUTSIDE_SURFACE           = 1,
-        VOXEL_INSIDE_SURFACE            = 2,
-        VOXEL_ON_SURFACE                = 3,
-        VOXEL_ON_CLIP_PLANE             = 4
+        VOXEL_UNDEFINED                             = 0,
+        VOXEL_OUTSIDE_SURFACE                       = 1,
+        VOXEL_INSIDE_SURFACE                        = 2,
+        VOXEL_ON_SURFACE                            = 3,
+        VOXEL_ON_CLIP_PLANE                         = 4
     };
 
     enum AXIS
     {
-        AXIS_X = 0,
-        AXIS_Y = 1,
-        AXIS_Z = 2
+        AXIS_X                                      = 0,
+        AXIS_Y                                      = 1,
+        AXIS_Z                                      = 2
     };
 
     struct Voxel
@@ -129,7 +129,7 @@ namespace VHACD
         void                                        RevertAlignToPrincipalAxes() {};
 
     private:
-        size_t                                      m_numVoxelsOnSurface    ;
+        size_t                                      m_numVoxelsOnSurface;
         size_t                                      m_numVoxelsInsideSurface;
         size_t                                      m_numVoxelsOnClipPlane;
         Vec3<double>                                m_minBB;
