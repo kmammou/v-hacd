@@ -17,7 +17,7 @@
 #define VHACD_H
 
 #define VHACD_VERSION_MAJOR 2
-#define VHACD_VERSION_MINOR 0
+#define VHACD_VERSION_MINOR 1
 
 namespace VHACD
 {
