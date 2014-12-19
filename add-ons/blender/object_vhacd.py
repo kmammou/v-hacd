@@ -20,7 +20,7 @@ bl_info = {
     'name': 'V-HACD',
     'description': 'Hierarchical Approximate Convex Decomposition',
     'author': 'Alain Ducharme (Phymec)',
-    'version': (0, 1),
+    'version': (0, 2),
     'blender': (2, 65, 0),
     'location': '3D View, Tools tab -> V-HACD, in Object mode',
     'warning': "Requires Khaled Mamou's V-HACD v2.0 textVHACD executable: (see documentation)",
@@ -75,8 +75,19 @@ class VHACD(bpy.types.Operator):
     # pre-process options
     remove_doubles = BoolProperty(
             name = 'Remove Doubles',
-            description = 'Collapse overlapping vertices in exported mesh',
-            default=True)
+            description = 'Collapse overlapping vertices in generated mesh',
+            default = True)
+
+    apply_transforms = EnumProperty(
+            name = 'Apply',
+            description = 'Apply Transformations to generated mesh',
+            items = (
+                ('LRS', 'Location + Rotation + Scale', 'Apply location, rotation and scale'),
+                ('RS', 'Rotation + Scale', 'Apply rotation and scale'),
+                ('S', 'Scale', 'Apply scale only'),
+                ('NONE', 'None', 'Do not apply transformations'),
+                ),
+            default = 'RS')
 
     # ---------------
     # VHACD parameters
@@ -138,6 +149,11 @@ class VHACD(bpy.types.Operator):
             description = 'Maximum number of vertices per convex-hull',
             default = 32, min = 4, max = 1024)
 
+    minVolumePerCH = FloatProperty(
+            name = 'Maximum Vertices Per CH',
+            description = 'Minimum volume to add vertices to convex-hulls',
+            default = 0.0001, min = 0.0, max = 0.01, precision = 5)
+
     # -------------------
     # post-process options
     show_transparent = BoolProperty(
@@ -157,7 +173,7 @@ class VHACD(bpy.types.Operator):
 
     mass_com = BoolProperty(
             name = 'Center of Mass',
-            description = 'Calculate physics mass and change center of mass (origin) based on volume and density (will affect rotations! apply first.)',
+            description = 'Calculate physics mass and set center of mass (origin) based on volume and density (best to apply rotation and scale)',
             default=True)
 
     density = FloatProperty(
@@ -201,18 +217,32 @@ class VHACD(bpy.types.Operator):
             outFileName = os_path.join(data_path, '{}.wrl'.format(filename))
             logFileName = os_path.join(data_path, '{}_log.txt'.format(filename))
 
-            scale = ob.matrix_world.to_scale()
-            translation = ob.matrix_world.to_translation()
-            quaternion = ob.matrix_world.to_quaternion()
-
             try:
                 mesh = ob.to_mesh(context.scene, True, 'PREVIEW', calc_tessface=False)
             except:
                 continue
 
+            translation, quaternion, scale = ob.matrix_world.decompose()
+            scale_matrix = Matrix(((scale.x,0,0,0),(0,scale.y,0,0),(0,0,scale.z,0),(0,0,0,1)))
+            if self.apply_transforms in ['S', 'RS', 'LRS']:
+                pre_matrix = scale_matrix
+                post_matrix = Matrix()
+            else:
+                pre_matrix = Matrix()
+                post_matrix = scale_matrix
+            if self.apply_transforms in ['RS', 'LRS']:
+                pre_matrix = quaternion.to_matrix().to_4x4() * pre_matrix
+            else:
+                post_matrix = quaternion.to_matrix().to_4x4() * post_matrix
+            if self.apply_transforms == 'LRS':
+                pre_matrix = Matrix.Translation(translation) * pre_matrix
+            else:
+                post_matrix = Matrix.Translation(translation) * post_matrix
+
+            mesh.transform(pre_matrix)
+
             bm = bmesh.new()
             bm.from_mesh(mesh)
-            bmesh.ops.scale(bm, vec=scale, verts=bm.verts)
             if self.remove_doubles:
                 bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0001)
             bmesh.ops.triangulate(bm, faces=bm.faces)
@@ -222,7 +252,7 @@ class VHACD(bpy.types.Operator):
             print('\nExporting mesh for V-HACD: {}...'.format(off_filename))
             off_export(mesh, off_filename)
 
-            cmd_line = '{} "{}" {} {} {:g} {} {} {:g} {:g} {:g} {:b} {:b} {} "{}" "{}"'.format(
+            cmd_line = '{} "{}" {} {} {:g} {} {} {:g} {:g} {:g} {:b} {:b} {} {:g} "{}" "{}"'.format(
                     vhacd_path,
                     off_filename,
                     self.resolution,
@@ -236,6 +266,7 @@ class VHACD(bpy.types.Operator):
                     self.pca,
                     self.mode == 'TETRAHEDRON',
                     self.maxNumVerticesPerCH,
+                    self.minVolumePerCH,
                     outFileName,
                     logFileName)
 
@@ -247,18 +278,20 @@ class VHACD(bpy.types.Operator):
             if self.mass_com:
                 mass, com = physics_mass_center(mesh)
                 mass *= self.density
-                translation += com
+                post_matrix = Matrix.Translation(com * post_matrix) * post_matrix
+                pre_matrix = Matrix.Translation(-com) * pre_matrix
             if not self.use_generated:
                 bpy.data.meshes.remove(mesh)
 
             vhacd_process.wait()
             if not os_path.exists(outFileName):
                 continue
+
             bpy.ops.import_scene.x3d(filepath=outFileName, axis_forward='Y', axis_up='Z')
             imported = bpy.context.selected_objects
             new_objects.extend(imported)
             parent = None
-            matrix = Matrix.Translation(translation) * quaternion.to_matrix().to_4x4()
+
             for hull in imported:
                 # Make hull a compound rigid body
                 hull.select = False
@@ -275,7 +308,7 @@ class VHACD(bpy.types.Operator):
                 if not parent:
                     # Use first hull as compound parent
                     parent = hull
-                    hull.matrix_basis = matrix
+                    hull.matrix_basis = post_matrix
                     # Attach visual mesh as child...
                     ob.game.physics_type = 'NO_COLLISION'
                     if self.use_generated:
@@ -288,7 +321,7 @@ class VHACD(bpy.types.Operator):
                         obc.parent = parent
                         new_objects.append(obc)
                     else:
-                        ob.matrix_basis = Matrix.Translation(-com) * Matrix(((scale.x,0,0,0),(0,scale.y,0,0),(0,0,scale.z,0),(0,0,0,1)))
+                        ob.matrix_basis = pre_matrix
                         ob.parent = parent
                 else:
                     hull.parent = parent
@@ -314,9 +347,10 @@ class VHACD(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
         col = layout.column()
-        col.label('Pre-Processing Options:')
+        col.label('Pre-Processing Options (generated mesh):')
         row = col.row()
         row.prop(self, 'remove_doubles')
+        row.prop(self, 'apply_transforms')
 
         layout.separator()
         col = layout.column()
@@ -334,6 +368,7 @@ class VHACD(bpy.types.Operator):
         row.prop(self, 'pca')
         row.prop(self, 'mode')
         col.prop(self, 'maxNumVerticesPerCH')
+        col.prop(self, 'minVolumePerCH')
 
         layout.separator()
         col = layout.column()
