@@ -119,18 +119,18 @@ void ComputeRandomColor(Material & mat);
 int main(int argc, char * argv[])
 {
     {
-        if (argc != 15)
+        if (argc != 16)
         {
             
             cout << "Usage: ./testVHACD fileName.off resolution maxDepth maxConcavity planeDownsampling convexhullDownsampling alpha beta gamma pca mode maxCHVertices outFileName.wrl log.txt" << endl;
-            cout << "Recommended parameters: ./testVHACD fileName.off 1000000 20 0.001 4 4 0.05 0.05 0.0001 0 0 256 VHACD_CHs.wrl log.txt" << endl;
+            cout << "Recommended parameters: ./testVHACD fileName.off 1000000 20 0.001 4 4 0.05 0.05 0.0001 0 0 256 0.0001 VHACD_CHs.wrl log.txt" << endl;
             return -1;
         }
         // set parameters
         IVHACD::Parameters    params;
         const string  fileName   (argv[1 ]);              // table.obj
-        const string  fileNameOut(argv[13]);              // VHACD_CHs.wrl
-        const string  fileNameLog(argv[14]);              // VHACD_CHs.wrl
+        const string  fileNameOut(argv[14]);              // VHACD_CHs.wrl
+        const string  fileNameLog(argv[15]);              // VHACD_CHs.wrl
         params.m_resolution             = atoi(argv[2]);  // 1000000 voxels
         params.m_depth                  = atoi(argv[3]);  // 20
         params.m_concavity              = atof(argv[4]);  // 0.0025
@@ -138,10 +138,11 @@ int main(int argc, char * argv[])
         params.m_convexhullDownsampling = atoi(argv[6]);  // 4
         params.m_alpha                  = atof(argv[7]);  // 0.05
         params.m_beta                   = atof(argv[8]);  // 0.05
-        params.m_gamma                  = atof(argv[9]);  // 0.0001
+        params.m_gamma                  = atof(argv[9]);  // 0.00125
         params.m_pca                    = atoi(argv[10]); // 0
         params.m_mode                   = atoi(argv[11]); // 0: voxel-based (recommended), 1: tethedron-based
-        params.m_maxNumVerticesPerCH    = atoi(argv[12]); // 100
+        params.m_maxNumVerticesPerCH    = atoi(argv[12]); // 64
+        params.m_minVolumePerCH         = atof(argv[13]); // 0.0001
         params.m_resolution             = (params.m_resolution             < 64) ? 0 : params.m_resolution;
         params.m_planeDownsampling      = (params.m_planeDownsampling      <  1) ? 1 : params.m_planeDownsampling;
         params.m_convexhullDownsampling = (params.m_convexhullDownsampling <  1) ? 1 : params.m_convexhullDownsampling;
@@ -158,19 +159,20 @@ int main(int argc, char * argv[])
         msg << "+ OpenMP (OFF)" << std::endl;
 #endif
         msg << "+ Parameters" << std::endl;
-        msg << "\t input                                   " << fileName                        << std::endl;
-        msg << "\t resolution                              " << params.m_resolution             << std::endl;
-        msg << "\t max. depth                              " << params.m_depth                  << std::endl;
-        msg << "\t max. concavity                          " << params.m_concavity              << std::endl;
-        msg << "\t plane down-sampling                     " << params.m_planeDownsampling      << std::endl;
-        msg << "\t convex-hull down-sampling               " << params.m_convexhullDownsampling << std::endl;
-        msg << "\t alpha                                   " << params.m_alpha                  << std::endl;
-        msg << "\t beta                                    " << params.m_beta                   << std::endl;
-        msg << "\t gamma                                   " << params.m_gamma                  << std::endl;
-        msg << "\t pca                                     " << params.m_pca                    << std::endl;
-        msg << "\t mode                                    " << params.m_mode                   << std::endl;
-        msg << "\t max. vertices per convex-hull           " << params.m_maxNumVerticesPerCH << std::endl;
-        msg << "\t output                                  " << fileNameOut                     << std::endl;
+        msg << "\t input                                       " << fileName                        << std::endl;
+        msg << "\t resolution                                  " << params.m_resolution             << std::endl;
+        msg << "\t max. depth                                  " << params.m_depth                  << std::endl;
+        msg << "\t max. concavity                              " << params.m_concavity              << std::endl;
+        msg << "\t plane down-sampling                         " << params.m_planeDownsampling      << std::endl;
+        msg << "\t convex-hull down-sampling                   " << params.m_convexhullDownsampling << std::endl;
+        msg << "\t alpha                                       " << params.m_alpha                  << std::endl;
+        msg << "\t beta                                        " << params.m_beta                   << std::endl;
+        msg << "\t gamma                                       " << params.m_gamma                  << std::endl;
+        msg << "\t pca                                         " << params.m_pca                    << std::endl;
+        msg << "\t mode                                        " << params.m_mode                   << std::endl;
+        msg << "\t max. vertices per convex-hull               " << params.m_maxNumVerticesPerCH    << std::endl;
+        msg << "\t min. volume to add vertices to convex-hulls " << params.m_minVolumePerCH         << std::endl;
+        msg << "\t output                                      " << fileNameOut                     << std::endl;
         msg << "+ Load mesh \n" << std::endl;
         myLogger.Log(msg.str().c_str());
 

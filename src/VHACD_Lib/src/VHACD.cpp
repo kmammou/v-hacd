@@ -954,15 +954,16 @@ namespace VHACD
         }
     }
     void SimplifyConvexHull(Mesh * const ch,
-                            const size_t nvertices)
+                            const size_t nvertices,
+                            const double minVolume)
     {
-        if (nvertices <= 4 || ch->GetNPoints() <= nvertices)
+        if (nvertices <= 4)
         {
             return;
         }
         ICHull icHull;
         icHull.AddPoints(ch->GetPointsBuffer(), ch->GetNPoints());
-        icHull.Process((unsigned int)nvertices);
+        icHull.Process((unsigned int)nvertices, minVolume);
         TMMesh & mesh = icHull.GetMesh();
         const size_t nT = mesh.GetNTriangles();
         const size_t nV = mesh.GetNVertices();
@@ -992,16 +993,13 @@ namespace VHACD
         Update(0.0, 0.0, params);
         for (size_t i = 0; i < nConvexHulls && !m_cancel; ++i)
         {
-            if (m_convexHulls[i]->GetNPoints() > params.m_maxNumVerticesPerCH)
+            if (params.m_logger)
             {
-                if (params.m_logger)
-                {
-                    msg.str("");
-                    msg << "\t\t Simplify CH[" << std::setfill('0') << std::setw(5) << i << "] " << m_convexHulls[i]->GetNPoints() << " V, " << m_convexHulls[i]->GetNTriangles() << " T" << std::endl;
-                    params.m_logger->Log(msg.str().c_str());
-                }
-                SimplifyConvexHull(m_convexHulls[i], params.m_maxNumVerticesPerCH);
+                msg.str("");
+                msg << "\t\t Simplify CH[" << std::setfill('0') << std::setw(5) << i << "] " << m_convexHulls[i]->GetNPoints() << " V, " << m_convexHulls[i]->GetNTriangles() << " T" << std::endl;
+                params.m_logger->Log(msg.str().c_str());
             }
+            SimplifyConvexHull(m_convexHulls[i], params.m_maxNumVerticesPerCH, m_volume0*params.m_minVolumePerCH);
         }
 
         m_overallProgress = 100.0;

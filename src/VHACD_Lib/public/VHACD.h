@@ -64,6 +64,7 @@ namespace VHACD
                                                 m_pca                    = 0;
                                                 m_mode                   = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
                                                 m_maxNumVerticesPerCH    = 64;
+                                                m_minVolumePerCH         = 0.0001;
                                                 m_callback               = 0;
                                                 m_logger                 = 0;
                                             }
@@ -75,6 +76,7 @@ namespace VHACD
             double                          m_alpha;
             double                          m_beta;
             double                          m_gamma;
+            double                          m_minVolumePerCH;
             int                             m_pca;
             int                             m_mode;
             unsigned int                    m_maxNumVerticesPerCH;

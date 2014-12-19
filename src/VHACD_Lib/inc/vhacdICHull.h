@@ -46,7 +46,7 @@ namespace VHACD
             //!    
             ICHullError                                         Process();
             //! 
-            ICHullError                                         Process(unsigned int nPointsCH);
+            ICHullError                                         Process(const unsigned int nPointsCH, const double minVolume = 0.0);
             //!
             bool                                                IsInside(const Vec3<double> & pt0, const double eps = 0.0);
             //!
@@ -72,7 +72,7 @@ namespace VHACD
             //!
             bool                                                ComputePointVolume(double &totalVolume, bool markVisibleFaces);
             //!
-            bool                                                FindMaxVolumePoint();
+            bool                                                FindMaxVolumePoint(const double minVolume = 0.0);
             //!    
             bool                                                CleanEdges();
             //!    

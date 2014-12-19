@@ -194,7 +194,8 @@ namespace VHACD
         }
         return ICHullErrorOK;
     }
-    ICHullError ICHull::Process(unsigned int nPointsCH)
+    ICHullError ICHull::Process(const unsigned int nPointsCH,
+                                const double       minVolume)
     {
         unsigned int addedPoints = 0;  
         if (nPointsCH < 3 || m_mesh.GetNVertices() < 3)
@@ -246,10 +247,10 @@ namespace VHACD
         CircularList<TMMVertex> & vertices = m_mesh.GetVertices();
         while (!vertices.GetData().m_tag && addedPoints < nPointsCH) // not processed
         {
-            if (!FindMaxVolumePoint())
+            if (!FindMaxVolumePoint((addedPoints>4)?minVolume:0.0))
             {
                 break;
-            }                  
+            }
             vertices.GetData().m_tag = true;
             if (ProcessPoint())
             {
@@ -345,13 +346,13 @@ namespace VHACD
         }
         return ICHullErrorOK;
     }
-    bool ICHull::FindMaxVolumePoint()
+    bool ICHull::FindMaxVolumePoint(const double minVolume)
     {
         CircularList<TMMVertex> & vertices = m_mesh.GetVertices();
         CircularListElement<TMMVertex> * vMaxVolume = 0;
         CircularListElement<TMMVertex> * vHeadPrev = vertices.GetHead()->GetPrev();
         
-        double maxVolume = 0.0;
+        double maxVolume = minVolume;
         double volume = 0.0;
         while (!vertices.GetData().m_tag) // not processed
         {
