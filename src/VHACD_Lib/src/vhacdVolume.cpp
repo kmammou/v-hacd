@@ -500,7 +500,6 @@ namespace VHACD
     {
         const size_t nVoxels = m_voxels.Size();
         if (nVoxels == 0) return;
-        const double d0 = m_scale;
         double d;
         Vec3<double> pt;
         Vec3<double> pts[8];

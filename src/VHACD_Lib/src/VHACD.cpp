@@ -704,8 +704,9 @@ namespace VHACD
 #endif
         for (int x = 0; x < nPlanes; ++x)
         {
-            int threadID = omp_get_thread_num();
+            int threadID = 0;
 #if USE_THREAD == 1 && _OPENMP
+            threadID = omp_get_thread_num();
             #pragma omp flush (cancel)
 #endif
             if (!cancel)

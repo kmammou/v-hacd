@@ -113,11 +113,11 @@ bool OCLHelper::GetDevicesInfo(std::vector< std::string > & info,
     typedef struct
     {
         cl_device_info id;
-        char *         name;
+        const char *   name;
         int            type;
     } DeviceInfoParam;
     const int numDeviceInfoParameters = 49;
-    DeviceInfoParam deviceInfoParameters[numDeviceInfoParameters] =
+    const DeviceInfoParam deviceInfoParameters[numDeviceInfoParameters] =
     {
         { CL_DEVICE_NAME, "CL_DEVICE_NAME", DATA_TYPE_STRING },
         { CL_DEVICE_PROFILE, "CL_DEVICE_PROFILE", DATA_TYPE_STRING },

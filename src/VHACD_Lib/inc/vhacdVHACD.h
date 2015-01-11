@@ -17,7 +17,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #define VHACD_VHACD_H
 
 #ifdef OPENCL_FOUND
-#ifdef MAC
+#ifdef __MACH__
 #include <OpenCL/cl.h>
 #else
 #include <CL/cl.h>

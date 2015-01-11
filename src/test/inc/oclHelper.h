@@ -22,7 +22,7 @@
 #include <vector> 
 #include <string> 
 
-#ifdef MAC
+#ifdef __MACH__
 #include <OpenCL/cl.h>
 #else
 #include <CL/cl.h>
