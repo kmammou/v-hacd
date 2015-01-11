@@ -18,8 +18,25 @@
 #include "vhacdSArray.h"
 #include "vhacdVector.h"
 
+#define VHACD_DEBUG_MESH
+
 namespace VHACD
 {
+    enum AXIS
+    {
+        AXIS_X                                      = 0,
+        AXIS_Y                                      = 1,
+        AXIS_Z                                      = 2
+    };
+    struct Plane
+    {
+        double                                      m_a;
+        double                                      m_b;
+        double                                      m_c;
+        double                                      m_d;
+        AXIS                                        m_axis;
+        short                                       m_index;
+    };
 #ifdef VHACD_DEBUG_MESH
     struct Material
     {
@@ -78,7 +95,14 @@ namespace VHACD
         void                                Clear()                                          { ClearPoints(); ClearTriangles();}
         void                                ResizePoints(size_t nPts)                        { m_points.Resize(nPts);}
         void                                ResizeTriangles(size_t nTri)                     { m_triangles.Resize(nTri);}
+        void                                CopyPoints(SArray< Vec3<double> >& points) const { points = m_points; }
         double                              ComputeVolume() const;
+        void                                ComputeConvexHull(const double * const pts, 
+                                                              const size_t         nPts);
+        void                                Clip(const Plane & plane, 
+                                                 SArray< Vec3<double> > & positivePart, 
+                                                 SArray< Vec3<double> > & negativePart) const;
+        bool                                IsInside(const Vec3<double> & pt) const;
 
 #ifdef VHACD_DEBUG_MESH
         bool                                LoadOFF(const std::string & fileName, bool invert);
@@ -93,8 +117,8 @@ namespace VHACD
                                             ~Mesh(void);
 
         private:
-            SArray< Vec3<double>, 256 >     m_points;
-            SArray< Vec3<int>, 256 >        m_triangles;
+            SArray< Vec3<double> >          m_points;
+            SArray< Vec3<int> >             m_triangles;
             Vec3<double>                    m_minBB;
             Vec3<double>                    m_maxBB;
             Vec3<double>                    m_center;

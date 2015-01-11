@@ -17,7 +17,7 @@
 #define VHACD_H
 
 #define VHACD_VERSION_MAJOR 2
-#define VHACD_VERSION_MINOR 1
+#define VHACD_VERSION_MINOR 2
 
 namespace VHACD
 {
@@ -53,20 +53,22 @@ namespace VHACD
                                             Parameters(void) { Init(); }
             void                            Init(void)
                                             {
-                                                m_resolution             = 100000;
-                                                m_depth                  = 20;     
-                                                m_concavity              = 0.0025;  
-                                                m_planeDownsampling      = 4;
-                                                m_convexhullDownsampling = 4;
-                                                m_alpha                  = 0.05;
-                                                m_beta                   = 0.05;
-                                                m_gamma                  = 0.00125;
-                                                m_pca                    = 0;
-                                                m_mode                   = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
-                                                m_maxNumVerticesPerCH    = 64;
-                                                m_minVolumePerCH         = 0.0001;
-                                                m_callback               = 0;
-                                                m_logger                 = 0;
+                                                m_resolution              = 100000;
+                                                m_depth                   = 20;
+                                                m_concavity               = 0.0025;
+                                                m_planeDownsampling       = 4;
+                                                m_convexhullDownsampling  = 4;
+                                                m_alpha                   = 0.05;
+                                                m_beta                    = 0.05;
+                                                m_gamma                   = 0.00125;
+                                                m_pca                     = 0;
+                                                m_mode                    = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
+                                                m_maxNumVerticesPerCH     = 64;
+                                                m_minVolumePerCH          = 0.0001;
+                                                m_callback                = 0;
+                                                m_logger                  = 0;
+                                                m_convexhullApproximation = true;
+                                                m_oclAcceleration         = true;
                                             }
             unsigned int                    m_resolution;
             int                             m_depth;
@@ -82,6 +84,8 @@ namespace VHACD
             unsigned int                    m_maxNumVerticesPerCH;
             IUserCallback *                 m_callback;
             IUserLogger *                   m_logger;
+            int                             m_convexhullApproximation;
+            int                             m_oclAcceleration;
         };
 
         virtual void                        Cancel() = 0;
@@ -103,6 +107,9 @@ namespace VHACD
         virtual void                        GetConvexHull(const unsigned int index, ConvexHull & ch) const = 0;
         virtual void                        Clean(void) = 0; // release internally allocated memory
         virtual void                        Release(void) = 0; // release IVHACD
+        virtual bool                        OCLInit(void *        const oclDevice, 
+                                                    IUserLogger * const logger = 0) = 0;
+        virtual bool                        OCLRelease(IUserLogger * const logger = 0) = 0;
 
     protected:
         virtual                             ~IVHACD(void) {}

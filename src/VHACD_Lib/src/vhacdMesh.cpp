@@ -34,19 +34,20 @@ namespace VHACD
     }
     double Mesh::ComputeVolume() const
     {
-        const int nV = (int) GetNPoints();
-        if (nV == 0)
+        const size_t nV = GetNPoints();
+        const size_t nT = GetNTriangles();
+        if (nV == 0 || nT == 0)
         {
             return 0.0;
-        }       
+        }
+
         Vec3<double> bary(0.0, 0.0, 0.0);
-        for(int v = 0; v < nV; v++)
+        for (size_t v = 0; v < nV; v++)
         {
             bary +=  GetPoint(v);
         }
         bary /= static_cast<double>(nV);
-        
-        const int nT = (int) GetNTriangles();
+
         Vec3<double> ver0, ver1, ver2;
         double totalVolume = 0.0;
         for(int t = 0; t < nT; t++)
@@ -59,6 +60,89 @@ namespace VHACD
         }
         return totalVolume/6.0;
     }
+
+    void Mesh::ComputeConvexHull(const double * const pts, 
+                                 const size_t         nPts)
+    {
+        ResizePoints(0);
+        ResizeTriangles(0);
+        btConvexHullComputer ch;
+        ch.compute(pts, 3 * sizeof(double), (int) nPts, -1.0, -1.0);
+        for (int v = 0; v < ch.vertices.size(); v++)
+        {
+            AddPoint(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
+        }
+        const int nt = ch.faces.size();
+        for (int t = 0; t < nt; ++t)
+        {
+            const btConvexHullComputer::Edge * sourceEdge = &(ch.edges[ch.faces[t]]);
+            int a = sourceEdge->getSourceVertex();
+            int b = sourceEdge->getTargetVertex();
+            const btConvexHullComputer::Edge * edge = sourceEdge->getNextEdgeOfFace();
+            int c = edge->getTargetVertex();
+            while (c != a)
+            {
+                AddTriangle(Vec3<int>(a, b, c));
+                edge = edge->getNextEdgeOfFace();
+                b = c;
+                c = edge->getTargetVertex();
+            }
+        }
+    }
+    void Mesh::Clip(const Plane            & plane, 
+                    SArray< Vec3<double> > & positivePart, 
+                    SArray< Vec3<double> > & negativePart) const
+    {
+        const size_t nV = GetNPoints();
+        if (nV == 0)
+        {
+            return;
+        }       
+        double d;
+        for (size_t v = 0; v < nV; v++)
+        {
+            const Vec3<double> & pt =  GetPoint(v);
+            d     = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
+            if (d > 0.0)
+            {
+                positivePart.PushBack(pt);
+            }
+            else if (d < 0.0)
+            {
+                negativePart.PushBack(pt);
+            }
+            else
+            {
+                positivePart.PushBack(pt);
+                negativePart.PushBack(pt);
+            }
+        }
+    }
+    bool Mesh::IsInside(const Vec3<double> & pt) const
+    {
+        const size_t nV = GetNPoints();
+        const size_t nT = GetNTriangles();
+        if (nV == 0 || nT == 0)
+        {
+            return false;
+        }
+        Vec3<double> ver0, ver1, ver2;
+        double volume;
+        for (int t = 0; t < nT; t++)
+        {
+            const Vec3<int> & tri = GetTriangle(t);
+            ver0 = GetPoint(tri[0]);
+            ver1 = GetPoint(tri[1]);
+            ver2 = GetPoint(tri[2]);
+            volume = ComputeVolume4(ver0, ver1, ver2, pt);
+            if (volume < 0.0)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
 #ifdef VHACD_DEBUG_MESH
     bool Mesh::SaveVRML2(const std::string & fileName) const
     {

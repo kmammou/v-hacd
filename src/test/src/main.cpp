@@ -23,6 +23,7 @@
 #include <vector>
 #include <sstream>
 #include <string.h>
+#include <assert.h>
 
 //#define _CRTDBG_MAP_ALLOC
 
@@ -32,6 +33,7 @@
 #endif // _CRTDBG_MAP_ALLOC
 
 #include "VHACD.h"
+#include "OCLHelper.h"
 
 using namespace VHACD;
 using namespace std;
@@ -65,8 +67,11 @@ class MyLogger : public IVHACD::IUserLogger
                                             m_file << msg;
                                             m_file.flush();
                                         }
-                                    };
-        void                        OpenFile(const string & fileName) { m_file.open(fileName.c_str()); }
+                                    }
+        void                        OpenFile(const string & fileName) 
+                                    { 
+                                        m_file.open(fileName.c_str()); 
+                                    }
     private:
     ofstream                        m_file;
 };
@@ -79,21 +84,40 @@ struct Material
     float                           m_emissiveColor[3];
     float                           m_shininess;
     float                           m_transparency;
-    Material(void)
-    {
-        m_diffuseColor[0]  = 0.5f;
-        m_diffuseColor[1]  = 0.5f;
-        m_diffuseColor[2]  = 0.5f;
-        m_specularColor[0] = 0.5f;
-        m_specularColor[1] = 0.5f;
-        m_specularColor[2] = 0.5f;
-        m_ambientIntensity = 0.4f;
-        m_emissiveColor[0] = 0.0f;
-        m_emissiveColor[1] = 0.0f;
-        m_emissiveColor[2] = 0.0f;
-        m_shininess        = 0.4f;
-        m_transparency     = 0.5f;
-    };
+                                    Material(void)
+                                    {
+                                        m_diffuseColor[0]  = 0.5f;
+                                        m_diffuseColor[1]  = 0.5f;
+                                        m_diffuseColor[2]  = 0.5f;
+                                        m_specularColor[0] = 0.5f;
+                                        m_specularColor[1] = 0.5f;
+                                        m_specularColor[2] = 0.5f;
+                                        m_ambientIntensity = 0.4f;
+                                        m_emissiveColor[0] = 0.0f;
+                                        m_emissiveColor[1] = 0.0f;
+                                        m_emissiveColor[2] = 0.0f;
+                                        m_shininess        = 0.4f;
+                                        m_transparency     = 0.5f;
+                                    };
+};
+struct Parameters
+{
+    unsigned int                    m_oclPlatformID;
+    unsigned int                    m_oclDeviceID;
+    string                          m_fileNameIn;
+    string                          m_fileNameOut;
+    string                          m_fileNameLog;
+    bool                            m_run;
+    IVHACD::Parameters              m_paramsVHACD;
+                                    Parameters(void)
+                                    {
+                                        m_run           = true;
+                                        m_oclPlatformID = 0;
+                                        m_oclDeviceID   = 0;
+                                        m_fileNameIn    = "";
+                                        m_fileNameOut   = "output.wrl";
+                                        m_fileNameLog   = "log.txt";
+                                    }
 };
 bool LoadOFF(const string              & fileName, 
                    vector< float >     & points, 
@@ -116,81 +140,98 @@ bool SaveVRML2(      ofstream & fout,
                      IVHACD::IUserLogger & logger);
 void GetFileExtension(const string & fileName, string & fileExtension);
 void ComputeRandomColor(Material & mat);
+void Usage(const Parameters & params);
+void ParseParameters(int          argc,
+                     char       * argv[],
+                     Parameters & params);
+
+#ifdef CL_VERSION_1_1
+bool InitOCL(const unsigned int   oclPlatformID,
+             const unsigned int   oclDeviceID,
+             OCLHelper          & oclHelper,
+             std::ostringstream & msg);
+#endif // CL_VERSION_1_1
+
 int main(int argc, char * argv[])
 {
     {
-        if (argc != 16)
-        {
-            
-            cout << "Usage: ./testVHACD fileName.off resolution maxDepth maxConcavity planeDownsampling convexhullDownsampling alpha beta gamma pca mode maxCHVertices minVolumePerCH outFileName.wrl log.txt" << endl;
-            cout << "Recommended parameters: ./testVHACD fileName.off 1000000 20 0.001 4 4 0.05 0.05 0.0001 0 0 256 0.0001 VHACD_CHs.wrl log.txt" << endl;
-            return -1;
-        }
         // set parameters
-        IVHACD::Parameters    params;
-        const string  fileName   (argv[1 ]);              // table.obj
-        const string  fileNameOut(argv[14]);              // VHACD_CHs.wrl
-        const string  fileNameLog(argv[15]);              // VHACD_CHs.wrl
-        params.m_resolution             = atoi(argv[2]);  // 1000000 voxels
-        params.m_depth                  = atoi(argv[3]);  // 20
-        params.m_concavity              = atof(argv[4]);  // 0.0025
-        params.m_planeDownsampling      = atoi(argv[5]);  // 4
-        params.m_convexhullDownsampling = atoi(argv[6]);  // 4
-        params.m_alpha                  = atof(argv[7]);  // 0.05
-        params.m_beta                   = atof(argv[8]);  // 0.05
-        params.m_gamma                  = atof(argv[9]);  // 0.00125
-        params.m_pca                    = atoi(argv[10]); // 0
-        params.m_mode                   = atoi(argv[11]); // 0: voxel-based (recommended), 1: tethedron-based
-        params.m_maxNumVerticesPerCH    = atoi(argv[12]); // 64
-        params.m_minVolumePerCH         = atof(argv[13]); // 0.0001
-        params.m_resolution             = (params.m_resolution             < 64) ? 0 : params.m_resolution;
-        params.m_planeDownsampling      = (params.m_planeDownsampling      <  1) ? 1 : params.m_planeDownsampling;
-        params.m_convexhullDownsampling = (params.m_convexhullDownsampling <  1) ? 1 : params.m_convexhullDownsampling;
-
+        Parameters params;
+        ParseParameters(argc, argv, params);
         MyCallback myCallback;
-        MyLogger   myLogger(fileNameLog);
-        params.m_logger = &myLogger;
-        params.m_callback = &myCallback;
+        MyLogger   myLogger(params.m_fileNameLog);
+        params.m_paramsVHACD.m_logger   = &myLogger;
+        params.m_paramsVHACD.m_callback = &myCallback;
+        Usage(params);
+        if (!params.m_run)
+        {
+            return 0;
+        }
 
         std::ostringstream msg;
+#ifdef CL_VERSION_1_1
+        msg << "+ OpenCL (ON)" << std::endl;
+        OCLHelper    oclHelper;
+        if (params.m_paramsVHACD.m_oclAcceleration)
+        {
+            bool res = InitOCL(params.m_oclPlatformID, 
+                               params.m_oclDeviceID, 
+                               oclHelper, 
+                               msg);
+            myLogger.Log(msg.str().c_str());
+            msg.str("");
+            if (!res)
+            {
+                return -1;
+            }
+        }
+#else //CL_VERSION_1_1
+        msg << "+ OpenCL (OFF)" << std::endl;
+#endif //CL_VERSION_1_1
+
 #ifdef _OPENMP
         msg << "+ OpenMP (ON)" << std::endl;
 #else
         msg << "+ OpenMP (OFF)" << std::endl;
 #endif
         msg << "+ Parameters" << std::endl;
-        msg << "\t input                                       " << fileName                        << std::endl;
-        msg << "\t resolution                                  " << params.m_resolution             << std::endl;
-        msg << "\t max. depth                                  " << params.m_depth                  << std::endl;
-        msg << "\t max. concavity                              " << params.m_concavity              << std::endl;
-        msg << "\t plane down-sampling                         " << params.m_planeDownsampling      << std::endl;
-        msg << "\t convex-hull down-sampling                   " << params.m_convexhullDownsampling << std::endl;
-        msg << "\t alpha                                       " << params.m_alpha                  << std::endl;
-        msg << "\t beta                                        " << params.m_beta                   << std::endl;
-        msg << "\t gamma                                       " << params.m_gamma                  << std::endl;
-        msg << "\t pca                                         " << params.m_pca                    << std::endl;
-        msg << "\t mode                                        " << params.m_mode                   << std::endl;
-        msg << "\t max. vertices per convex-hull               " << params.m_maxNumVerticesPerCH    << std::endl;
-        msg << "\t min. volume to add vertices to convex-hulls " << params.m_minVolumePerCH         << std::endl;
-        msg << "\t output                                      " << fileNameOut                     << std::endl;
-        msg << "+ Load mesh \n" << std::endl;
+        msg << "\t input                                       " << params.m_fileNameIn                            << endl;
+        msg << "\t resolution                                  " << params.m_paramsVHACD.m_resolution              << endl;
+        msg << "\t max. depth                                  " << params.m_paramsVHACD.m_depth                   << endl;
+        msg << "\t max. concavity                              " << params.m_paramsVHACD.m_concavity               << endl;
+        msg << "\t plane down-sampling                         " << params.m_paramsVHACD.m_planeDownsampling       << endl;
+        msg << "\t convex-hull down-sampling                   " << params.m_paramsVHACD.m_convexhullDownsampling  << endl;
+        msg << "\t alpha                                       " << params.m_paramsVHACD.m_alpha                   << endl;
+        msg << "\t beta                                        " << params.m_paramsVHACD.m_beta                    << endl;
+        msg << "\t gamma                                       " << params.m_paramsVHACD.m_gamma                   << endl;
+        msg << "\t pca                                         " << params.m_paramsVHACD.m_pca                     << endl;
+        msg << "\t mode                                        " << params.m_paramsVHACD.m_mode                    << endl;
+        msg << "\t max. vertices per convex-hull               " << params.m_paramsVHACD.m_maxNumVerticesPerCH     << endl;
+        msg << "\t min. volume to add vertices to convex-hulls " << params.m_paramsVHACD.m_minVolumePerCH          << endl;
+        msg << "\t convex-hull approximation                   " << params.m_paramsVHACD.m_convexhullApproximation << endl;
+        msg << "\t OpenCL acceleration                         " << params.m_paramsVHACD.m_oclAcceleration         << endl;
+        msg << "\t OpenCL platform ID                          " << params.m_oclPlatformID                         << endl;
+        msg << "\t OpenCL acceleration                         " << params.m_oclDeviceID                           << endl;
+        msg << "\t output                                      " << params.m_fileNameOut                           << endl;
+        msg << "\t log                                         " << params.m_fileNameLog                           << endl;
+        msg << "+ Load mesh" << std::endl;
         myLogger.Log(msg.str().c_str());
 
         // load mesh
         vector<float > points;
         vector<int > triangles;
         string fileExtension;
-        GetFileExtension(fileName, fileExtension);
+        GetFileExtension(params.m_fileNameIn, fileExtension);
         if (fileExtension == ".OFF")
         {
-            if (!LoadOFF(fileName, points, triangles, myLogger))
+            if (!LoadOFF(params.m_fileNameIn, points, triangles, myLogger))
             {
                 return -1;
             }
         }
         else if (fileExtension == ".OBJ")
         {
-            if (!LoadOBJ(fileName, points, triangles, myLogger))
+            if (!LoadOBJ(params.m_fileNameIn, points, triangles, myLogger))
             {
                 return -1;
             }
@@ -203,8 +244,19 @@ int main(int argc, char * argv[])
 
         // run V-HACD
         IVHACD * interfaceVHACD = CreateVHACD();
+
+#ifdef CL_VERSION_1_1
+        if (params.m_paramsVHACD.m_oclAcceleration)
+        {
+            bool res = interfaceVHACD->OCLInit(oclHelper.GetDevice(), &myLogger);
+            if (!res)
+            {
+                params.m_paramsVHACD.m_oclAcceleration = false;
+            }
+        }
+#endif //CL_VERSION_1_1
         bool res = interfaceVHACD->Compute(&points[0]   , 3, (unsigned int)points.size()    / 3,
-                                           &triangles[0], 3, (unsigned int)triangles.size() / 3, params);
+                                           &triangles[0], 3, (unsigned int)triangles.size() / 3, params.m_paramsVHACD);
         if (res)
         {
             // save output
@@ -212,7 +264,7 @@ int main(int argc, char * argv[])
             msg.str("");
             msg << "+ Generate output: " << nConvexHulls << " convex-hulls " << endl;
             myLogger.Log(msg.str().c_str());
-            ofstream foutCH(fileNameOut.c_str());
+            ofstream foutCH(params.m_fileNameOut.c_str());
             IVHACD::ConvexHull ch;
             if (foutCH.is_open())
             {
@@ -234,6 +286,17 @@ int main(int argc, char * argv[])
             myLogger.Log("Decomposition cancelled by user!\n");
         }
 
+#ifdef CL_VERSION_1_1
+        if (params.m_paramsVHACD.m_oclAcceleration)
+        {
+            bool res = interfaceVHACD->OCLRelease(&myLogger);
+            if (!res)
+            {
+                assert(-1);
+            }
+        }
+#endif //CL_VERSION_1_1
+
         interfaceVHACD->Clean();
         interfaceVHACD->Release();
     }
@@ -242,6 +305,111 @@ int main(int argc, char * argv[])
 #endif // _CRTDBG_MAP_ALLOC
     return 0;
 }
+
+void Usage(const Parameters & params)
+{
+    std::ostringstream msg;
+    msg << "V-HACD V" << VHACD_VERSION_MAJOR << "." << VHACD_VERSION_MINOR << endl;
+    msg << "Syntax: testVHACD [options] --input infile.obj --output outfile.wrl --log logfile.txt" << endl << endl;
+    msg << "Options:" << endl;
+    msg << "       --input                     Wavefront .obj input file name"<< endl;
+    msg << "       --output                    VRML 2.0 output file name" << endl;
+    msg << "       --log                       Log file name" << endl;
+    msg << "       --resolution                Maximum number of voxels generated during the voxelization stage (default=100,000, range=10,000-16,000,000)" << endl;
+    msg << "       --depth                     Maximum number of clipping stages. During each split stage, parts with a concavity higher than the user defined threshold are clipped according the \"best\" clipping plane (default=20, range=1-32)" << endl;
+    msg << "       --concavity                 Maximum allowed concavity (default=0.0025, range=0.0-1.0)" << endl;
+    msg << "       --planeDownsampling         Controls the granularity of the search for the \"best\" clipping plane (default=4, range=1-16)" << endl;
+    msg << "       --convexhullDownsampling    Controls the precision of the convex-hull generation process during the clipping plane selection stage (default=4, range=1-16)" << endl;
+    msg << "       --alpha                     Controls the bias toward clipping along symmetry planes (default=0.05, range=0.0-1.0)" << endl;
+    msg << "       --beta                      Controls the bias toward clipping along revolution axes (default=0.05, range=0.0-1.0)" << endl;
+    msg << "       --gamma                     Maximum allowed concavity during the merge stage (default=0.00125, range=0.0-1.0)" << endl;
+    msg << "       --pca                       Enable/disable normalizing the mesh before applying the convex decomposition (default=0, range={0,1})" << endl;
+    msg << "       --mode                      0: voxel-based approximate convex decomposition, 1: tetrahedron-based approximate convex decomposition (default=0, range={0,1})" << endl;
+    msg << "       --maxNumVerticesPerCH       Controls the maximum number of triangles per convex-hull (default=64, range=4-1024)" << endl;
+    msg << "       --minVolumePerCH            Controls the adaptive sampling of the generated convex-hulls (default=0.0001, range=0.0-0.01)" << endl;
+    msg << "       --convexHullapproximation   Enable/disable approximation when computing convex-hulls (default=1, range={0,1})" << endl;
+    msg << "       --oclAcceleration           Enable/disable OpenCL acceleration (default=0, range={0,1})" << endl;
+    msg << "       --oclPlatformID             OpenCL platform id (default=0, range=0-# OCL platforms)" << endl;
+    msg << "       --oclDeviceID               OpenCL device id (default=0, range=0-# OCL devices)" << endl;
+    msg << "       --help                      Print usage" << endl << endl;
+    msg << "Examples:" << endl;
+    msg << "       testVHACD.exe --input bunny.obj --output bunny_acd.wrl --log log.txt" << endl << endl;
+    cout << msg.str();
+    if (params.m_paramsVHACD.m_logger)
+    {
+        params.m_paramsVHACD.m_logger->Log(msg.str().c_str());
+    }
+}
+void ParseParameters(int          argc, 
+                     char       * argv[],
+                     Parameters & params)
+{
+    for (int i = 1; i < argc; ++i)
+    {
+        if      (!strcmp(argv[i], "--input"                  )) { if (++i < argc) params.m_fileNameIn                            = argv[i];       }
+        else if (!strcmp(argv[i], "--output"                 )) { if (++i < argc) params.m_fileNameOut                           = argv[i];       }
+        else if (!strcmp(argv[i], "--log"                    )) { if (++i < argc) params.m_fileNameLog                           = argv[i];       }
+        else if (!strcmp(argv[i], "--resolution"             )) { if (++i < argc) params.m_paramsVHACD.m_resolution              = atoi(argv[i]); }
+        else if (!strcmp(argv[i], "--depth"                  )) { if (++i < argc) params.m_paramsVHACD.m_depth                   = atoi(argv[i]); }
+        else if (!strcmp(argv[i], "--concavity"              )) { if (++i < argc) params.m_paramsVHACD.m_concavity               = atof(argv[i]); }
+        else if (!strcmp(argv[i], "--planeDownsampling"      )) { if (++i < argc) params.m_paramsVHACD.m_planeDownsampling       = atoi(argv[i]); }
+        else if (!strcmp(argv[i], "--convexhullDownsampling" )) { if (++i < argc) params.m_paramsVHACD.m_convexhullDownsampling  = atoi(argv[i]); }
+        else if (!strcmp(argv[i], "--alpha"                  )) { if (++i < argc) params.m_paramsVHACD.m_alpha                   = atof(argv[i]); }
+        else if (!strcmp(argv[i], "--beta"                   )) { if (++i < argc) params.m_paramsVHACD.m_beta                    = atof(argv[i]); }
+        else if (!strcmp(argv[i], "--gamma"                  )) { if (++i < argc) params.m_paramsVHACD.m_gamma                   = atof(argv[i]); }
+        else if (!strcmp(argv[i], "--pca"                    )) { if (++i < argc) params.m_paramsVHACD.m_pca                     = atoi(argv[i]); }
+        else if (!strcmp(argv[i], "--mode"                   )) { if (++i < argc) params.m_paramsVHACD.m_mode                    = atoi(argv[i]); }
+        else if (!strcmp(argv[i], "--maxNumVerticesPerCH"    )) { if (++i < argc) params.m_paramsVHACD.m_maxNumVerticesPerCH     = atoi(argv[i]); }
+        else if (!strcmp(argv[i], "--minVolumePerCH"         )) { if (++i < argc) params.m_paramsVHACD.m_minVolumePerCH          = atof(argv[i]); }
+        else if (!strcmp(argv[i], "--convexhullApproximation")) { if (++i < argc) params.m_paramsVHACD.m_convexhullApproximation = atoi(argv[i]); }
+        else if (!strcmp(argv[i], "--oclAcceleration"        )) { if (++i < argc) params.m_paramsVHACD.m_oclAcceleration         = atoi(argv[i]); }
+        else if (!strcmp(argv[i], "--oclPlatformID"          )) { if (++i < argc) params.m_oclPlatformID                         = atoi(argv[i]); }
+        else if (!strcmp(argv[i], "--oclDeviceID"            )) { if (++i < argc) params.m_oclDeviceID                           = atoi(argv[i]); }
+        else if (!strcmp(argv[i], "--help"                   )) { params.m_run = false;                                                           }
+    }
+}
+
+
+
+#ifdef CL_VERSION_1_1
+bool  InitOCL(const unsigned int   oclPlatformID,
+              const unsigned int   oclDeviceID,
+              OCLHelper          & oclHelper, 
+              std::ostringstream & msg)
+{
+
+    bool res = true;
+    vector<string> info;
+    res = oclHelper.GetPlatformsInfo(info, "\t\t");
+    if (!res) return res;
+
+    const size_t numPlatforms = info.size();
+    msg << "\t Number of OpenCL platforms: " << numPlatforms << endl;
+    for (size_t i = 0; i < numPlatforms; ++i)
+    {
+        msg << "\t OpenCL platform [" << i << "]" << endl;
+        msg << info[i];
+    }
+    msg << "\t Using OpenCL platform [" << oclPlatformID << "]" << endl;
+    res = oclHelper.InitPlatform(oclPlatformID);
+    if (!res) return res;
+
+    info.clear();
+    res = oclHelper.GetDevicesInfo(info, "\t\t");
+    if (!res) return res;
+
+    const size_t numDevices = info.size();
+    msg << "\t Number of OpenCL devices: " << numDevices << endl;
+    for (size_t i = 0; i < numDevices; ++i)
+    {
+        msg << "\t OpenCL device [" << i << "]" << endl;
+        msg << info[i];
+    }
+    msg << "\t Using OpenCL device [" << oclDeviceID << "]" << endl;
+    res = oclHelper.InitDevice(oclDeviceID);
+    return res;
+}
+#endif // CL_VERSION_1_1
 void GetFileExtension(const string & fileName, string & fileExtension)
 {
     size_t lastDotPosition = fileName.find_last_of(".");

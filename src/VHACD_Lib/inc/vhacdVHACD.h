@@ -16,8 +16,18 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #ifndef VHACD_VHACD_H
 #define VHACD_VHACD_H
 
+#ifdef OPENCL_FOUND
+#ifdef MAC
+#include <OpenCL/cl.h>
+#else
+#include <CL/cl.h>
+#endif
+#endif //OPENCL_FOUND
+
 #include "vhacdMutex.h"
 
+#define USE_THREAD                  1
+#define OCL_MIN_NUM_PRIMITIVES      100000
 namespace VHACD
 {
     class VHACD : public IVHACD
@@ -26,6 +36,19 @@ namespace VHACD
         //! Constructor.
                                     VHACD()
                                     {
+#if USE_THREAD == 1 && _OPENMP
+                                        m_ompNumProcessors = omp_get_num_procs();
+                                        omp_set_num_threads(m_ompNumProcessors);
+#else //USE_THREAD == 1 && _OPENMP
+                                        m_ompNumProcessors = 1;
+#endif //USE_THREAD == 1 && _OPENMP
+#ifdef CL_VERSION_1_1
+                                        m_oclWorkGroupSize               = 0;
+                                        m_oclDevice                      = 0;
+                                        m_oclQueue                       = 0;
+                                        m_oclKernelComputePartialVolumes = 0;
+                                        m_oclKernelComputeSum            = 0;
+#endif //CL_VERSION_1_1
                                         Init();
                                     }
         //! Destructor.
@@ -59,9 +82,9 @@ namespace VHACD
                                         Init();
                                     }
         void                        Release(void)
-        {
-            delete this;
-        }
+                                    {
+                                        delete this;
+                                    }
         bool                        Compute(const float * const points,
                                             const unsigned int  stridePoints,
                                             const unsigned int  nPoints,
@@ -76,6 +99,9 @@ namespace VHACD
                                             const unsigned int  strideTriangles,
                                             const unsigned int  nTriangles,
                                             const Parameters &  params);
+        bool                        OCLInit(void *        const oclDevice, 
+                                            IUserLogger * const logger = 0);
+        bool                        OCLRelease(IUserLogger * const logger = 0);
     private:
         void                        SetCancel(bool cancel)
                                     {
@@ -294,12 +320,20 @@ namespace VHACD
                                                const Parameters &  params)
                                     {
                                         Init();
+                                        if (params.m_oclAcceleration)
+                                        {
+                                            // build kernals
+                                        }
                                         AlignMesh(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
                                         VoxelizeMesh(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
                                         ComputePrimitiveSet(params);
                                         ComputeACD(params);
                                         MergeConvexHulls(params);
                                         SimplifyConvexHulls(params);
+                                        if (params.m_oclAcceleration)
+                                        {
+                                            // Release kernals
+                                        }
                                         if (GetCancel())
                                         {
                                             Clean();
@@ -325,6 +359,16 @@ namespace VHACD
         PrimitiveSet *              m_pset;
         Mutex                       m_cancelMutex;
         bool                        m_cancel;
+        int                         m_ompNumProcessors;
+#ifdef CL_VERSION_1_1
+        cl_device_id *              m_oclDevice;
+        cl_context                  m_oclContext;
+        cl_program                  m_oclProgram;
+        cl_command_queue *          m_oclQueue;
+        cl_kernel *                 m_oclKernelComputePartialVolumes;
+        cl_kernel *                 m_oclKernelComputeSum;
+        size_t                      m_oclWorkGroupSize;
+#endif //CL_VERSION_1_1
     };
 }
 #endif // VHACD_VHACD_H

@@ -300,7 +300,6 @@ namespace VHACD
         }
     }
     const double TetrahedronSet::EPS = 0.0000000000001;
-
     VoxelSet::VoxelSet()
     {
         m_minBB[0]         = m_minBB[1]         = m_minBB[2]       = 0.0;
@@ -314,15 +313,12 @@ namespace VHACD
         m_unitVolume             = 1.0;
         m_numVoxelsOnSurface     = 0;
         m_numVoxelsInsideSurface = 0;
-        m_numVoxelsOnClipPlane   = 0;
         memset(m_Q, 0, sizeof(double) * 9);
         memset(m_D, 0, sizeof(double) * 9);
     }
-
     VoxelSet::~VoxelSet(void)
     {
     }
-
     void VoxelSet::ComputeBB()
     {
         const size_t nVoxels = m_voxels.Size();
@@ -357,18 +353,19 @@ namespace VHACD
         if (nVoxels == 0)
             return;
 
-        SArray< Vec3<double>, 64 > cpoints;
+        SArray< Vec3<double> > cpoints;
 
         Vec3<double> * points = new Vec3<double> [CLUSTER_SIZE];
         size_t p = 0;
         short i, j, k;
+
+        size_t s = 0;
         while( p < nVoxels)
         {
             size_t q = 0;
-            size_t s = 0;
             while(q < CLUSTER_SIZE && p < nVoxels)
             {
-                if (m_voxels[p].m_data == VOXEL_ON_SURFACE || m_voxels[p].m_data == VOXEL_ON_CLIP_PLANE)
+                if (m_voxels[p].m_data == PRIMITIVE_ON_SURFACE)
                 {
                     ++s;
                     if (s == sampling)
@@ -409,7 +406,8 @@ namespace VHACD
         points  = cpoints.Data();
         btConvexHullComputer ch;
         ch.compute((double *) points, 3 * sizeof(double), (int) cpoints.Size(), -1.0, -1.0); 
-        meshCH.Clear();
+        meshCH.ResizePoints(0);
+        meshCH.ResizeTriangles(0);
         for(int v = 0; v < ch.vertices.size(); v++)
         {            
             meshCH.AddPoint(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
@@ -431,14 +429,163 @@ namespace VHACD
             }
         }
     }
+    void VoxelSet::GetPoints(const Voxel        &       voxel,
+                                   Vec3<double> * const pts) const 
+    {
+        short i = voxel.m_coord[0];
+        short j = voxel.m_coord[1];
+        short k = voxel.m_coord[2];
+        pts[0][0] = (i - 0.5) * m_scale + m_minBB[0];
+        pts[1][0] = (i + 0.5) * m_scale + m_minBB[0];
+        pts[2][0] = (i + 0.5) * m_scale + m_minBB[0];
+        pts[3][0] = (i - 0.5) * m_scale + m_minBB[0];
+        pts[4][0] = (i - 0.5) * m_scale + m_minBB[0];
+        pts[5][0] = (i + 0.5) * m_scale + m_minBB[0];
+        pts[6][0] = (i + 0.5) * m_scale + m_minBB[0];
+        pts[7][0] = (i - 0.5) * m_scale + m_minBB[0];
+        pts[0][1] = (j - 0.5) * m_scale + m_minBB[1];
+        pts[1][1] = (j - 0.5) * m_scale + m_minBB[1];
+        pts[2][1] = (j + 0.5) * m_scale + m_minBB[1];
+        pts[3][1] = (j + 0.5) * m_scale + m_minBB[1];
+        pts[4][1] = (j - 0.5) * m_scale + m_minBB[1];
+        pts[5][1] = (j - 0.5) * m_scale + m_minBB[1];
+        pts[6][1] = (j + 0.5) * m_scale + m_minBB[1];
+        pts[7][1] = (j + 0.5) * m_scale + m_minBB[1];
+        pts[0][2] = (k - 0.5) * m_scale + m_minBB[2];
+        pts[1][2] = (k - 0.5) * m_scale + m_minBB[2];
+        pts[2][2] = (k - 0.5) * m_scale + m_minBB[2];
+        pts[3][2] = (k - 0.5) * m_scale + m_minBB[2];
+        pts[4][2] = (k + 0.5) * m_scale + m_minBB[2];
+        pts[5][2] = (k + 0.5) * m_scale + m_minBB[2];
+        pts[6][2] = (k + 0.5) * m_scale + m_minBB[2];
+        pts[7][2] = (k + 0.5) * m_scale + m_minBB[2];
+    }
+    void VoxelSet::Intersect(const Plane                  &       plane,
+                                   SArray< Vec3<double> > * const positivePts,
+                                   SArray< Vec3<double> > * const negativePts) const
+    {
+        const size_t nVoxels = m_voxels.Size();
+        if (nVoxels == 0) return;
+        const double d0 = m_scale;
+        double d;
+        Vec3<double> pt;
+        Vec3<double> pts[8];
+        Voxel voxel;
+        for (size_t v = 0; v < nVoxels; ++v)
+        {
+            voxel = m_voxels[v];
+            pt    = GetPoint(voxel);
+            d     = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
+            if (d >= 0.0 && d <= d0)
+            {
+                GetPoints(voxel, pts);
+                for (int k = 0; k < 8; ++k)
+                {
+                    positivePts->PushBack(pts[k]);
+                }
+            }
+            else if (d < 0.0 && - d <= d0)
+            {
+                GetPoints(voxel, pts);
+                for (int k = 0; k < 8; ++k)
+                {
+                    negativePts->PushBack(pts[k]);
+                }
+            }
+        }
+    }
+    void VoxelSet::ComputeExteriorPoints(const Plane                  &       plane,
+                                         const Mesh                   &       mesh,
+                                               SArray< Vec3<double> > * const exteriorPts) const
+    {
+        const size_t nVoxels = m_voxels.Size();
+        if (nVoxels == 0) return;
+        const double d0 = m_scale;
+        double d;
+        Vec3<double> pt;
+        Vec3<double> pts[8];
+        Voxel voxel;
+        for (size_t v = 0; v < nVoxels; ++v)
+        {
+            voxel = m_voxels[v];
+            pt = GetPoint(voxel);
+            d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
+            if (d >= 0.0)
+            {
+                if (!mesh.IsInside(pt))
+                {
+                    GetPoints(voxel, pts);
+                    for (int k = 0; k < 8; ++k)
+                    {
+                        exteriorPts->PushBack(pts[k]);
+                    }
+                }
+            }
+        }
+    }
 
-    void VoxelSet::Clip(const Plane & plane, PrimitiveSet * const positivePartP, PrimitiveSet * const negativePartP) const
+    void VoxelSet::ComputeClippedVolumes(const Plane  & plane,
+                                               double & positiveVolume,
+                                               double & negativeVolume) const
+    {
+        positiveVolume = 0.0;
+        negativeVolume = 0.0;
+        const size_t nVoxels = m_voxels.Size();
+        if (nVoxels == 0) return;
+        double d;
+        Vec3<double> pt;
+        size_t nPositiveVoxels = 0;
+        size_t nNegativeVoxels = 0;
+        for (size_t v = 0; v < nVoxels; ++v)
+        {
+            pt = GetPoint(m_voxels[v]);
+            d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
+            if (d >= 0.0)
+            {
+                ++nPositiveVoxels;
+            }
+            else
+            {
+                ++nNegativeVoxels;
+            }
+        }
+        positiveVolume = m_unitVolume * nPositiveVoxels;
+        negativeVolume = m_unitVolume * nNegativeVoxels;
+    }
+    void VoxelSet::SelectOnSurface(PrimitiveSet * const onSurfP) const
+    {
+        VoxelSet * const onSurf = (VoxelSet *)onSurfP;
+        const size_t nVoxels = m_voxels.Size();
+        if (nVoxels == 0) return;
+
+        for (int h = 0; h < 3; ++h)
+        {
+            onSurf->m_minBB[h] = m_minBB[h];
+        }
+        onSurf->m_voxels.Resize(0);
+        onSurf->m_scale                  = m_scale;
+        onSurf->m_unitVolume             = m_unitVolume;
+        onSurf->m_numVoxelsOnSurface     = 0;
+        onSurf->m_numVoxelsInsideSurface = 0;
+        Voxel voxel;
+        for (size_t v = 0; v < nVoxels; ++v)
+        {
+            voxel = m_voxels[v];
+            if (voxel.m_data == PRIMITIVE_ON_SURFACE)
+            {
+                onSurf->m_voxels.PushBack(voxel);
+                ++onSurf->m_numVoxelsOnSurface;
+            }
+        }
+    }
+    void VoxelSet::Clip(const Plane  &                  plane, 
+                        PrimitiveSet * const            positivePartP, 
+                        PrimitiveSet * const            negativePartP) const
     {
         VoxelSet * const positivePart = (VoxelSet *) positivePartP;
         VoxelSet * const negativePart = (VoxelSet *) negativePartP;
         const size_t nVoxels = m_voxels.Size();
-        if (nVoxels == 0)
-            return;
+        if (nVoxels == 0) return;
 
         for(int h = 0; h < 3; ++h)
         {
@@ -448,11 +595,10 @@ namespace VHACD
         negativePart->m_voxels.Resize(0);
         positivePart->m_voxels.Allocate(nVoxels);
         negativePart->m_voxels.Allocate(nVoxels);
-        negativePart->m_scale                  = positivePart->m_scale                     = m_scale;
-        negativePart->m_unitVolume             = positivePart->m_unitVolume                = m_unitVolume;
-        negativePart->m_numVoxelsOnSurface     = positivePart->m_numVoxelsOnSurface        = 0;
-        negativePart->m_numVoxelsInsideSurface = positivePart->m_numVoxelsInsideSurface    = 0;
-        negativePart->m_numVoxelsOnClipPlane   = positivePart->m_numVoxelsOnClipPlane      = 0;
+        negativePart->m_scale                  = positivePart->m_scale                  = m_scale;
+        negativePart->m_unitVolume             = positivePart->m_unitVolume             = m_unitVolume;
+        negativePart->m_numVoxelsOnSurface     = positivePart->m_numVoxelsOnSurface     = 0;
+        negativePart->m_numVoxelsInsideSurface = positivePart->m_numVoxelsInsideSurface = 0;
 
         double d;
         Vec3<double> pt;
@@ -465,100 +611,59 @@ namespace VHACD
             d     = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
             if (d >= 0.0)
             {
-                if (voxel.m_data == VOXEL_ON_SURFACE)
+                if (voxel.m_data == PRIMITIVE_ON_SURFACE || d <= d0)
                 {
+                    voxel.m_data = PRIMITIVE_ON_SURFACE;
                     positivePart->m_voxels.PushBack(voxel);
                     ++positivePart->m_numVoxelsOnSurface;
                 }
-                else if (voxel.m_data == VOXEL_ON_CLIP_PLANE)
-                {
-                    positivePart->m_voxels.PushBack(voxel);
-                    ++positivePart->m_numVoxelsOnClipPlane;
-                }
                 else
                 {
-                    if (fabs(d) <= d0)
-                    {
-                        voxel.m_data = VOXEL_ON_CLIP_PLANE;
-                        positivePart->m_voxels.PushBack(voxel);
-                        ++positivePart->m_numVoxelsOnClipPlane;
-                    }
-                    else
-                    {
-                        positivePart->m_voxels.PushBack(voxel);
-                        ++positivePart->m_numVoxelsInsideSurface;
-                    }
+                    positivePart->m_voxels.PushBack(voxel);
+                    ++positivePart->m_numVoxelsInsideSurface;
                 }
             }
             else
             {
-                if (voxel.m_data == VOXEL_ON_SURFACE)
+                if (voxel.m_data == PRIMITIVE_ON_SURFACE || -d <= d0)
                 {
+                    voxel.m_data = PRIMITIVE_ON_SURFACE;
                     negativePart->m_voxels.PushBack(voxel);
                     ++negativePart->m_numVoxelsOnSurface;
                 }
-                else if (voxel.m_data == VOXEL_ON_CLIP_PLANE)
-                {
-                    negativePart->m_voxels.PushBack(voxel);
-                    ++negativePart->m_numVoxelsOnClipPlane;
-                }
                 else
                 {
-                    if (fabs(d) <= d0)
-                    {
-                        voxel.m_data = VOXEL_ON_CLIP_PLANE;
-                        negativePart->m_voxels.PushBack(voxel);
-                        ++negativePart->m_numVoxelsOnClipPlane;
-                    }
-                    else
-                    {
-                        negativePart->m_voxels.PushBack(voxel);
-                        ++negativePart->m_numVoxelsInsideSurface;
-                    }
+                    negativePart->m_voxels.PushBack(voxel);
+                    ++negativePart->m_numVoxelsInsideSurface;
                 }
             }
         }
     }
-
     void VoxelSet::Convert(Mesh & mesh, const VOXEL_VALUE value) const
     {
         const size_t nVoxels = m_voxels.Size();
         if (nVoxels == 0)
             return;
         Voxel voxel;
-        short i,j,k;
+        Vec3<double> pts[8];
         for(size_t v = 0; v < nVoxels; ++v)
         {
             voxel = m_voxels[v];
             if (voxel.m_data == value)
             {
-                i = voxel.m_coord[0];
-                j = voxel.m_coord[1];
-                k = voxel.m_coord[2];
-                Vec3<double> p0((i-0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
-                Vec3<double> p1((i+0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
-                Vec3<double> p2((i+0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
-                Vec3<double> p3((i-0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
-                Vec3<double> p4((i-0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
-                Vec3<double> p5((i+0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
-                Vec3<double> p6((i+0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
-                Vec3<double> p7((i-0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
+                GetPoints(voxel, pts);
                 int s = (int) mesh.GetNPoints();
-                mesh.AddPoint(p0 + m_minBB);
-                mesh.AddPoint(p1 + m_minBB);
-                mesh.AddPoint(p2 + m_minBB);
-                mesh.AddPoint(p3 + m_minBB);
-                mesh.AddPoint(p4 + m_minBB);
-                mesh.AddPoint(p5 + m_minBB);
-                mesh.AddPoint(p6 + m_minBB);
-                mesh.AddPoint(p7 + m_minBB);
+                for (int k = 0; k < 8; ++k)
+                {
+                    mesh.AddPoint(pts[k]);
+                }
                 mesh.AddTriangle(Vec3<int>(s + 0, s + 2, s + 1));
                 mesh.AddTriangle(Vec3<int>(s + 0, s + 3, s + 2));
                 mesh.AddTriangle(Vec3<int>(s + 4, s + 5, s + 6));
                 mesh.AddTriangle(Vec3<int>(s + 4, s + 6, s + 7));
                 mesh.AddTriangle(Vec3<int>(s + 7, s + 6, s + 2));
                 mesh.AddTriangle(Vec3<int>(s + 7, s + 2, s + 3));
-                mesh.AddTriangle(Vec3<int>(s + 4,  s + 1, s + 5));
+                mesh.AddTriangle(Vec3<int>(s + 4, s + 1, s + 5));
                 mesh.AddTriangle(Vec3<int>(s + 4, s + 0, s + 1));
                 mesh.AddTriangle(Vec3<int>(s + 6, s + 5, s + 1));
                 mesh.AddTriangle(Vec3<int>(s + 6, s + 1, s + 2));
@@ -567,7 +672,6 @@ namespace VHACD
             }
         }
     }
-
     void VoxelSet::ComputePrincipalAxes()
     {
         const size_t nVoxels = m_voxels.Size();
@@ -632,7 +736,7 @@ namespace VHACD
         delete [] m_data;
         size_t size = m_dim[0] * m_dim[1] * m_dim[2];
         m_data = new unsigned char [size];
-        memset(m_data, VOXEL_UNDEFINED, sizeof(unsigned char) * size);
+        memset(m_data, PRIMITIVE_UNDEFINED, sizeof(unsigned char) * size);
     }
     void Volume::Free()
     {
@@ -662,13 +766,13 @@ namespace VHACD
                 for(size_t k = k0; k < k1; ++k)
                 {
                     
-                    if (GetVoxel(i, j, k) == VOXEL_UNDEFINED)
+                    if (GetVoxel(i, j, k) == PRIMITIVE_UNDEFINED)
                     {
                         current[0] = (short) i;
                         current[1] = (short) j;
                         current[2] = (short) k;
                         fifo.push(current);
-                        GetVoxel(current[0] , current[1], current[2]) = VOXEL_OUTSIDE_SURFACE;
+                        GetVoxel(current[0], current[1], current[2]) = PRIMITIVE_OUTSIDE_SURFACE;
                         ++m_numVoxelsOutsideSurface;
                         while (fifo.size() > 0)
                         {
@@ -686,9 +790,9 @@ namespace VHACD
                                     continue;
                                 }
                                 unsigned char & v = GetVoxel(a, b, c);
-                                if (v == VOXEL_UNDEFINED)
+                                if (v == PRIMITIVE_UNDEFINED)
                                 {
-                                    v = VOXEL_OUTSIDE_SURFACE;
+                                    v = PRIMITIVE_OUTSIDE_SURFACE;
                                     ++m_numVoxelsOutsideSurface;
                                     fifo.push(Vec3<short>(a, b, c));
                                 }
@@ -711,9 +815,9 @@ namespace VHACD
                 for(size_t k = 0; k < k0; ++k)
                 {
                     unsigned char & v = GetVoxel(i, j, k);
-                    if (v == VOXEL_UNDEFINED)
+                    if (v == PRIMITIVE_UNDEFINED)
                     {
-                        v = VOXEL_INSIDE_SURFACE;
+                        v = PRIMITIVE_INSIDE_SURFACE;
                         ++m_numVoxelsInsideSurface;
                     }
                 }
@@ -783,7 +887,6 @@ namespace VHACD
         Voxel voxel;
         vset.m_numVoxelsOnSurface     = 0;
         vset.m_numVoxelsInsideSurface = 0;
-        vset.m_numVoxelsOnClipPlane   = 0;
         for(short i = 0; i < i0; ++i)
         {
             for(short j = 0; j < j0; ++j)
@@ -791,21 +894,21 @@ namespace VHACD
                 for(short k = 0; k < k0; ++k)
                 {
                     const unsigned char & value = GetVoxel(i, j, k);
-                    if (value == VOXEL_INSIDE_SURFACE)
+                    if (value == PRIMITIVE_INSIDE_SURFACE)
                     {
                         voxel.m_coord[0] = i;
                         voxel.m_coord[1] = j;
                         voxel.m_coord[2] = k;
-                        voxel.m_data     = VOXEL_INSIDE_SURFACE;
+                        voxel.m_data = PRIMITIVE_INSIDE_SURFACE;
                         vset.m_voxels.PushBack(voxel);
                         ++vset.m_numVoxelsInsideSurface;
                     }
-                    else if (value == VOXEL_ON_SURFACE)
+                    else if (value == PRIMITIVE_ON_SURFACE)
                     {
                         voxel.m_coord[0] = i;
                         voxel.m_coord[1] = j;
                         voxel.m_coord[2] = k;
-                        voxel.m_data     = VOXEL_ON_SURFACE;
+                        voxel.m_data = PRIMITIVE_ON_SURFACE;
                         vset.m_voxels.PushBack(voxel);
                         ++vset.m_numVoxelsOnSurface;
                     }
@@ -823,7 +926,6 @@ namespace VHACD
         const short k0 = (short) m_dim[2];
         tset.m_numTetrahedraOnSurface     = 0;
         tset.m_numTetrahedraInsideSurface = 0;
-        tset.m_numTetrahedraOnClipPlane   = 0;
         Tetrahedron tetrahedron;
         for(short i = 0; i < i0; ++i)
         {
@@ -832,7 +934,7 @@ namespace VHACD
                 for(short k = 0; k < k0; ++k)
                 {
                     const unsigned char & value = GetVoxel(i, j, k);
-                    if (value == VOXEL_INSIDE_SURFACE || value == VOXEL_ON_SURFACE)
+                    if (value == PRIMITIVE_INSIDE_SURFACE || value == PRIMITIVE_ON_SURFACE)
                     {
                         tetrahedron.m_data = value;
                         Vec3<double> p1((i-0.5) * m_scale + m_minBB[0], (j-0.5) * m_scale + m_minBB[1], (k-0.5) * m_scale + m_minBB[2]);
@@ -873,7 +975,7 @@ namespace VHACD
                         tetrahedron.m_pts[2] = p7;
                         tetrahedron.m_pts[3] = p4;
                         tset.m_tetrahedra.PushBack(tetrahedron);
-                        if (value == VOXEL_INSIDE_SURFACE)
+                        if (value == PRIMITIVE_INSIDE_SURFACE)
                         {
                             tset.m_numTetrahedraInsideSurface += 5;
                         }
@@ -902,7 +1004,7 @@ namespace VHACD
                 for(short k = 0; k < k0; ++k)
                 {
                     const unsigned char & value = GetVoxel(i, j, k);
-                    if (value == VOXEL_INSIDE_SURFACE || value == VOXEL_ON_SURFACE)
+                    if (value == PRIMITIVE_INSIDE_SURFACE || value == PRIMITIVE_ON_SURFACE)
                     {
                         barycenter[0] += i;
                         barycenter[1] += j;
@@ -925,7 +1027,7 @@ namespace VHACD
                 for(short k = 0; k < k0; ++k)
                 {
                     const unsigned char & value = GetVoxel(i, j, k);
-                    if (value == VOXEL_INSIDE_SURFACE || value == VOXEL_ON_SURFACE)
+                    if (value == PRIMITIVE_INSIDE_SURFACE || value == PRIMITIVE_ON_SURFACE)
                     {
                         x                 = i - barycenter[0];
                         y                 = j - barycenter[1];
@@ -954,7 +1056,6 @@ namespace VHACD
         m_scale    = 1.0;
         m_numTetrahedraOnSurface     = 0;
         m_numTetrahedraInsideSurface = 0;
-        m_numTetrahedraOnClipPlane   = 0;
         memset(m_Q, 0, sizeof(double) * 9);
         memset(m_D, 0, sizeof(double) * 9);
     }
@@ -991,7 +1092,7 @@ namespace VHACD
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0) return;
 
-        SArray< Vec3<double>, 64 > cpoints;
+        SArray< Vec3<double> > cpoints;
 
         Vec3<double> * points = new Vec3<double> [CLUSTER_SIZE];
         size_t p = 0;
@@ -1001,7 +1102,7 @@ namespace VHACD
             size_t s = 0;
             while(q < CLUSTER_SIZE && p < nTetrahedra)
             {
-                if (m_tetrahedra[p].m_data == VOXEL_ON_SURFACE || m_tetrahedra[p].m_data == VOXEL_ON_CLIP_PLANE)
+                if (m_tetrahedra[p].m_data == PRIMITIVE_ON_SURFACE)
                 {
                     ++s;
                     if (s == sampling)
@@ -1032,7 +1133,8 @@ namespace VHACD
         points  = cpoints.Data();
         btConvexHullComputer ch;
         ch.compute((double *) points, 3 * sizeof(double), (int) cpoints.Size(), -1.0, -1.0); 
-        meshCH.Clear();
+        meshCH.ResizePoints(0);
+        meshCH.ResizeTriangles(0);
         for(int v = 0; v < ch.vertices.size(); v++)
         {            
             meshCH.AddPoint(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
@@ -1092,14 +1194,14 @@ namespace VHACD
         else if (nPts == 4)
         {
             Tetrahedron tetrahedron;
-            tetrahedron.m_data   = VOXEL_ON_CLIP_PLANE;
+            tetrahedron.m_data = PRIMITIVE_ON_SURFACE;
             tetrahedron.m_pts[0] = pts[0];
             tetrahedron.m_pts[1] = pts[1];
             tetrahedron.m_pts[2] = pts[2];
             tetrahedron.m_pts[3] = pts[3];
             if (Add(tetrahedron))
             {
-                ++m_numTetrahedraOnClipPlane;
+                ++m_numTetrahedraOnSurface;
             }
         }
         else if (nPts == 5)
@@ -1109,7 +1211,7 @@ namespace VHACD
             double maxVol   = 0.0;
             int  h0       = -1;
             Tetrahedron tetrahedron0;
-            tetrahedron0.m_data   = VOXEL_ON_CLIP_PLANE;
+            tetrahedron0.m_data = PRIMITIVE_ON_SURFACE;
             for(int h = 0; h < 5; ++h)
             {
                 double v = ComputeVolume4(pts[tet[h][0]], pts[tet[h][1]], pts[tet[h][2]], pts[tet[h][3]]);
@@ -1135,7 +1237,7 @@ namespace VHACD
             if (h0 == -1)          return;
             if (Add(tetrahedron0))
             {
-                ++m_numTetrahedraOnClipPlane;
+                ++m_numTetrahedraOnSurface;
             }
             else
             {
@@ -1145,7 +1247,7 @@ namespace VHACD
             maxVol = 0.0;
             int h1 = -1;
             Tetrahedron tetrahedron1;
-            tetrahedron1.m_data = VOXEL_ON_CLIP_PLANE;
+            tetrahedron1.m_data = PRIMITIVE_ON_SURFACE;
             for (int h = 0; h < 4; ++h)
             {
                 double v = ComputeVolume4(pts[a], tetrahedron0.m_pts[tetF[h][0]], tetrahedron0.m_pts[tetF[h][1]], tetrahedron0.m_pts[tetF[h][2]]);
@@ -1161,7 +1263,7 @@ namespace VHACD
             }
             if (h1 == -1 && Add(tetrahedron1))
             {
-                ++m_numTetrahedraOnClipPlane;
+                ++m_numTetrahedraOnSurface;
             }
         }
         else if (nPts == 6)
@@ -1176,7 +1278,7 @@ namespace VHACD
             double maxVol   = 0.0;
             int  h0         = -1;
             Tetrahedron tetrahedron0;
-            tetrahedron0.m_data   = VOXEL_ON_CLIP_PLANE;
+            tetrahedron0.m_data = PRIMITIVE_ON_SURFACE;
             for(int h = 0; h < 15; ++h)
             {
                 double v = ComputeVolume4(pts[tet[h][0]], pts[tet[h][1]], pts[tet[h][2]], pts[tet[h][3]]);
@@ -1202,7 +1304,7 @@ namespace VHACD
             if (h0 == -1)          return;
             if (Add(tetrahedron0))
             {
-                ++m_numTetrahedraOnClipPlane;
+                ++m_numTetrahedraOnSurface;
             }
             else
             {
@@ -1213,7 +1315,7 @@ namespace VHACD
             int a1 = rem[h0][1];
             int h1     = -1;
             Tetrahedron tetrahedron1;
-            tetrahedron1.m_data   = VOXEL_ON_CLIP_PLANE;
+            tetrahedron1.m_data = PRIMITIVE_ON_SURFACE;
             maxVol = 0.0;
             for (int h = 0; h < 4; ++h)
             {
@@ -1230,7 +1332,7 @@ namespace VHACD
             }
             if (h1 != -1 && Add(tetrahedron1))
             {
-                ++m_numTetrahedraOnClipPlane;
+                ++m_numTetrahedraOnSurface;
             }
             else
             {
@@ -1239,7 +1341,7 @@ namespace VHACD
             maxVol = 0.0;
             int h2     = -1;
             Tetrahedron tetrahedron2;
-            tetrahedron2.m_data   = VOXEL_ON_CLIP_PLANE;
+            tetrahedron2.m_data = PRIMITIVE_ON_SURFACE;
             for (int h = 0; h < 4; ++h)
             {
                 double v = ComputeVolume4(pts[a0], tetrahedron0.m_pts[tetF[h][0]], tetrahedron0.m_pts[tetF[h][1]], tetrahedron0.m_pts[tetF[h][2]]);
@@ -1273,7 +1375,7 @@ namespace VHACD
             }
             if (h2 != -1 && Add(tetrahedron2))
             {
-                ++m_numTetrahedraOnClipPlane;
+                ++m_numTetrahedraOnSurface;
             }
         }
         else
@@ -1282,7 +1384,60 @@ namespace VHACD
         }
     }
 
-    void TetrahedronSet::Clip(const Plane & plane, PrimitiveSet * const positivePartP, PrimitiveSet * const negativePartP) const
+    void TetrahedronSet::Intersect(const Plane                  &       plane,
+                                         SArray< Vec3<double> > * const positivePts,
+                                         SArray< Vec3<double> > * const negativePts) const
+    {
+        const size_t nTetrahedra = m_tetrahedra.Size();
+        if (nTetrahedra == 0) return;
+    }
+    void TetrahedronSet::ComputeExteriorPoints(const Plane                  &       plane,
+                                               const Mesh                   &       mesh,
+                                                     SArray< Vec3<double> > * const exteriorPts) const
+    {
+    }
+    void TetrahedronSet::ComputeClippedVolumes(const Plane  & plane,
+                                                     double & positiveVolume,
+                                                     double & negativeVolume) const
+    {
+        const size_t nTetrahedra = m_tetrahedra.Size();
+        if (nTetrahedra == 0) return;
+    }
+
+    void TetrahedronSet::SelectOnSurface(PrimitiveSet * const onSurfP) const
+    {
+        TetrahedronSet * const onSurf = (TetrahedronSet *)onSurfP;
+        const size_t nTetrahedra = m_tetrahedra.Size();
+        if (nTetrahedra == 0) return;
+        onSurf->m_tetrahedra.Resize(0);
+        onSurf->m_scale                      = m_scale;
+        onSurf->m_numTetrahedraOnSurface     = 0;
+        onSurf->m_numTetrahedraInsideSurface = 0;
+        onSurf->m_barycenter                 = m_barycenter;
+        onSurf->m_minBB                      = m_minBB;
+        onSurf->m_maxBB                      = m_maxBB;
+        for (int i = 0; i < 3; ++i)
+        {
+            for (int j = 0; j < 3; ++j)
+            {
+                onSurf->m_Q[i][j] = m_Q[i][j];
+                onSurf->m_D[i][j] = m_D[i][j];
+            }
+        }
+        Tetrahedron tetrahedron;
+        for (size_t v = 0; v < nTetrahedra; ++v)
+        {
+            tetrahedron = m_tetrahedra[v];
+            if (tetrahedron.m_data == PRIMITIVE_ON_SURFACE)
+            {
+                onSurf->m_tetrahedra.PushBack(tetrahedron);
+                ++onSurf->m_numTetrahedraOnSurface;
+            }
+        }
+    }
+    void TetrahedronSet::Clip(const Plane &                  plane, 
+                              PrimitiveSet *           const positivePartP, 
+                              PrimitiveSet *           const negativePartP) const
     {
         TetrahedronSet * const positivePart = (TetrahedronSet *)positivePartP;
         TetrahedronSet * const negativePart = (TetrahedronSet *)negativePartP;
@@ -1295,7 +1450,6 @@ namespace VHACD
         negativePart->m_scale                      = positivePart->m_scale                      = m_scale;
         negativePart->m_numTetrahedraOnSurface     = positivePart->m_numTetrahedraOnSurface     = 0;
         negativePart->m_numTetrahedraInsideSurface = positivePart->m_numTetrahedraInsideSurface = 0;
-        negativePart->m_numTetrahedraOnClipPlane   = positivePart->m_numTetrahedraOnClipPlane   = 0;
         negativePart->m_barycenter                 = m_barycenter;
         positivePart->m_barycenter                 = m_barycenter;
         negativePart->m_minBB                      = m_minBB;
@@ -1328,15 +1482,7 @@ namespace VHACD
             for(int i = 0; i < 4; ++i)
             {
                 dist = plane.m_a * tetrahedron.m_pts[i][0] + plane.m_b * tetrahedron.m_pts[i][1] + plane.m_c * tetrahedron.m_pts[i][2] + plane.m_d;
-                if (fabs(dist) < 0.0)
-                {
-                    sign[i]      = 0;
-                    posPts[npos] = tetrahedron.m_pts[i];
-                    negPts[nneg] = tetrahedron.m_pts[i];
-                    ++npos;
-                    ++nneg;
-                }
-                else if (dist > 0.0)
+                if (dist > 0.0)
                 {
                     sign[i]      = 1;
                     posPts[npos] = tetrahedron.m_pts[i];
@@ -1353,13 +1499,9 @@ namespace VHACD
             if (npos == 4)
             {
                 positivePart->Add(tetrahedron);
-                if (tetrahedron.m_data == VOXEL_ON_SURFACE)
+                if (tetrahedron.m_data == PRIMITIVE_ON_SURFACE)
                 {
                     ++positivePart->m_numTetrahedraOnSurface;
-                }
-                else if (tetrahedron.m_data == VOXEL_ON_CLIP_PLANE)
-                {
-                    ++positivePart->m_numTetrahedraOnClipPlane;
                 }
                 else
                 {
@@ -1369,13 +1511,9 @@ namespace VHACD
             else if (nneg == 4)
             {
                 negativePart->Add(tetrahedron);
-                if (tetrahedron.m_data == VOXEL_ON_SURFACE)
+                if (tetrahedron.m_data == PRIMITIVE_ON_SURFACE)
                 {
                     ++negativePart->m_numTetrahedraOnSurface;
-                }
-                else if (tetrahedron.m_data == VOXEL_ON_CLIP_PLANE)
-                {
-                    ++negativePart->m_numTetrahedraOnClipPlane;
                 }
                 else
                 {
@@ -1454,7 +1592,7 @@ namespace VHACD
         for(size_t v = 0; v < nTetrahedra; ++v)
         {
             const Tetrahedron & tetrahedron = m_tetrahedra[v];
-            if (tetrahedron.m_data == VOXEL_ON_SURFACE)
+            if (tetrahedron.m_data == PRIMITIVE_ON_SURFACE)
             {
                 volume += fabs(ComputeVolume4(tetrahedron.m_pts[0], tetrahedron.m_pts[1], tetrahedron.m_pts[2], tetrahedron.m_pts[3]));
             }

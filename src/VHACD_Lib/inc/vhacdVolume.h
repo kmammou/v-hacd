@@ -24,35 +24,17 @@ namespace VHACD
 
     enum VOXEL_VALUE
     {
-        VOXEL_UNDEFINED                             = 0,
-        VOXEL_OUTSIDE_SURFACE                       = 1,
-        VOXEL_INSIDE_SURFACE                        = 2,
-        VOXEL_ON_SURFACE                            = 3,
-        VOXEL_ON_CLIP_PLANE                         = 4
-    };
-
-    enum AXIS
-    {
-        AXIS_X                                      = 0,
-        AXIS_Y                                      = 1,
-        AXIS_Z                                      = 2
+        PRIMITIVE_UNDEFINED                         = 0,
+        PRIMITIVE_OUTSIDE_SURFACE                   = 1,
+        PRIMITIVE_INSIDE_SURFACE                    = 2,
+        PRIMITIVE_ON_SURFACE                        = 3
     };
 
     struct Voxel
     {
     public:
         short                                       m_coord[3];
-        unsigned char                               m_data;
-    };
-
-    struct Plane
-    {
-        double                                      m_a;
-        double                                      m_b;
-        double                                      m_c;
-        double                                      m_d;
-        AXIS                                        m_axis;
-        short                                       m_index;
+        short                                       m_data;
     };
 
     class PrimitiveSet {
@@ -62,19 +44,33 @@ namespace VHACD
         virtual const size_t                        GetNPrimitives()            const = 0;
         virtual const size_t                        GetNPrimitivesOnSurf()      const = 0;
         virtual const size_t                        GetNPrimitivesInsideSurf()  const = 0;
-        virtual const size_t                        GetNPrimitivesOnClipPlane() const = 0;
         virtual const double                        GetEigenValue(AXIS axis)    const = 0;
         virtual const double                        ComputeMaxVolumeError()     const = 0;
         virtual const double                        ComputeVolume()             const = 0;
-        virtual void                                Clip(const Plane & plane,
-                                                         PrimitiveSet * const positivePart, 
-                                                         PrimitiveSet * const negativePart) const = 0;
+        virtual void                                Clip(const Plane        &       plane,
+                                                               PrimitiveSet * const positivePart,
+                                                               PrimitiveSet * const negativePart) const = 0;
+        virtual void                                Intersect(const Plane                  &       plane,
+                                                                    SArray< Vec3<double> > * const positivePts,
+                                                                    SArray< Vec3<double> > * const negativePts) const = 0;
+        virtual void                                ComputeExteriorPoints(const Plane            &       plane,
+                                                                          const Mesh             &       mesh,
+                                                                          SArray< Vec3<double> > * const exteriorPts) const = 0;
+        virtual void                                ComputeClippedVolumes(const Plane  & plane,
+                                                                                double & positiveVolume,
+                                                                                double & negativeVolume) const = 0;
+        virtual void                                SelectOnSurface(PrimitiveSet * const onSurfP) const = 0;
         virtual void                                ComputeConvexHull(Mesh & meshCH, const size_t sampling) const = 0;
         virtual void                                ComputeBB() = 0;
         virtual void                                ComputePrincipalAxes() = 0;
         virtual void                                AlignToPrincipalAxes() = 0;
         virtual void                                RevertAlignToPrincipalAxes() = 0;
+        virtual void                                Convert(Mesh & mesh, const VOXEL_VALUE value) const = 0;
 
+                const Mesh &                        GetConvexHull() const { return m_convexHull; };
+                      Mesh &                        GetConvexHull()       { return m_convexHull; };
+    private:
+        Mesh                                        m_convexHull;
     };
 
     //!
@@ -90,12 +86,14 @@ namespace VHACD
         const size_t                                GetNPrimitives()            const { return m_voxels.Size();}
         const size_t                                GetNPrimitivesOnSurf()      const { return m_numVoxelsOnSurface; }
         const size_t                                GetNPrimitivesInsideSurf()  const { return m_numVoxelsInsideSurface; }
-        const size_t                                GetNPrimitivesOnClipPlane() const { return m_numVoxelsOnClipPlane; }
         const double                                GetEigenValue(AXIS axis)    const { return m_D[axis][axis]; }
         const double                                ComputeVolume()             const { return m_unitVolume * m_voxels.Size(); }
         const double                                ComputeMaxVolumeError()     const { return m_unitVolume * m_numVoxelsOnSurface;}
         const Vec3<short> &                         GetMinBBVoxels()            const { return m_minBBVoxels;}
         const Vec3<short> &                         GetMaxBBVoxels()            const { return m_maxBBVoxels;}
+        const Vec3<double> &                        GetMinBB()                  const { return m_minBB; }
+        const double &                              GetScale()                  const { return m_scale; }
+        const double &                              GetUnitVolume()             const { return m_unitVolume; }
         Vec3<double>                                GetPoint(Vec3<short> voxel) const
                                                     {
                                                         return Vec3<double> (voxel[0] * m_scale +  m_minBB[0], 
@@ -114,10 +112,21 @@ namespace VHACD
                                                                              voxel[1] * m_scale +  m_minBB[1], 
                                                                              voxel[2] * m_scale +  m_minBB[2]);
                                                     }
+        void                                        GetPoints(const Voxel & voxel, Vec3<double> * const pts) const;
         void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling) const;
-        void                                        Clip(const Plane & plane,
-                                                         PrimitiveSet * const positivePart,
-                                                         PrimitiveSet * const negativePart) const;
+        void                                        Clip(const Plane        &       plane,
+                                                               PrimitiveSet * const positivePart,
+                                                               PrimitiveSet * const negativePart) const;
+        void                                        Intersect(const Plane                  &       plane,
+                                                                    SArray< Vec3<double> > * const positivePts,
+                                                                    SArray< Vec3<double> > * const negativePts) const;
+        void                                        ComputeExteriorPoints(const Plane            &       plane,
+                                                                          const Mesh             &       mesh,
+                                                                          SArray< Vec3<double> > * const exteriorPts) const;
+        void                                        ComputeClippedVolumes(const Plane  & plane,
+                                                                          double & positiveVolume,
+                                                                          double & negativeVolume) const;
+        void                                        SelectOnSurface(PrimitiveSet * const onSurfP) const;
         void                                        ComputeBB();
         void                                        Convert(Mesh & mesh, const VOXEL_VALUE value) const;
         void                                        ComputePrincipalAxes();
@@ -127,11 +136,12 @@ namespace VHACD
                                                     }
         void                                        AlignToPrincipalAxes() {};
         void                                        RevertAlignToPrincipalAxes() {};
+        Voxel * const                               GetVoxels()       { return m_voxels.Data(); }
+        const Voxel * const                         GetVoxels() const { return m_voxels.Data(); }
 
     private:
         size_t                                      m_numVoxelsOnSurface;
         size_t                                      m_numVoxelsInsideSurface;
-        size_t                                      m_numVoxelsOnClipPlane;
         Vec3<double>                                m_minBB;
         double                                      m_scale;
         SArray< Voxel, 8 >                          m_voxels;
@@ -167,7 +177,6 @@ namespace VHACD
         const size_t                                GetNPrimitives()            const { return m_tetrahedra.Size();}
         const size_t                                GetNPrimitivesOnSurf()      const { return m_numTetrahedraOnSurface; }
         const size_t                                GetNPrimitivesInsideSurf()  const { return m_numTetrahedraInsideSurface; }
-        const size_t                                GetNPrimitivesOnClipPlane() const { return m_numTetrahedraOnClipPlane; }
         const Vec3<double> &                        GetMinBB()                  const { return m_minBB; }
         const Vec3<double> &                        GetMaxBB()                  const { return m_maxBB; }
         const Vec3<double> &                        GetBarycenter()             const { return m_barycenter; }
@@ -180,9 +189,19 @@ namespace VHACD
         void                                        ComputePrincipalAxes();
         void                                        AlignToPrincipalAxes();
         void                                        RevertAlignToPrincipalAxes();
-        void                                        Clip(const Plane & plane,
-                                                         PrimitiveSet * const positivePart,
-                                                         PrimitiveSet * const negativePart) const;
+        void                                        Clip(const Plane        &       plane,
+                                                               PrimitiveSet * const positivePart,
+                                                               PrimitiveSet * const negativePart) const;
+        void                                        Intersect(const Plane                  &       plane,
+                                                                    SArray< Vec3<double> > * const positivePts,
+                                                                    SArray< Vec3<double> > * const negativePts) const;
+        void                                        ComputeExteriorPoints(const Plane            &       plane,
+                                                                          const Mesh             &       mesh,
+                                                                          SArray< Vec3<double> > * const exteriorPts) const;
+        void                                        ComputeClippedVolumes(const Plane  & plane,
+                                                                                double & positiveVolume,
+                                                                                double & negativeVolume) const;
+        void                                        SelectOnSurface(PrimitiveSet * const onSurfP) const;
         void                                        ComputeBB();
         void                                        Convert(Mesh & mesh, const VOXEL_VALUE value) const;
         inline bool                                 Add(Tetrahedron & tetrahedron);
@@ -199,7 +218,6 @@ namespace VHACD
 
         size_t                                      m_numTetrahedraOnSurface    ;
         size_t                                      m_numTetrahedraInsideSurface;
-        size_t                                      m_numTetrahedraOnClipPlane;
         double                                      m_scale;
         Vec3<double>                                m_minBB;
         Vec3<double>                                m_maxBB;
@@ -445,9 +463,9 @@ namespace VHACD
                         boxcenter[2] = (double)k;
                         int res = TriBoxOverlap(boxcenter, boxhalfsize, p[0], p[1], p[2]);
                         unsigned char & value = GetVoxel(i, j, k);
-                        if (res == 1 && value == VOXEL_UNDEFINED)
+                        if (res == 1 && value == PRIMITIVE_UNDEFINED)
                         {
-                            value = VOXEL_ON_SURFACE;
+                            value = PRIMITIVE_ON_SURFACE;
                             ++m_numVoxelsOnSurface;
                         }
                     }
