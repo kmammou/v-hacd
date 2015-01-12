@@ -867,8 +867,7 @@ namespace VHACD
                 }
                 else
                 {
-                    double volumeRight1 = 0.0, volumeLeft1 = 0.0;
-                    inputPSet->ComputeClippedVolumes(plane, volumeRight1, volumeLeft1);
+                    inputPSet->ComputeClippedVolumes(plane, volumeRight, volumeLeft);
                 }
 
                 // compute cost
@@ -888,7 +887,7 @@ namespace VHACD
                 #pragma omp critical
 #endif
                 {
-                    if (total <  minTotal)
+                    if (total <  minTotal || (total == minTotal && x < iBest))
                     {
                         /*
                         if (params.m_logger)
