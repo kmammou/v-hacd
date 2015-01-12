@@ -65,7 +65,7 @@ class MyLogger : public IVHACD::IUserLogger
                                         if (m_file.is_open())
                                         {
                                             m_file << msg;
-                                            m_file.flush();
+//                                            m_file.flush();
                                         }
                                     }
         void                        OpenFile(const string & fileName) 

@@ -522,32 +522,24 @@ namespace VHACD
             }
         }
     }
-
     void VoxelSet::ComputeClippedVolumes(const Plane  & plane,
-                                               double & positiveVolume,
-                                               double & negativeVolume) const
+        double & positiveVolume,
+        double & negativeVolume) const
     {
-        positiveVolume = 0.0;
         negativeVolume = 0.0;
+        positiveVolume = 0.0;
         const size_t nVoxels = m_voxels.Size();
         if (nVoxels == 0) return;
         double d;
         Vec3<double> pt;
         size_t nPositiveVoxels = 0;
-        size_t nNegativeVoxels = 0;
         for (size_t v = 0; v < nVoxels; ++v)
         {
             pt = GetPoint(m_voxels[v]);
             d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
-            if (d >= 0.0)
-            {
-                ++nPositiveVoxels;
-            }
-            else
-            {
-                ++nNegativeVoxels;
-            }
+            nPositiveVoxels += (d >= 0.0);
         }
+        size_t nNegativeVoxels = nVoxels - nPositiveVoxels;
         positiveVolume = m_unitVolume * nPositiveVoxels;
         negativeVolume = m_unitVolume * nNegativeVoxels;
     }

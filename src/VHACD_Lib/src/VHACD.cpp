@@ -666,7 +666,7 @@ namespace VHACD
             {
                 partialVolumes[i] = clCreateBuffer(m_oclContext,
                                                    CL_MEM_WRITE_ONLY,
-                                                   sizeof(unsigned int) * 8 * nWorkGroups,
+                                                   sizeof(unsigned int) * 4 * nWorkGroups,
                                                    NULL,
                                                    &error);
                 if (error != CL_SUCCESS)
@@ -681,10 +681,10 @@ namespace VHACD
                 error  = clSetKernelArg(m_oclKernelComputePartialVolumes[i], 0, sizeof(cl_mem)                               , &voxels);
                 error |= clSetKernelArg(m_oclKernelComputePartialVolumes[i], 1, sizeof(unsigned int)                         , &nVoxels);
                 error |= clSetKernelArg(m_oclKernelComputePartialVolumes[i], 3, sizeof(float) * 4                            , fMinBB);
-                error |= clSetKernelArg(m_oclKernelComputePartialVolumes[i], 4, sizeof(unsigned int) * 8 * m_oclWorkGroupSize, NULL);
+                error |= clSetKernelArg(m_oclKernelComputePartialVolumes[i], 4, sizeof(unsigned int) * 4 * m_oclWorkGroupSize, NULL);
                 error |= clSetKernelArg(m_oclKernelComputePartialVolumes[i], 5, sizeof(cl_mem)                               , &(partialVolumes[i]));
                 error |= clSetKernelArg(m_oclKernelComputeSum[i]           , 0, sizeof(cl_mem)                               , &(partialVolumes[i]));
-                error |= clSetKernelArg(m_oclKernelComputeSum[i]           , 2, sizeof(unsigned int) * 8 * m_oclWorkGroupSize, NULL);
+                error |= clSetKernelArg(m_oclKernelComputeSum[i]           , 2, sizeof(unsigned int) * 4 * m_oclWorkGroupSize, NULL);
                 if (error != CL_SUCCESS)
                 {
                     if (params.m_logger)
@@ -841,18 +841,20 @@ namespace VHACD
                 if (oclAcceleration && params.m_mode == 0)
                 {
 #ifdef CL_VERSION_1_1
-                    unsigned int volumes[8];
+                    unsigned int volumes[4];
                     cl_int error = clEnqueueReadBuffer(m_oclQueue[threadID],
                                                        partialVolumes[threadID],
                                                        CL_TRUE,
                                                        0,
-                                                       sizeof(unsigned int) * 8,
+                                                       sizeof(unsigned int) * 4,
                                                        volumes,
                                                        0,
                                                        NULL,
                                                        NULL);
-                    volumeRight = (volumes[0] + volumes[1] + volumes[2] + volumes[3]) * unitVolume;
-                    volumeLeft  = (volumes[4] + volumes[5] + volumes[6] + volumes[7]) * unitVolume;
+                    size_t nPrimitivesRight = volumes[0] + volumes[1] + volumes[2] + volumes[3];
+                    size_t nPrimitivesLeft  = nPrimitives - nPrimitivesRight;
+                    volumeRight = nPrimitivesRight * unitVolume;
+                    volumeLeft  = nPrimitivesLeft * unitVolume;
                     if (error != CL_SUCCESS)
                     {
                         if (params.m_logger)
@@ -887,6 +889,7 @@ namespace VHACD
                 {
                     if (total <  minTotal)
                     {
+                        /*
                         if (params.m_logger)
                         {
                             sprintf(msg, "\t\t\t Plane %04i T=%2.3f C=%2.3f B=%2.3f S=%2.3f D=%1.6f W=%1.6f [%1.1f, %1.1f, %1.1f](%1.1f, %1.1f, %1.1f, %3.3f) \n",
@@ -895,6 +898,7 @@ namespace VHACD
                                 plane.m_a, plane.m_b, plane.m_c, plane.m_d);
                             params.m_logger->Log(msg);
                         }
+                        */
                         bestPlane    = plane;
                         minTotal     = total;
                         minConcavity = concavity;
@@ -902,14 +906,12 @@ namespace VHACD
                         minBalance   = balance;
                         minSymmetry  = symmetry;
                     }
-                }
-#if USE_THREAD == 1 && _OPENMP
-                 #pragma omp critical
-#endif
-                {
                     ++done;
-                    double progress = done * (progress1 - progress0) / nPlanes + progress0;
-                    Update(m_stageProgress, progress, params);
+                    if (!(done & 127)) // reduce update frequency
+                    {
+                        double progress = done * (progress1 - progress0) / nPlanes + progress0;
+                        Update(m_stageProgress, progress, params);
+                    }
                 }
             }
         }
