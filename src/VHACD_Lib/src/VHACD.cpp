@@ -628,7 +628,7 @@ namespace VHACD
         }
 
         size_t nPrimitives = inputPSet->GetNPrimitives();
-        bool oclAcceleration = (nPrimitives > OCL_MIN_NUM_PRIMITIVES) ? params.m_oclAcceleration : false;
+        bool oclAcceleration = (nPrimitives > OCL_MIN_NUM_PRIMITIVES && params.m_oclAcceleration && params.m_mode == 0) ? true : false;
 
 #ifdef CL_VERSION_1_1
         // allocate OpenCL data structures
@@ -637,7 +637,7 @@ namespace VHACD
         size_t globalSize       = 0;
         size_t nWorkGroups      = 0;
         double unitVolume       = 0.0;
-        if (params.m_oclAcceleration && params.m_mode == 0)
+        if (oclAcceleration)
         {
             VoxelSet * vset          = (VoxelSet *)inputPSet;
             const Vec3<double> minBB = vset->GetMinBB();
@@ -726,7 +726,7 @@ namespace VHACD
                 timerComputeCost.Tic();
 #endif // DEBUG_TEMP
 
-                if (oclAcceleration && params.m_mode == 0)
+                if (oclAcceleration)
                 {
 #ifdef CL_VERSION_1_1
                     const float fPlane[4] = { (float)plane.m_a, (float)plane.m_b, (float)plane.m_c, (float)plane.m_d };
@@ -838,7 +838,7 @@ namespace VHACD
                 double volumeRight = 0.0;
 
 
-                if (oclAcceleration && params.m_mode == 0)
+                if (oclAcceleration)
                 {
 #ifdef CL_VERSION_1_1
                     unsigned int volumes[4];
@@ -867,7 +867,8 @@ namespace VHACD
                 }
                 else
                 {
-                    inputPSet->ComputeClippedVolumes(plane, volumeRight, volumeLeft);
+                    double volumeRight1 = 0.0, volumeLeft1 = 0.0;
+                    inputPSet->ComputeClippedVolumes(plane, volumeRight1, volumeLeft1);
                 }
 
                 // compute cost
@@ -916,7 +917,7 @@ namespace VHACD
             }
         }
 #ifdef CL_VERSION_1_1
-        if (params.m_oclAcceleration && params.m_mode == 0)
+        if (oclAcceleration)
         {
             clReleaseMemObject(voxels);
             for (int i = 0; i < m_ompNumProcessors; ++i)

@@ -523,8 +523,8 @@ namespace VHACD
         }
     }
     void VoxelSet::ComputeClippedVolumes(const Plane  & plane,
-        double & positiveVolume,
-        double & negativeVolume) const
+                                               double & positiveVolume,
+                                               double & negativeVolume) const
     {
         negativeVolume = 0.0;
         positiveVolume = 0.0;

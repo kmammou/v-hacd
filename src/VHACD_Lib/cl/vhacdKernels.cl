@@ -7,8 +7,8 @@ __kernel void ComputePartialVolumes(__global short4 * voxels,
 {
     int localId   = get_local_id(0);
     int groupSize = get_local_size(0);
-    int i0 = get_global_id(0);
-    uint  pVol[4];
+    int i0 = get_global_id(0) << 2;
+    uint  pVol[4] = { 0, 0, 0, 0 };
     short4 voxel;
     float4 pt;
     float  d;
