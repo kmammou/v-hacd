@@ -2,31 +2,26 @@ __kernel void ComputePartialVolumes(__global short4 * voxels,
                                     const    int      numVoxels,
                                     const    float4   plane,
                                     const    float4   minBB,
+                                    const    float4   scale,
                                     __local  uint4 *  localPartialVolumes,
                                     __global uint4 *  partialVolumes)
 {
     int localId = get_local_id(0);
     int groupSize = get_local_size(0);
     int i0 = get_global_id(0) << 2;
-    uint  pVol[4];
-    short4 voxel;
-    float4 pt;
-    float  d;
-    for (int i = 0; i < 4; ++i)
-    {
-        if (i0 + i < numVoxels)
-        {
-            voxel = voxels[i + i0];
-            pt = (float4)(voxel.s0 * minBB.s3 + minBB.s0, voxel.s1 * minBB.s3 + minBB.s1, voxel.s2 * minBB.s3 + minBB.s2, 1.0f);
-            d = dot(plane, pt);
-            pVol[i] = d >= 0.0f;
-        }
-        else
-        {
-            pVol[i] = 0.0f;
-        }
-    }
-    localPartialVolumes[localId] = *((uint4 *)(pVol));
+    float4 voxel;
+    uint4  v;
+
+    voxel = convert_float4(voxels[i0]);
+    v.s0 = (dot(plane, mad(scale, voxel, minBB)) >= 0.0f) * (i0 < numVoxels);
+    voxel = convert_float4(voxels[i0 + 1]);
+    v.s1 = (dot(plane, mad(scale, voxel, minBB)) >= 0.0f) * (i0 + 1 < numVoxels);
+    voxel = convert_float4(voxels[i0 + 2]);
+    v.s2 = (dot(plane, mad(scale, voxel, minBB)) >= 0.0f) * (i0 + 2 < numVoxels);
+    voxel = convert_float4(voxels[i0 + 3]);
+    v.s3 = (dot(plane, mad(scale, voxel, minBB)) >= 0.0f) * (i0 + 3 < numVoxels);
+
+    localPartialVolumes[localId] = v;
     barrier(CLK_LOCAL_MEM_FENCE);
 
     for (int i = groupSize >> 1; i > 0; i >>= 1)
@@ -50,6 +45,7 @@ __kernel void ComputePartialSums(__global uint4 * data,
     int globalId  = get_global_id(0);
     int localId   = get_local_id(0);
     int groupSize = get_local_size(0);
+    int i;
     if (globalId < dataSize)
     {
         partialSums[localId] = data[globalId];
@@ -59,8 +55,7 @@ __kernel void ComputePartialSums(__global uint4 * data,
         partialSums[localId] = (0, 0, 0, 0);
     }
     barrier(CLK_LOCAL_MEM_FENCE);
-
-    for (int i = groupSize >> 1; i > 0; i >>= 1)
+    for (i = groupSize >> 1; i > 0; i >>= 1)
     {
         if (localId < i)
         {
@@ -68,7 +63,6 @@ __kernel void ComputePartialSums(__global uint4 * data,
         }
         barrier(CLK_LOCAL_MEM_FENCE);
     }
-
     if (localId == 0)
     {
         data[get_group_id(0)] = partialSums[0];
