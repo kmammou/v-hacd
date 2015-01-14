@@ -469,17 +469,19 @@ namespace VHACD
         if (nVoxels == 0) return;
         const double d0 = m_scale;
         double d;
+//        Vec3<double> pts[8];
         Vec3<double> pt;
         Voxel voxel;
-        /*
-        if (sampling == 1 && 0)
+        if (sampling == 1)
         {
-            Vec3<double> pts[8];
             for (size_t v = 0; v < nVoxels; ++v)
             {
                 voxel = m_voxels[v];
                 pt = GetPoint(voxel);
                 d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
+                if      (d >= 0.0 && d <= d0) positivePts->PushBack(pt);
+                else if (d < 0.0 && -d <= d0) negativePts->PushBack(pt);
+                /*
                 if (d >= 0.0 && d <= d0)
                 {
                     GetPoints(voxel, pts);
@@ -496,11 +498,11 @@ namespace VHACD
                         negativePts->PushBack(pts[k]);
                     }
                 }
+                */
             }
         }
         else
         {
-*/
             size_t sp = 0;
             size_t sn = 0;
             for (size_t v = 0; v < nVoxels; ++v)
@@ -527,7 +529,7 @@ namespace VHACD
                     }
                 }
             }
-//        }
+        }
     }
     void VoxelSet::ComputeExteriorPoints(const Plane                  &       plane,
                                          const Mesh                   &       mesh,
