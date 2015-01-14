@@ -52,7 +52,8 @@ namespace VHACD
                                                                PrimitiveSet * const negativePart) const = 0;
         virtual void                                Intersect(const Plane                  &       plane,
                                                                     SArray< Vec3<double> > * const positivePts,
-                                                                    SArray< Vec3<double> > * const negativePts) const = 0;
+                                                                    SArray< Vec3<double> > * const negativePts,
+                                                              const size_t                         sampling) const = 0;
         virtual void                                ComputeExteriorPoints(const Plane            &       plane,
                                                                           const Mesh             &       mesh,
                                                                           SArray< Vec3<double> > * const exteriorPts) const = 0;
@@ -119,7 +120,8 @@ namespace VHACD
                                                                PrimitiveSet * const negativePart) const;
         void                                        Intersect(const Plane                  &       plane,
                                                                     SArray< Vec3<double> > * const positivePts,
-                                                                    SArray< Vec3<double> > * const negativePts) const;
+                                                                    SArray< Vec3<double> > * const negativePts,
+                                                              const size_t                         sampling) const;
         void                                        ComputeExteriorPoints(const Plane            &       plane,
                                                                           const Mesh             &       mesh,
                                                                           SArray< Vec3<double> > * const exteriorPts) const;
@@ -194,7 +196,8 @@ namespace VHACD
                                                                PrimitiveSet * const negativePart) const;
         void                                        Intersect(const Plane                  &       plane,
                                                                     SArray< Vec3<double> > * const positivePts,
-                                                                    SArray< Vec3<double> > * const negativePts) const;
+                                                                    SArray< Vec3<double> > * const negativePts,
+                                                              const size_t                         sampling) const;
         void                                        ComputeExteriorPoints(const Plane            &       plane,
                                                                           const Mesh             &       mesh,
                                                                           SArray< Vec3<double> > * const exteriorPts) const;

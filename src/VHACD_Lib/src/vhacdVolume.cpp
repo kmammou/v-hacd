@@ -462,7 +462,8 @@ namespace VHACD
     }
     void VoxelSet::Intersect(const Plane                  &       plane,
                                    SArray< Vec3<double> > * const positivePts,
-                                   SArray< Vec3<double> > * const negativePts) const
+                                   SArray< Vec3<double> > * const negativePts,
+                             const size_t                         sampling) const
     {
         const size_t nVoxels = m_voxels.Size();
         if (nVoxels == 0) return;
@@ -471,6 +472,9 @@ namespace VHACD
         Vec3<double> pt;
         Vec3<double> pts[8];
         Voxel voxel;
+
+        size_t sp = 0;
+        size_t sn = 0;
         for (size_t v = 0; v < nVoxels; ++v)
         {
             voxel = m_voxels[v];
@@ -478,18 +482,28 @@ namespace VHACD
             d     = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
             if (d >= 0.0 && d <= d0)
             {
-                GetPoints(voxel, pts);
-                for (int k = 0; k < 8; ++k)
+                ++sp;
+                if (sp == sampling)
                 {
-                    positivePts->PushBack(pts[k]);
+                    sp = 0;
+                    GetPoints(voxel, pts);
+                    for (int k = 0; k < 8; ++k)
+                    {
+                        positivePts->PushBack(pts[k]);
+                    }
                 }
             }
             else if (d < 0.0 && - d <= d0)
             {
-                GetPoints(voxel, pts);
-                for (int k = 0; k < 8; ++k)
+                ++sn;
+                if (sn == sampling)
                 {
-                    negativePts->PushBack(pts[k]);
+                    sn = 0;
+                    GetPoints(voxel, pts);
+                    for (int k = 0; k < 8; ++k)
+                    {
+                        negativePts->PushBack(pts[k]);
+                    }
                 }
             }
         }
@@ -1377,7 +1391,8 @@ namespace VHACD
 
     void TetrahedronSet::Intersect(const Plane                  &       plane,
                                          SArray< Vec3<double> > * const positivePts,
-                                         SArray< Vec3<double> > * const negativePts) const
+                                         SArray< Vec3<double> > * const negativePts,
+                                   const size_t                         sampling) const
     {
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0) return;

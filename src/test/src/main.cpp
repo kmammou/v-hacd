@@ -160,7 +160,7 @@ int main(int argc, char * argv[])
         ParseParameters(argc, argv, params);
         MyCallback myCallback;
         MyLogger   myLogger(params.m_fileNameLog);
-        params.m_paramsVHACD.m_logger   = &myLogger;
+        params.m_paramsVHACD.m_logger = &myLogger;
         params.m_paramsVHACD.m_callback = &myCallback;
         Usage(params);
         if (!params.m_run)
@@ -178,10 +178,9 @@ int main(int argc, char * argv[])
                                params.m_oclDeviceID, 
                                oclHelper, 
                                msg);
-            myLogger.Log(msg.str().c_str());
-            msg.str("");
             if (!res)
             {
+                myLogger.Log(msg.str().c_str());
                 return -1;
             }
         }
@@ -216,6 +215,8 @@ int main(int argc, char * argv[])
         msg << "\t log                                         " << params.m_fileNameLog                           << endl;
         msg << "+ Load mesh" << std::endl;
         myLogger.Log(msg.str().c_str());
+
+        cout << msg.str().c_str();
 
         // load mesh
         vector<float > points;
@@ -367,6 +368,9 @@ void ParseParameters(int          argc,
         else if (!strcmp(argv[i], "--oclDeviceID"            )) { if (++i < argc) params.m_oclDeviceID                           = atoi(argv[i]); }
         else if (!strcmp(argv[i], "--help"                   )) { params.m_run = false;                                                           }
     }
+    params.m_paramsVHACD.m_resolution             = (params.m_paramsVHACD.m_resolution             < 64) ? 0 : params.m_paramsVHACD.m_resolution;
+    params.m_paramsVHACD.m_planeDownsampling      = (params.m_paramsVHACD.m_planeDownsampling      <  1) ? 1 : params.m_paramsVHACD.m_planeDownsampling;
+    params.m_paramsVHACD.m_convexhullDownsampling = (params.m_paramsVHACD.m_convexhullDownsampling <  1) ? 1 : params.m_paramsVHACD.m_convexhullDownsampling;
 }
 
 

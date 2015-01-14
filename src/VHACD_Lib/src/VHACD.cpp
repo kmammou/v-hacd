@@ -776,6 +776,11 @@ namespace VHACD
         oclAcceleration = false;
 #endif // CL_VERSION_1_1
 
+#ifdef DEBUG_TEMP
+        Timer timerComputeCost;
+        timerComputeCost.Tic();
+#endif // DEBUG_TEMP
+
 #if USE_THREAD == 1 && _OPENMP
         #pragma omp parallel for
 #endif
@@ -797,11 +802,6 @@ namespace VHACD
 #endif
                 }
                 Plane plane = planes[x];
-
-#ifdef DEBUG_TEMP
-                Timer timerComputeCost;
-                timerComputeCost.Tic();
-#endif // DEBUG_TEMP
 
                 if (oclAcceleration)
                 {
@@ -870,11 +870,6 @@ namespace VHACD
 #endif // CL_VERSION_1_1
                 }
 
-#ifdef DEBUG_TEMP
-                Timer timerConvexHullVolumes;
-                timerConvexHullVolumes.Tic();
-#endif // DEBUG_TEMP
-
                 Mesh                   & leftCH = chs[threadID];
                 Mesh                   & rightCH = chs[threadID + m_ompNumProcessors];
                 rightCH.ResizePoints(0);
@@ -883,13 +878,14 @@ namespace VHACD
                 leftCH.ResizeTriangles(0);
 
                 // compute convex-hulls
+
                 if (params.m_convexhullApproximation)
                 {
                     SArray< Vec3<double> > & leftCHPts = chPts[threadID];
                     SArray< Vec3<double> > & rightCHPts = chPts[threadID + m_ompNumProcessors];
                     rightCHPts.Resize(0);
                     leftCHPts.Resize(0);
-                    onSurfacePSet->Intersect(plane, &rightCHPts, &leftCHPts);
+                    onSurfacePSet->Intersect(plane, &rightCHPts, &leftCHPts, convexhullDownsampling);
                     inputPSet->GetConvexHull().Clip(plane, rightCHPts, leftCHPts);
                     rightCH.ComputeConvexHull((double *)rightCHPts.Data(), rightCHPts.Size());
                     leftCH.ComputeConvexHull((double *)leftCHPts.Data(), leftCHPts.Size());
@@ -905,10 +901,6 @@ namespace VHACD
 
                 double volumeLeftCH = leftCH.ComputeVolume();
                 double volumeRightCH = rightCH.ComputeVolume();
-#ifdef DEBUG_TEMP
-                timerConvexHullVolumes.Toc();
-#endif // DEBUG_TEMP
-
 
                 // compute clipped volumes
                 double volumeLeft  = 0.0;
@@ -954,12 +946,6 @@ namespace VHACD
                 double symmetry  = beta * d;
                 double total     = concavity + balance + symmetry;
 
-#ifdef DEBUG_TEMP
-                timerComputeCost.Toc();
-                printf_s("ConvexHullVolumes[%i/%i] = %f\n", x, nPlanes, timerConvexHullVolumes.GetElapsedTime());
-                printf_s("Cost[%i/%i] = %f\n", x, nPlanes, timerComputeCost.GetElapsedTime());
-#endif // DEBUG_TEMP
-
 #if USE_THREAD == 1 && _OPENMP
                 #pragma omp critical
 #endif
@@ -992,6 +978,12 @@ namespace VHACD
                 }
             }
         }
+
+#ifdef DEBUG_TEMP
+        timerComputeCost.Toc();
+        printf_s("Cost[%i] = %f\n", nPlanes, timerComputeCost.GetElapsedTime());
+#endif // DEBUG_TEMP
+
 #ifdef CL_VERSION_1_1
         if (oclAcceleration)
         {
