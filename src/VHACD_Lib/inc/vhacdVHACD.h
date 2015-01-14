@@ -37,7 +37,7 @@ namespace VHACD
                                     VHACD()
                                     {
 #if USE_THREAD == 1 && _OPENMP
-                                        m_ompNumProcessors = omp_get_num_procs();
+                                        m_ompNumProcessors = 2*omp_get_num_procs();
                                         omp_set_num_threads(m_ompNumProcessors);
 #else //USE_THREAD == 1 && _OPENMP
                                         m_ompNumProcessors = 1;
