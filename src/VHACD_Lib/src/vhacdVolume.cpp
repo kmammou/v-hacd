@@ -470,35 +470,26 @@ namespace VHACD
         const double d0 = m_scale;
         double d;
         Vec3<double> pt;
-        Vec3<double> pts[8];
         Voxel voxel;
-
-        size_t sp = 0;
-        size_t sn = 0;
-        for (size_t v = 0; v < nVoxels; ++v)
+        /*
+        if (sampling == 1 && 0)
         {
-            voxel = m_voxels[v];
-            pt    = GetPoint(voxel);
-            d     = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
-            if (d >= 0.0 && d <= d0)
+            Vec3<double> pts[8];
+            for (size_t v = 0; v < nVoxels; ++v)
             {
-                ++sp;
-                if (sp == sampling)
+                voxel = m_voxels[v];
+                pt = GetPoint(voxel);
+                d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
+                if (d >= 0.0 && d <= d0)
                 {
-                    sp = 0;
                     GetPoints(voxel, pts);
                     for (int k = 0; k < 8; ++k)
                     {
                         positivePts->PushBack(pts[k]);
                     }
                 }
-            }
-            else if (d < 0.0 && - d <= d0)
-            {
-                ++sn;
-                if (sn == sampling)
+                else if (d < 0.0 && -d <= d0)
                 {
-                    sn = 0;
                     GetPoints(voxel, pts);
                     for (int k = 0; k < 8; ++k)
                     {
@@ -507,6 +498,36 @@ namespace VHACD
                 }
             }
         }
+        else
+        {
+*/
+            size_t sp = 0;
+            size_t sn = 0;
+            for (size_t v = 0; v < nVoxels; ++v)
+            {
+                voxel = m_voxels[v];
+                pt = GetPoint(voxel);
+                d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
+                if (d >= 0.0 && d <= d0)
+                {
+                    ++sp;
+                    if (sp == sampling)
+                    {
+                        sp = 0;
+                        positivePts->PushBack(pt);
+                    }
+                }
+                else if (d < 0.0 && -d <= d0)
+                {
+                    ++sn;
+                    if (sn == sampling)
+                    {
+                        sn = 0;
+                        negativePts->PushBack(pt);
+                    }
+                }
+            }
+//        }
     }
     void VoxelSet::ComputeExteriorPoints(const Plane                  &       plane,
                                          const Mesh                   &       mesh,
