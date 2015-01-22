@@ -355,15 +355,14 @@ namespace VHACD
 
         SArray< Vec3<double> > cpoints;
 
-        Vec3<double> * points = new Vec3<double> [CLUSTER_SIZE];
+        Vec3<double> * points = new Vec3<double>[CLUSTER_SIZE];
         size_t p = 0;
-        short i, j, k;
-
         size_t s = 0;
-        while( p < nVoxels)
+        short i, j, k;
+        while (p < nVoxels)
         {
             size_t q = 0;
-            while(q < CLUSTER_SIZE && p < nVoxels)
+            while (q < CLUSTER_SIZE && p < nVoxels)
             {
                 if (m_voxels[p].m_data == PRIMITIVE_ON_SURFACE)
                 {
@@ -374,14 +373,14 @@ namespace VHACD
                         i = m_voxels[p].m_coord[0];
                         j = m_voxels[p].m_coord[1];
                         k = m_voxels[p].m_coord[2];
-                        Vec3<double> p0((i-0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<double> p1((i+0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<double> p2((i+0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<double> p3((i-0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<double> p4((i-0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
-                        Vec3<double> p5((i+0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
-                        Vec3<double> p6((i+0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
-                        Vec3<double> p7((i-0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
+                        Vec3<double> p0((i - 0.5) * m_scale, (j - 0.5) * m_scale, (k - 0.5) * m_scale);
+                        Vec3<double> p1((i + 0.5) * m_scale, (j - 0.5) * m_scale, (k - 0.5) * m_scale);
+                        Vec3<double> p2((i + 0.5) * m_scale, (j + 0.5) * m_scale, (k - 0.5) * m_scale);
+                        Vec3<double> p3((i - 0.5) * m_scale, (j + 0.5) * m_scale, (k - 0.5) * m_scale);
+                        Vec3<double> p4((i - 0.5) * m_scale, (j - 0.5) * m_scale, (k + 0.5) * m_scale);
+                        Vec3<double> p5((i + 0.5) * m_scale, (j - 0.5) * m_scale, (k + 0.5) * m_scale);
+                        Vec3<double> p6((i + 0.5) * m_scale, (j + 0.5) * m_scale, (k + 0.5) * m_scale);
+                        Vec3<double> p7((i - 0.5) * m_scale, (j + 0.5) * m_scale, (k + 0.5) * m_scale);
                         points[q++] = p0 + m_minBB;
                         points[q++] = p1 + m_minBB;
                         points[q++] = p2 + m_minBB;
@@ -393,35 +392,35 @@ namespace VHACD
                     }
                 }
                 ++p;
-           }
-           btConvexHullComputer ch;
-           ch.compute((double *) points, 3 * sizeof(double), (int) q, -1.0, -1.0); 
-           for(int v = 0; v < ch.vertices.size(); v++)
-           {
-               cpoints.PushBack(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
-           }
+            }
+            btConvexHullComputer ch;
+            ch.compute((double *)points, 3 * sizeof(double), (int)q, -1.0, -1.0);
+            for (int v = 0; v < ch.vertices.size(); v++)
+            {
+                cpoints.PushBack(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
+            }
         }
-        delete [] points;
+        delete[] points;
 
-        points  = cpoints.Data();
+        points = cpoints.Data();
         btConvexHullComputer ch;
-        ch.compute((double *) points, 3 * sizeof(double), (int) cpoints.Size(), -1.0, -1.0); 
+        ch.compute((double *)points, 3 * sizeof(double), (int)cpoints.Size(), -1.0, -1.0);
         meshCH.ResizePoints(0);
         meshCH.ResizeTriangles(0);
-        for(int v = 0; v < ch.vertices.size(); v++)
-        {            
+        for (int v = 0; v < ch.vertices.size(); v++)
+        {
             meshCH.AddPoint(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
         }
         const int nt = ch.faces.size();
-        for(int t = 0; t < nt; ++t)
+        for (int t = 0; t < nt; ++t)
         {
-            const btConvexHullComputer::Edge * sourceEdge = & (ch.edges[ch.faces[t]]);
+            const btConvexHullComputer::Edge * sourceEdge = &(ch.edges[ch.faces[t]]);
             int a = sourceEdge->getSourceVertex();
             int b = sourceEdge->getTargetVertex();
             const btConvexHullComputer::Edge * edge = sourceEdge->getNextEdgeOfFace();
             int c = edge->getTargetVertex();
             while (c != a)
-            {                
+            {
                 meshCH.AddTriangle(Vec3<int>(a, b, c));
                 edge = edge->getNextEdgeOfFace();
                 b = c;
@@ -469,20 +468,21 @@ namespace VHACD
         if (nVoxels == 0) return;
         const double d0 = m_scale;
         double d;
-//        Vec3<double> pts[8];
+        Vec3<double> pts[8];
         Vec3<double> pt;
         Voxel voxel;
-        if (sampling == 1)
+        size_t sp = 0;
+        size_t sn = 0;
+        for (size_t v = 0; v < nVoxels; ++v)
         {
-            for (size_t v = 0; v < nVoxels; ++v)
+            voxel = m_voxels[v];
+            pt = GetPoint(voxel);
+            d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
+//            if      (d >= 0.0 && d <= d0) positivePts->PushBack(pt);
+//            else if (d < 0.0 && -d <= d0) negativePts->PushBack(pt);
+            if (d >= 0.0)
             {
-                voxel = m_voxels[v];
-                pt = GetPoint(voxel);
-                d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
-                if      (d >= 0.0 && d <= d0) positivePts->PushBack(pt);
-                else if (d < 0.0 && -d <= d0) negativePts->PushBack(pt);
-                /*
-                if (d >= 0.0 && d <= d0)
+                if (d <= d0)
                 {
                     GetPoints(voxel, pts);
                     for (int k = 0; k < 8; ++k)
@@ -490,7 +490,23 @@ namespace VHACD
                         positivePts->PushBack(pts[k]);
                     }
                 }
-                else if (d < 0.0 && -d <= d0)
+                else
+                {
+                    if (++sp == sampling)
+                    {
+//                        positivePts->PushBack(pt);
+                        GetPoints(voxel, pts);
+                        for (int k = 0; k < 8; ++k)
+                        {
+                            positivePts->PushBack(pts[k]);
+                        }
+                        sp = 0;
+                    }
+                }
+            }
+            else
+            {
+                if (-d <= d0)
                 {
                     GetPoints(voxel, pts);
                     for (int k = 0; k < 8; ++k)
@@ -498,34 +514,17 @@ namespace VHACD
                         negativePts->PushBack(pts[k]);
                     }
                 }
-                */
-            }
-        }
-        else
-        {
-            size_t sp = 0;
-            size_t sn = 0;
-            for (size_t v = 0; v < nVoxels; ++v)
-            {
-                voxel = m_voxels[v];
-                pt = GetPoint(voxel);
-                d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
-                if (d >= 0.0 && d <= d0)
+                else
                 {
-                    ++sp;
-                    if (sp == sampling)
+                    if (++sn == sampling)
                     {
-                        sp = 0;
-                        positivePts->PushBack(pt);
-                    }
-                }
-                else if (d < 0.0 && -d <= d0)
-                {
-                    ++sn;
-                    if (sn == sampling)
-                    {
+//                        negativePts->PushBack(pt);
+                        GetPoints(voxel, pts);
+                        for (int k = 0; k < 8; ++k)
+                        {
+                            negativePts->PushBack(pts[k]);
+                        }
                         sn = 0;
-                        negativePts->PushBack(pt);
                     }
                 }
             }
@@ -1122,13 +1121,13 @@ namespace VHACD
 
         SArray< Vec3<double> > cpoints;
 
-        Vec3<double> * points = new Vec3<double> [CLUSTER_SIZE];
+        Vec3<double> * points = new Vec3<double>[CLUSTER_SIZE];
         size_t p = 0;
-        while( p < nTetrahedra)
+        while (p < nTetrahedra)
         {
             size_t q = 0;
             size_t s = 0;
-            while(q < CLUSTER_SIZE && p < nTetrahedra)
+            while (q < CLUSTER_SIZE && p < nTetrahedra)
             {
                 if (m_tetrahedra[p].m_data == PRIMITIVE_ON_SURFACE)
                 {
@@ -1136,10 +1135,10 @@ namespace VHACD
                     if (s == sampling)
                     {
                         s = 0;
-                        for(int a = 0; a < 4; ++a)
+                        for (int a = 0; a < 4; ++a)
                         {
                             points[q++] = m_tetrahedra[p].m_pts[a];
-                            for(int xx = 0; xx < 3; ++xx)
+                            for (int xx = 0; xx < 3; ++xx)
                             {
                                 assert(m_tetrahedra[p].m_pts[a][xx] + EPS >= m_minBB[xx]);
                                 assert(m_tetrahedra[p].m_pts[a][xx] <= m_maxBB[xx] + EPS);
@@ -1148,35 +1147,35 @@ namespace VHACD
                     }
                 }
                 ++p;
-           }
-           btConvexHullComputer ch;
-           ch.compute((double *) points, 3 * sizeof(double), (int) q, -1.0, -1.0); 
-           for(int v = 0; v < ch.vertices.size(); v++)
-           {
-               cpoints.PushBack(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
-           }
+            }
+            btConvexHullComputer ch;
+            ch.compute((double *)points, 3 * sizeof(double), (int)q, -1.0, -1.0);
+            for (int v = 0; v < ch.vertices.size(); v++)
+            {
+                cpoints.PushBack(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
+            }
         }
-        delete [] points;
+        delete[] points;
 
-        points  = cpoints.Data();
+        points = cpoints.Data();
         btConvexHullComputer ch;
-        ch.compute((double *) points, 3 * sizeof(double), (int) cpoints.Size(), -1.0, -1.0); 
+        ch.compute((double *)points, 3 * sizeof(double), (int)cpoints.Size(), -1.0, -1.0);
         meshCH.ResizePoints(0);
         meshCH.ResizeTriangles(0);
-        for(int v = 0; v < ch.vertices.size(); v++)
-        {            
+        for (int v = 0; v < ch.vertices.size(); v++)
+        {
             meshCH.AddPoint(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
         }
         const int nt = ch.faces.size();
-        for(int t = 0; t < nt; ++t)
+        for (int t = 0; t < nt; ++t)
         {
-            const btConvexHullComputer::Edge * sourceEdge = & (ch.edges[ch.faces[t]]);
+            const btConvexHullComputer::Edge * sourceEdge = &(ch.edges[ch.faces[t]]);
             int a = sourceEdge->getSourceVertex();
             int b = sourceEdge->getTargetVertex();
             const btConvexHullComputer::Edge * edge = sourceEdge->getNextEdgeOfFace();
             int c = edge->getTargetVertex();
             while (c != a)
-            {                
+            {
                 meshCH.AddTriangle(Vec3<int>(a, b, c));
                 edge = edge->getNextEdgeOfFace();
                 b = c;

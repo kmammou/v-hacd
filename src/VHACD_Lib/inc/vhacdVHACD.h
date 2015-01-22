@@ -28,6 +28,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #define USE_THREAD                  1
 #define OCL_MIN_NUM_PRIMITIVES      4096
+#define CH_APP_MIN_NUM_PRIMITIVES   64000
 namespace VHACD
 {
     class VHACD : public IVHACD
@@ -137,7 +138,7 @@ namespace VHACD
                                         memset(m_rot, 0, sizeof(double) * 9);
                                         m_dim = 64;
                                         m_volume = 0;
-                                        m_volume0 = 0.0;
+                                        m_volumeCH0 = 0.0;
                                         m_pset = 0;
                                         m_overallProgress = 0.0;
                                         m_stageProgress = 0.0;
@@ -153,21 +154,19 @@ namespace VHACD
         void                        MergeConvexHulls(const Parameters &  params);
         void                        SimplifyConvexHulls(const Parameters &  params);
         void                        ComputeBestClippingPlane(const PrimitiveSet    * inputPSet,
-                                                             const double            volume0,
                                                              const double            volume,
                                                              const SArray< Plane > & planes,
                                                              const Vec3<double>    & preferredCuttingDirection,
                                                              const double            w,
                                                              const double            alpha,
                                                              const double            beta,
+                                                             const double            delta,
                                                              const int               convexhullDownsampling,
                                                              const double            progress0,
                                                              const double            progress1,
-                                                             Plane                 & bestPlane,
-                                                             double                & minConcavity,
-                                                             double                & minBalance,
-                                                             double                & minSymmetry,
-                                                             const Parameters      &  params);
+                                                                   Plane           & bestPlane,
+                                                                   double          & minConcavity,
+                                                             const Parameters      & params);
         template <class T>
         void                        AlignMesh(const T * const     points,
                                               const unsigned int  stridePoints,
@@ -351,7 +350,7 @@ namespace VHACD
         double                      m_stageProgress;
         double                      m_operationProgress;
         double                      m_rot[3][3];
-        double                      m_volume0;
+        double                      m_volumeCH0;
         Vec3<double>                m_barycenter;
         Timer                       m_timer;
         size_t                      m_dim;

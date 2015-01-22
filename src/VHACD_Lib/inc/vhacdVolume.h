@@ -61,7 +61,7 @@ namespace VHACD
                                                                                 double & positiveVolume,
                                                                                 double & negativeVolume) const = 0;
         virtual void                                SelectOnSurface(PrimitiveSet * const onSurfP) const = 0;
-        virtual void                                ComputeConvexHull(Mesh & meshCH, const size_t sampling) const = 0;
+        virtual void                                ComputeConvexHull(      Mesh & meshCH, const size_t sampling = 1) const = 0;
         virtual void                                ComputeBB() = 0;
         virtual void                                ComputePrincipalAxes() = 0;
         virtual void                                AlignToPrincipalAxes() = 0;
@@ -114,7 +114,7 @@ namespace VHACD
                                                                              voxel[2] * m_scale +  m_minBB[2]);
                                                     }
         void                                        GetPoints(const Voxel & voxel, Vec3<double> * const pts) const;
-        void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling) const;
+        void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling = 1) const;
         void                                        Clip(const Plane        &       plane,
                                                                PrimitiveSet * const positivePart,
                                                                PrimitiveSet * const negativePart) const;
@@ -186,8 +186,7 @@ namespace VHACD
         const double                                GetSacle()                  const { return m_scale; }
         const double                                ComputeVolume()             const;
         const double                                ComputeMaxVolumeError()     const;
-        void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling) const;
-
+        void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling = 1) const;
         void                                        ComputePrincipalAxes();
         void                                        AlignToPrincipalAxes();
         void                                        RevertAlignToPrincipalAxes();
