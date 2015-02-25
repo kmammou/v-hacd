@@ -142,6 +142,254 @@ namespace VHACD
         }
         return true;
     }
+	int Mesh::GetSmallestSideForTracing(Vec3<int>* range_min, Vec3<int>* range_max, const VoxelBase& basis) const
+	{
+		Vec3<short> voxel_extent = basis.m_maxVoxel - basis.m_minVoxel;
+		if(voxel_extent[0] >= voxel_extent[1] && voxel_extent[0] >= voxel_extent[2])
+		{
+			// axis x is the longest axis
+			(*range_min)[0] = basis.m_minVoxel[1]; // y
+			(*range_max)[0] = basis.m_maxVoxel[1]; 
+			(*range_min)[1] = basis.m_minVoxel[2]; // z
+			(*range_max)[1] = basis.m_maxVoxel[2]; 
+			(*range_min)[2] = basis.m_minVoxel[0] - 1; // x
+			(*range_max)[2] = basis.m_maxVoxel[0] + 1; 
+			return 0;
+		}
+		else if(voxel_extent[1] >= voxel_extent[0] && voxel_extent[1] >= voxel_extent[2])
+		{
+			// axis y is the longest axis
+			(*range_min)[0] = basis.m_minVoxel[0]; // x
+			(*range_max)[0] = basis.m_maxVoxel[0]; 
+			(*range_min)[1] = basis.m_minVoxel[2]; // z
+			(*range_max)[1] = basis.m_maxVoxel[2]; 
+			(*range_min)[2] = basis.m_minVoxel[1] - 1; // y
+			(*range_max)[2] = basis.m_maxVoxel[1] + 1; 
+			return 1; 
+		}
+		else 
+		{
+			// axis z is the longest axis
+			(*range_min)[0] = basis.m_minVoxel[0]; // x
+			(*range_max)[0] = basis.m_maxVoxel[0]; 
+			(*range_min)[1] = basis.m_minVoxel[1]; // y
+			(*range_max)[1] = basis.m_maxVoxel[1]; 
+			(*range_min)[2] = basis.m_minVoxel[2] - 1; // z
+			(*range_max)[2] = basis.m_maxVoxel[2] + 1; 
+			return 2; // axis z
+		}
+	}
+	void PrepareRay(Vec3<double>* from, Vec3<double>* to, int x, int y, int zmin, int zmax, int side, const VoxelBase& voxel)
+	{
+		Vec3<int> vfrom, vto;
+		switch(side)
+		{
+		case 0: // y[x], z[y], x[zmin-zmax]
+			vfrom = Vec3<int>(zmin, x, y);
+			vto = Vec3<int>(zmax, x, y);
+			break;
+		case 1: // x[x], z[y], y[zmin-zmax]
+			vfrom = Vec3<int>(x, zmin, y);
+			vto = Vec3<int>(x, zmax, y);
+			break;
+		case 2: // x[x], y[y], z[zmin-zmax]
+			vfrom = Vec3<int>(x, y, zmin);
+			vto = Vec3<int>(x, y, zmax);
+			break;
+		}
+		*from = voxel.Point(vfrom);
+		*to = voxel.Point(vto);
+	}
+	const double EPSILON = 1e-7;
+	// from Tomas Moller's "Fast Minimum Storage Ray-Triangle Intersection".
+	bool IntersectTriangle(const Vec3<double>& orig, const Vec3<double>& dir, const Vec3<double>& v0, const Vec3<double>& v1, const Vec3<double>& v2, double* t)
+	{
+		// Find vectors for two edges sharing vert0
+		Vec3<double> edge1 = v1 - v0;
+		Vec3<double> edge2 = v2 - v0;
+
+		// Begin calculating determinant - also used to calculate U parameter
+		Vec3<double> pvec = dir ^ edge2;
+
+		// If determinant is near zero, ray lies in plane of triangle
+		double det = edge1 * pvec;
+
+		// the non-culling branch
+		if(det > -EPSILON && det < EPSILON)
+			return false;
+		double inv_det = 1.0 / det;
+
+		// Calculate distance from vert0 to ray origin
+		Vec3<double> tvec = orig - v0;
+
+		// calculate U parameter and test bounds
+		double u = tvec * pvec * inv_det;
+		if(u < 0.0 || u > 1.0)
+			return false;
+
+		// prepare to test V parameter
+		Vec3<double> qvec = tvec ^ edge1;
+
+		// calculate V parameter and test bounds 
+		double v = dir * qvec * inv_det;
+		if(v < 0.0 || u + v > 1.0)
+			return false;
+
+		// calculate t, ray intersects triangle
+		*t = edge2 * qvec * inv_det;
+		return true;
+	}
+	bool Mesh::TraceRayToHull(Vec3<double>* hit0, Vec3<double>* hit1, const Vec3<double>& ray0, const Vec3<double>& ray1) const
+	{
+		size_t nT = GetNTriangles();
+		double t0, t1;
+		bool hit = false;
+		for(int t = 0; t < nT; t++)
+		{
+			const Vec3<int> & tri = GetTriangle(t);
+			Vec3<double> v0, v1, v2;
+			v0 = GetPoint(tri[0]);
+			v1 = GetPoint(tri[1]);
+			v2 = GetPoint(tri[2]);
+			double tt;
+			if(IntersectTriangle(ray0, ray1 - ray0, v0, v1, v2, &tt))
+			{
+				if(!hit)
+				{
+					t0 = t1 = tt;
+					hit = true;
+				}
+				else
+				{
+					if(t0 > tt) t0 = tt;
+					if(t1 < tt) t1 = tt;
+				}
+			}
+		}
+		if(hit)
+		{
+			*hit0 = ray0 + (ray1 - ray0) * t0;
+			*hit1 = ray0 + (ray1 - ray0) * t1;
+		}
+		return hit;
+	}
+	double DistancePlaneToCube(const Vec3<double>& plane_normal, double plane_c, const Vec3<double>& cube_center, double cube_extent)
+	{
+		double dist = cube_center * plane_normal - plane_c;
+		dist -= abs(cube_extent * plane_normal[0]);
+		dist -= abs(cube_extent * plane_normal[1]);
+		dist -= abs(cube_extent * plane_normal[2]);
+		return dist;
+	}
+	bool Mesh::CubeInsideHull(const Vec3<double>& cube_center, double cube_size) const
+	{
+		size_t nT = GetNTriangles();
+		for(int t = 0; t < nT; t++)
+		{
+			const Vec3<int> & tri = GetTriangle(t);
+			Vec3<double> v0, v1, v2;
+			v0 = GetPoint(tri[0]);
+			v1 = GetPoint(tri[1]);
+			v2 = GetPoint(tri[2]);
+			Vec3<double> plane_normal = (v2 - v0) ^ (v1 - v0); plane_normal.Normalize();
+			double plane_c = v0 * plane_normal;
+			double dist = DistancePlaneToCube(plane_normal, plane_c, cube_center, cube_size * 0.5);
+			if(dist < -cube_size * 0.025) // box is out of plane
+				return false;
+		}
+		return true;
+	}
+	int Mesh::GetVoxelLineInsideHull(const Vec3<double>& hit0, const Vec3<double>& hit1, int side, const VoxelBase& voxel, int* rz0, int* rz1) const
+	{
+		Vec3<int> vpos0 = voxel.Position(hit0);
+		Vec3<int> vpos1 = voxel.Position(hit1);
+		int z0 = vpos0[side];
+		int z1 = vpos1[side];
+		if(z0 > z1) // z0 must be <= z1
+			std::swap(z0, z1);
+		bool bad_z0 = true;
+		bool bad_z1 = true;
+
+		Vec3<int> vp = vpos0;
+		Vec3<double> rpos;
+		for( ;; )
+		{
+			if(bad_z0)
+			{
+				vp[side] = z0;
+				rpos = voxel.Point(vp);
+				if(CubeInsideHull(rpos, voxel.m_size))
+					bad_z0 = false;
+				else 
+					++z0;
+			}
+			if(bad_z1)
+			{
+				vp[side] = z1;
+				rpos = voxel.Point(vp);
+				if(CubeInsideHull(rpos, voxel.m_size))
+					bad_z1 = false;
+				else 
+					--z1;
+
+			}
+			if(!bad_z0 && !bad_z1)
+			{
+				*rz0 = z0;
+				*rz1 = z1;
+				return z1 - z0 + 1;
+			}
+			if(z0 > z1)
+				return 0;
+		}
+		return 0;
+	}
+	size_t Mesh::ComputeVoxelsInsideHull(const VoxelBase& basis) const
+	{
+		if(!GetNPoints())
+			return 0;
+
+		//std::ofstream fout("tracer.txt", std::ios_base::app);
+		Vec3<int> rangeMin, rangeMax;
+		int side = GetSmallestSideForTracing(&rangeMin, &rangeMax, basis);
+
+		size_t voxelsInside = 0;
+		for(int x = rangeMin[0]; x <= rangeMax[0]; ++x)
+		{
+			for(int y = rangeMin[1]; y <= rangeMax[1]; ++y)
+			{
+				Vec3<double> from, to;
+				//fout << "x " << x << " y " << y;
+				PrepareRay(&from, &to, x, y, rangeMin[2], rangeMax[2], side, basis);
+
+				Vec3<double> hit0, hit1;
+				if(TraceRayToHull(&hit0, &hit1, from, to))
+				{
+					// ray hit
+					int z0, z1;
+					int count = GetVoxelLineInsideHull(hit0, hit1, side, basis, &z0, &z1);
+					//if(count > 0)
+					//	fout << " z0 " << z0 << " z1 " << z1 << " = " << count;
+					voxelsInside += count;
+				}
+				//fout << std::endl;
+			}
+		}
+		//fout << "voxels in hull " << ComputeVolume() / Cube(voxelSize) << " traced " << voxelsInside << std::endl;
+		return voxelsInside;
+	}
+	double	Mesh::ComputeVoxelizationError(const VoxelBase& basis) const
+	{
+		if(!GetNPoints())
+			return 0.0;
+
+		double volumeUnit = Cube(basis.m_size);
+		double volumeVoxel = ComputeVoxelsInsideHull(basis) * volumeUnit;
+		double volumeHull = ComputeVolume();
+		double volumeError = volumeHull - volumeVoxel;
+		double volumeErrorThreshold = 0.25 * volumeUnit;
+		return std::max(volumeError, volumeErrorThreshold);
+	}
 
 #ifdef VHACD_DEBUG_MESH
     bool Mesh::SaveVRML2(const std::string & fileName) const

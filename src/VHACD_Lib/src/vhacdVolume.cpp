@@ -17,6 +17,7 @@
 #include <string.h>
 #include <math.h>
 #include <queue>
+#include <fstream>
 #include <float.h>
 #include "vhacdVolume.h"
 #include "btConvexHullComputer.h"
@@ -300,7 +301,8 @@ namespace VHACD
         }
     }
     const double TetrahedronSet::EPS = 0.0000000000001;
-    VoxelSet::VoxelSet()
+	size_t PrimitiveSet::m_uniqueCounter = 0;
+	VoxelSet::VoxelSet()
     {
         m_minBB[0]         = m_minBB[1]         = m_minBB[2]       = 0.0;
         m_minBBVoxels[0]   = m_minBBVoxels[1]   = m_minBBVoxels[2] = 0;
@@ -371,34 +373,31 @@ namespace VHACD
                     if (s == sampling)
                     {
                         s = 0;
-                        i = m_voxels[p].m_coord[0];
-                        j = m_voxels[p].m_coord[1];
-                        k = m_voxels[p].m_coord[2];
-                        Vec3<double> p0((i-0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<double> p1((i+0.5) * m_scale, (j-0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<double> p2((i+0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<double> p3((i-0.5) * m_scale, (j+0.5) * m_scale, (k-0.5) * m_scale);
-                        Vec3<double> p4((i-0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
-                        Vec3<double> p5((i+0.5) * m_scale, (j-0.5) * m_scale, (k+0.5) * m_scale);
-                        Vec3<double> p6((i+0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
-                        Vec3<double> p7((i-0.5) * m_scale, (j+0.5) * m_scale, (k+0.5) * m_scale);
-                        points[q++] = p0 + m_minBB;
-                        points[q++] = p1 + m_minBB;
-                        points[q++] = p2 + m_minBB;
-                        points[q++] = p3 + m_minBB;
-                        points[q++] = p4 + m_minBB;
-                        points[q++] = p5 + m_minBB;
-                        points[q++] = p6 + m_minBB;
-                        points[q++] = p7 + m_minBB;
+						i = m_voxels[p].m_coord[0];
+						j = m_voxels[p].m_coord[1];
+						k = m_voxels[p].m_coord[2];
+						Vec3<double> p0(i * m_scale, j * m_scale, k * m_scale);
+						points[q++] = p0 + m_minBB;
                     }
                 }
                 ++p;
            }
            btConvexHullComputer ch;
            ch.compute((double *) points, 3 * sizeof(double), (int) q, -1.0, -1.0); 
+		   double extent = 0.5 * m_scale;
            for(int v = 0; v < ch.vertices.size(); v++)
            {
-               cpoints.PushBack(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
+			   double px = ch.vertices[v].getX();
+			   double py = ch.vertices[v].getY();
+			   double pz = ch.vertices[v].getZ();
+			   cpoints.PushBack(Vec3<double>(px - extent, py - extent, pz - extent));
+			   cpoints.PushBack(Vec3<double>(px - extent, py - extent, pz + extent));
+			   cpoints.PushBack(Vec3<double>(px - extent, py + extent, pz - extent));
+			   cpoints.PushBack(Vec3<double>(px - extent, py + extent, pz + extent));
+			   cpoints.PushBack(Vec3<double>(px + extent, py - extent, pz - extent));
+			   cpoints.PushBack(Vec3<double>(px + extent, py - extent, pz + extent));
+			   cpoints.PushBack(Vec3<double>(px + extent, py + extent, pz - extent));
+			   cpoints.PushBack(Vec3<double>(px + extent, py + extent, pz + extent));
            }
         }
         delete [] points;
@@ -460,7 +459,24 @@ namespace VHACD
         pts[6][2] = (k + 0.5) * m_scale + m_minBB[2];
         pts[7][2] = (k + 0.5) * m_scale + m_minBB[2];
     }
-    void VoxelSet::Intersect(const Plane                  &       plane,
+
+	const double VoxelSet::ComputeMaxVolumeInsideHull() const
+	{
+		VoxelBase basis(m_scale, m_minBB, m_minBBVoxels, m_maxBBVoxels);
+		size_t voxelsTraced = GetConvexHull().ComputeVoxelsInsideHull(basis);
+		size_t nVoxels = m_voxels.Size();
+		if(voxelsTraced < nVoxels) // this is possible due to numeric errors and roundoffs during hull generation process
+			voxelsTraced = nVoxels; // no error should be generated
+		return voxelsTraced * Cube(m_scale);
+	}
+
+	const double VoxelSet::ComputeMaxVolumeError() const 
+	{ 
+		VoxelBase basis(m_scale, m_minBB, m_minBBVoxels, m_maxBBVoxels);
+		return GetConvexHull().ComputeVoxelizationError(basis);
+	}
+
+	void VoxelSet::Intersect(const Plane                  &       plane,
                                    SArray< Vec3<double> > * const positivePts,
                                    SArray< Vec3<double> > * const negativePts,
                              const size_t                         sampling) const
@@ -469,7 +485,7 @@ namespace VHACD
         if (nVoxels == 0) return;
         const double d0 = m_scale;
         double d;
-//        Vec3<double> pts[8];
+        Vec3<double> pts[8];
         Vec3<double> pt;
         Voxel voxel;
         if (sampling == 1)
@@ -479,9 +495,8 @@ namespace VHACD
                 voxel = m_voxels[v];
                 pt = GetPoint(voxel);
                 d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
-                if      (d >= 0.0 && d <= d0) positivePts->PushBack(pt);
-                else if (d < 0.0 && -d <= d0) negativePts->PushBack(pt);
-                /*
+//                 if      (d >= 0.0 && d <= d0) positivePts->PushBack(pt);
+//                 else if (d < 0.0 && -d <= d0) negativePts->PushBack(pt);
                 if (d >= 0.0 && d <= d0)
                 {
                     GetPoints(voxel, pts);
@@ -498,7 +513,6 @@ namespace VHACD
                         negativePts->PushBack(pts[k]);
                     }
                 }
-                */
             }
         }
         else
@@ -531,6 +545,92 @@ namespace VHACD
             }
         }
     }
+	double ScanEmptiness(char *line, short size)
+	{
+		int first = -1;
+		int last = -1;
+		
+		for(int i=0; i<size; ++i)
+		{
+			if(line[i])
+			{
+				if(first < 0)
+					first = i;
+				last = i;
+			}
+		}
+		if(last < 0)
+			return 1.0; // no voxels found on line
+
+		++last; // after last
+
+		int empty = 0;
+		int oneSide = 0;
+		for(int i=first; i<last; ++i)
+		{
+			if(line[i] == 0)
+				++empty;
+			else if(line[i] != 3)
+				++oneSide;
+		}
+		return double(empty * 0.5 + oneSide) / (last - first);
+	}
+	double VoxelSet::ComputeEmptiness(const Plane& plane) const
+	{
+        const size_t nVoxels = m_voxels.Size();
+        if (nVoxels == 0) return 0.0;
+
+		Vec3<short> setSize = m_maxBBVoxels - m_minBBVoxels;
+		char* line[3];
+		for(int i=0; i<3; ++i)
+		{
+			line[i] = new char[setSize[i]];
+			memset(line[i], 0, sizeof(char) * setSize[i]);
+		}
+
+		// build lines
+        const double d0 = m_scale;
+        double d;
+        Vec3<double> pt;
+        Voxel voxel;
+		Vec3<short> shifted;
+        for(size_t v = 0; v < nVoxels; ++v)
+        {
+            voxel = m_voxels[v];
+			shifted = Vec3<short>(voxel.m_coord[0] - m_minBBVoxels[0], voxel.m_coord[1] - m_minBBVoxels[1], voxel.m_coord[2] - m_minBBVoxels[2]);
+            pt = GetPoint(voxel);
+            d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
+            if      (d >= 0.0 && d <= d0) 
+			{
+				// positive side
+				for(int i = 0; i<3; ++i)
+					line[i][shifted[i]] |= 1;
+			}
+            else if (d < 0.0 && -d <= d0) 
+			{
+				// negative side
+				for(int i = 0; i<3; ++i)
+					line[i][shifted[i]] |= 2;
+			}
+        }
+
+		// scan lines
+		double emptiness = 0.0;
+		for(int i=0; i<3; ++i)
+		{
+			if(i != (int)plane.m_axis)
+			{
+				double e = ScanEmptiness(line[i], setSize[i]);
+				if(e > emptiness)
+					emptiness = e;
+			}
+		}
+
+		for(int i = 0; i<3; ++i)
+			delete [] line[i];
+
+		return emptiness;
+	}
     void VoxelSet::ComputeExteriorPoints(const Plane                  &       plane,
                                          const Mesh                   &       mesh,
                                                SArray< Vec3<double> > * const exteriorPts) const
@@ -744,7 +844,7 @@ namespace VHACD
         covMat[2][1]  = covMat[1][2];
         Diagonalize(covMat, m_Q, m_D);
     }
-    Volume::Volume()
+	Volume::Volume()
     {
         m_dim  [0] = m_dim  [1] = m_dim  [2] = 0  ;
         m_minBB[0] = m_minBB[1] = m_minBB[2] = 0.0;

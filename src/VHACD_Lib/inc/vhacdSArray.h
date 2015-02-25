@@ -156,5 +156,16 @@ namespace VHACD
             size_t                  m_size;
             size_t                  m_maxSize;
        };    
+
+	   template <class T> void ArrayCleanup(SArray<T*>& a)
+	   {
+		   const size_t count = a.Size();
+		   for (size_t p = 0; p < count; ++p)
+		   {
+			   delete a[p];
+		   }
+		   a.Clear();
+	   }
+
 }
 #endif

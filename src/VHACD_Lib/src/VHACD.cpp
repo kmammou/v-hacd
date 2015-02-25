@@ -365,6 +365,7 @@ namespace VHACD
             m_volume->Convert(*tset);
             m_pset = tset;
         }
+		m_pset->SetUniqueId();
         
         delete m_volume;
         m_volume = 0;
@@ -441,8 +442,16 @@ namespace VHACD
             return (e == 0.0) ? 0.0 : 1.0 - vz / e;
         }
     }
+	int Downsampling(short i0, short i1, short set_downsampling)
+	{
+		const short required_samples = 7;
+		int required_downsampling = max(1, (i1 - i0 + 1) / (required_samples - 1));
+		return min(set_downsampling, required_downsampling);
+	}
+
     void ComputeAxesAlignedClippingPlanes(const VoxelSet & vset, 
-                                          const short      downsampling, 
+                                          const short      set_downsampling, 
+										  Vec3<int>*	   downsamplingSelected,
                                           SArray<Plane>  & planes)
     {
         const Vec3<short> minV = vset.GetMinBBVoxels();
@@ -455,6 +464,8 @@ namespace VHACD
         plane.m_b    = 0.0;
         plane.m_c    = 0.0;
         plane.m_axis = AXIS_X;
+		short downsampling = Downsampling(i0, i1, set_downsampling);
+		(*downsamplingSelected)[0] = downsampling;
         for(short i = i0; i <= i1; i += downsampling)
         {
             pt            = vset.GetPoint(Vec3<double>(i + 0.5, 0.0, 0.0));
@@ -468,6 +479,8 @@ namespace VHACD
         plane.m_b    = 1.0;
         plane.m_c    = 0.0;
         plane.m_axis = AXIS_Y;
+		downsampling = Downsampling(j0, j1, set_downsampling);
+		(*downsamplingSelected)[1] = downsampling;
         for(short j = j0; j <= j1; j += downsampling)
         {
             pt            = vset.GetPoint(Vec3<double>(0.0, j + 0.5, 0.0));
@@ -481,6 +494,8 @@ namespace VHACD
         plane.m_b    = 0.0;
         plane.m_c    = 1.0;
         plane.m_axis = AXIS_Z;
+		downsampling = Downsampling(k0, k1, set_downsampling);
+		(*downsamplingSelected)[2] = downsampling;
         for(short k = k0; k <= k1; k += downsampling)
         {
             pt            = vset.GetPoint(Vec3<double>(0.0, 0.0, k + 0.5));
@@ -491,11 +506,12 @@ namespace VHACD
     }
     void ComputeAxesAlignedClippingPlanes(const TetrahedronSet & tset,
                                           const short            downsampling,
+										  Vec3<int>*			 downsamplingSelected,
                                           SArray< Plane >      & planes)
     {
         const Vec3<double> minV  = tset.GetMinBB();
         const Vec3<double> maxV  = tset.GetMaxBB();
-        const double       scale = tset.GetSacle();
+        const double       scale = tset.GetScale();
         const short        i0    = 0;
         const short        j0    = 0;
         const short        k0    = 0;
@@ -604,7 +620,7 @@ namespace VHACD
     {
         const Vec3<double> minV  = tset.GetMinBB();
         const Vec3<double> maxV  = tset.GetMaxBB();
-        const double       scale = tset.GetSacle();
+        const double       scale = tset.GetScale();
         Plane              plane;
 
         if (bestPlane.m_axis == AXIS_X)
@@ -666,6 +682,7 @@ namespace VHACD
                                          const double            w,
                                          const double            alpha,
                                          const double            beta,
+										 const double            omega,
                                          const int               convexhullDownsampling,
                                          const double            progress0,
                                          const double            progress1,
@@ -681,7 +698,7 @@ namespace VHACD
         }
         char msg[1024];
         int  iBest = -1;
-        int  nPlanes = (int) static_cast<int>(planes.Size());
+        int  nPlanes = static_cast<int>(planes.Size());
         double minTotal = minConcavity + minBalance + minSymmetry;
         bool cancel = false;
         int done = 0;
@@ -812,7 +829,7 @@ namespace VHACD
                     {
                         if (params.m_logger)
                         {
-                            params.m_logger->Log("Couldn't kernel atguments \n");
+                            params.m_logger->Log("Couldn't kernel arguments \n");
                         }
                         SetCancel(true);
                     }
@@ -842,7 +859,7 @@ namespace VHACD
                         {
                             if (params.m_logger)
                             {
-                                params.m_logger->Log("Couldn't kernel atguments \n");
+                                params.m_logger->Log("Couldn't kernel arguments \n");
                             }
                             SetCancel(true);
                         }
@@ -939,29 +956,33 @@ namespace VHACD
                     inputPSet->ComputeClippedVolumes(plane, volumeRight, volumeLeft);
                 }
 
+				// Avoid meaningless splits. This could happen with bad parameters configuration
+				if(volumeLeft * volumeRight == 0.0)
+					continue;
+
                 // compute cost
                 double concavity = fabs(volumeLeftCH + volumeRightCH - volume) / volume0;
-                double balance   = alpha * pow(pow(volumeLeft - volumeRight, 2.0), 0.5) / volume0;
+                double balance   = alpha * fabs(volumeLeft - volumeRight) / volume0;
                 double d         = w * (preferredCuttingDirection[0] * plane.m_a + preferredCuttingDirection[1] * plane.m_b + preferredCuttingDirection[2] * plane.m_c);
                 double symmetry  = beta * d;
-                double total     = concavity + balance + symmetry;
+				double e		 = inputPSet->ComputeEmptiness(plane);
+				double emptiness = (1.0 - e) * omega;
+                double total     = concavity + balance + symmetry + emptiness;
 
 #if USE_THREAD == 1 && _OPENMP
                 #pragma omp critical
 #endif
                 {
+					if (params.m_logger)
+					{
+						sprintf(msg, "\t\t\t Plane %04i T=%2.5f C=%2.5f B=%2.5f E=%2.5f S=%2.5f D=%1.6f W=%1.6f [%1.1f, %1.1f, %1.1f](%1.1f, %1.1f, %1.1f, %3.3f) \n",
+							x, total, concavity, balance, emptiness, symmetry, d, w,
+							preferredCuttingDirection[0], preferredCuttingDirection[1], preferredCuttingDirection[2],
+							plane.m_a, plane.m_b, plane.m_c, plane.m_d);
+						params.m_logger->Log(msg);
+					}
                     if (total <  minTotal || (total == minTotal && x < iBest))
                     {
-                        /*
-                        if (params.m_logger)
-                        {
-                            sprintf(msg, "\t\t\t Plane %04i T=%2.3f C=%2.3f B=%2.3f S=%2.3f D=%1.6f W=%1.6f [%1.1f, %1.1f, %1.1f](%1.1f, %1.1f, %1.1f, %3.3f) \n",
-                                x, total, concavity, balance, symmetry, d, w,
-                                preferredCuttingDirection[0], preferredCuttingDirection[1], preferredCuttingDirection[2],
-                                plane.m_a, plane.m_b, plane.m_c, plane.m_d);
-                            params.m_logger->Log(msg);
-                        }
-                        */
                         bestPlane    = plane;
                         minTotal     = total;
                         minConcavity = concavity;
@@ -1013,6 +1034,32 @@ namespace VHACD
             params.m_logger->Log(msg);
         }
     }
+	static void MeshTransform(Mesh& mesh, double rot[3][3], const Vec3<double>& center)
+	{
+		size_t nv = mesh.GetNPoints();
+		double x, y, z;
+		for (size_t i = 0; i < nv; ++i)
+		{
+			Vec3<double> & pt = mesh.GetPoint(i);
+			x = pt[0];
+			y = pt[1];
+			z = pt[2];
+			pt[0] = rot[0][0] * x + rot[0][1] * y + rot[0][2] * z + center[0];
+			pt[1] = rot[1][0] * x + rot[1][1] * y + rot[1][2] * z + center[1];
+			pt[2] = rot[2][0] * x + rot[2][1] * y + rot[2][2] * z + center[2];
+		}
+	}
+	static void MeshArrayCompact(SArray<Mesh *>& meshes, size_t initialSize, size_t finalSize)
+	{
+		SArray<Mesh *> temp;
+		temp.Allocate(finalSize);
+		for (size_t p1 = 0; p1 < initialSize; ++p1)
+		{
+			if (meshes[p1])
+				temp.PushBack(meshes[p1]);
+		}
+		meshes = temp;
+	}
     void VHACD::ComputeACD(const Parameters &  params)
     {
         if (GetCancel())
@@ -1084,8 +1131,12 @@ namespace VHACD
                     m_volume0 = volumeCH;
                 }
 
-                double error = 1.01 * pset->ComputeMaxVolumeError() / m_volume0;
-                double concavity = fabs(volumeCH - volume) / m_volume0;
+				double volumeTraced = pset->ComputeMaxVolumeInsideHull();
+				double concavity = fabs(volumeCH - volume) / m_volume0;
+				double errorVolume = fabs(volumeCH - volumeTraced);
+				double concavityWithError = (volumeTraced - volume - errorVolume * params.m_errorScale - pset->GetUnitVolume() * params.m_errorConstant) / m_volume0;
+				if(concavityWithError < 0.0)
+					concavityWithError = 0.0;
 
                 if (firstIteration)
                 {
@@ -1097,29 +1148,35 @@ namespace VHACD
                 if (params.m_logger)
                 {
                     msg.str("");
-                    msg << "\t -> Part[" << p
+					msg << "\t -> Part[" << p
                         << "] C = " << concavity
-                        << ", E = " << error
+						<< ", CE = " << concavityWithError
+						<< ", VCH = " << volumeCH
+						<< ", VTR = " << volumeTraced
+						<< ", V = " << volume
                         << ", VS = " << pset->GetNPrimitivesOnSurf()
-                        << ", VI = " << pset->GetNPrimitivesInsideSurf()
+                        << ", VT = " << pset->GetNPrimitives()
+						<< ", UID" << pset->UniqueId()
                         << std::endl;
                     params.m_logger->Log(msg.str().c_str());
                 }
 
-                if (concavity > params.m_concavity && concavity > error)
+                //if (concavity > concavityRequired && concavity > error)
+				if(concavityWithError > params.m_concavity)
                 {
                     Vec3<double> preferredCuttingDirection;
                     double w = ComputePreferredCuttingDirection(pset, preferredCuttingDirection);
                     planes.Resize(0);
+					Vec3<int> selectedDownsampling(1, 1, 1);
                     if (params.m_mode == 0)
                     {
                         VoxelSet * vset = (VoxelSet *) pset;
-                        ComputeAxesAlignedClippingPlanes(*vset, params.m_planeDownsampling, planes);
+                        ComputeAxesAlignedClippingPlanes(*vset, params.m_planeDownsampling, &selectedDownsampling, planes);
                     }
                     else
                     {
                         TetrahedronSet * tset = (TetrahedronSet *) pset;
-                        ComputeAxesAlignedClippingPlanes(*tset, params.m_planeDownsampling, planes);
+                        ComputeAxesAlignedClippingPlanes(*tset, params.m_planeDownsampling, &selectedDownsampling, planes);
                     }
 
                     if (params.m_logger)
@@ -1142,6 +1199,7 @@ namespace VHACD
                                              w,
                                              concavity * params.m_alpha,
                                              concavity * params.m_beta,
+											 concavity * params.m_omega,
                                              params.m_convexhullDownsampling,
                                              progress0,
                                              progress1,
@@ -1154,15 +1212,16 @@ namespace VHACD
                     {
                         planesRef.Resize(0);
 
+						int downsampling = selectedDownsampling[bestPlane.m_axis];
                         if (params.m_mode == 0)
                         {
                             VoxelSet * vset = (VoxelSet *) pset;
-                            RefineAxesAlignedClippingPlanes(*vset, bestPlane, params.m_planeDownsampling, planesRef);
+                            RefineAxesAlignedClippingPlanes(*vset, bestPlane, downsampling, planesRef);
                         }
                         else
                         {
                             TetrahedronSet * tset = (TetrahedronSet *) pset;
-                            RefineAxesAlignedClippingPlanes(*tset, bestPlane, params.m_planeDownsampling, planesRef);
+                            RefineAxesAlignedClippingPlanes(*tset, bestPlane, downsampling, planesRef);
                         }
 
                         if (params.m_logger)
@@ -1182,6 +1241,7 @@ namespace VHACD
                                                  w,
                                                  concavity * params.m_alpha,
                                                  concavity * params.m_beta,
+												 concavity * params.m_omega,
                                                  1,                 // convexhullDownsampling = 1
                                                  progress1,
                                                  progress2,
@@ -1207,6 +1267,15 @@ namespace VHACD
                         temp.PushBack(bestLeft);
                         temp.PushBack(bestRight);
                         pset->Clip(bestPlane, bestRight, bestLeft);
+						bestLeft->SetUniqueId();
+						bestRight->SetUniqueId();
+						if (params.m_logger)
+						{
+							msg.str("");
+							msg << "\t\t Splitting: Left UID" << bestLeft->UniqueId() << " NP " << bestLeft->GetNPrimitives() 
+								<< " right UID" << bestRight->UniqueId() << " NP " << bestRight->GetNPrimitives() << std::endl;
+							params.m_logger->Log(msg.str().c_str());
+						}
                         if (params.m_pca)
                         {
                             bestRight->RevertAlignToPrincipalAxes();
@@ -1274,23 +1343,27 @@ namespace VHACD
 
         Update(m_stageProgress, 0.0, params);
         m_convexHulls.Resize(0);
+		m_hullVoxels.Resize(0);
         for (size_t p = 0; p < nConvexHulls && !m_cancel; ++p)
         {
             Update(m_stageProgress, p * 100.0 / nConvexHulls, params);
             m_convexHulls.PushBack(new Mesh);
             parts[p]->ComputeConvexHull(*m_convexHulls[p], 1);
-            size_t nv = m_convexHulls[p]->GetNPoints();
-            double x, y, z;
-            for (size_t i = 0; i < nv; ++i)
-            {
-                Vec3<double> & pt = m_convexHulls[p]->GetPoint(i);
-                x = pt[0];
-                y = pt[1];
-                z = pt[2];
-                pt[0] = m_rot[0][0] * x + m_rot[0][1] * y + m_rot[0][2] * z + m_barycenter[0];
-                pt[1] = m_rot[1][0] * x + m_rot[1][1] * y + m_rot[1][2] * z + m_barycenter[1];
-                pt[2] = m_rot[2][0] * x + m_rot[2][1] * y + m_rot[2][2] * z + m_barycenter[2];
-            }
+			MeshTransform(*m_convexHulls[p], m_rot, m_barycenter);
+
+			if(params.m_storeConvexHullVoxels)
+			{
+				m_hullVoxels.PushBack(new Mesh);
+				parts[p]->Convert(*m_hullVoxels[p], PRIMITIVE_ON_SURFACE);
+				MeshTransform(*m_hullVoxels[p], m_rot, m_barycenter);
+			}
+
+			if (params.m_logger)
+			{
+				msg.str("");
+				msg << "\thull #" << p << " UID" << parts[p]->UniqueId() << std::endl;
+				params.m_logger->Log(msg.str().c_str());
+			}
         }
 
         const size_t nParts = parts.Size();
@@ -1303,12 +1376,8 @@ namespace VHACD
 
         if (GetCancel())
         {
-            const size_t nConvexHulls = m_convexHulls.Size();
-            for (size_t p = 0; p < nConvexHulls; ++p)
-            {
-                delete m_convexHulls[p];
-            }
-            m_convexHulls.Clear();
+			ArrayCleanup(m_convexHulls);
+			ArrayCleanup(m_hullVoxels);
             return;
         }
 
@@ -1364,6 +1433,73 @@ namespace VHACD
             }
         }
     }
+
+	// assume: p1 and p2 are in range [0.. m_nConvexHulls) in all functions of MergeAcclerator
+	class MergeAccelerator
+	{
+		enum State { SKIP, RESCAN, REFRESH_COST };
+
+		size_t		m_nConvexHulls;
+		double*		m_costMap;
+		char*		m_hullState;
+		bool		m_refreshForP1;
+
+	public:
+		MergeAccelerator(size_t nConvexHulls) : m_nConvexHulls(nConvexHulls), m_refreshForP1(false) , m_hullState(NULL), m_costMap(NULL)
+		{
+			// assume: nConvexHulls > 0
+			m_hullState = new char[m_nConvexHulls];
+			memset(m_hullState, REFRESH_COST, sizeof(char) * m_nConvexHulls);
+			
+			size_t costMapElements = m_nConvexHulls * m_nConvexHulls;
+			m_costMap = new double[costMapElements];
+			for(int i=0; i < costMapElements; ++i) 
+				m_costMap[i] = 0.0;
+		}
+		~MergeAccelerator()
+		{
+			delete [] m_hullState;
+			delete [] m_costMap;
+		}
+		double& GetCost(size_t p1, size_t p2)
+		{
+			return m_costMap[p1*m_nConvexHulls + p2];		
+		}
+		// p2 is being merged to p1
+		void OnMerge(size_t p1, size_t p2)
+		{
+			m_hullState[p1] = REFRESH_COST;
+			m_hullState[p2] = SKIP;
+		}
+		bool StartProcessing(size_t p1)
+		{
+			bool start = m_hullState[p1] != SKIP;
+			m_refreshForP1 = m_hullState[p1] == REFRESH_COST;
+			m_hullState[p1] = SKIP;
+			return start;
+		}
+		bool WantRefresh(size_t p2)
+		{
+			return m_refreshForP1 || m_hullState[p2] == REFRESH_COST;
+		}
+		void OnBelowThreshold(size_t p1)
+		{
+			m_hullState[p1] = RESCAN;
+		}
+	};
+
+	void MeshMerge(Mesh* to, Mesh* from)
+	{
+		int offset = (int)to->GetNPoints();
+		for(int ti = 0; ti < from->GetNPoints(); ++ti)
+			to->AddPoint(from->GetPoint(ti));
+		for(int ti = 0; ti < from->GetNTriangles(); ++ti)
+		{
+			Vec3<int> tri = from->GetTriangle(ti);
+			to->AddTriangle(Vec3<int>(tri.X() + offset, tri.Y() + offset, tri.Z() + offset));
+		}
+	}
+
     void VHACD::MergeConvexHulls(const Parameters &  params)
     {
         if (GetCancel())
@@ -1388,6 +1524,9 @@ namespace VHACD
             const size_t nConvexHulls0 = nConvexHulls;
             const double threshold = params.m_gamma * m_volume0;
             SArray< Vec3<double> > pts;
+
+			MergeAccelerator mergeAccelerator(nConvexHulls0);
+
             Mesh combinedCH;
             bool iterate = true;
 
@@ -1406,18 +1545,25 @@ namespace VHACD
 
                     if (m_convexHulls[p1] && !m_cancel)
                     {
+						if(!mergeAccelerator.StartProcessing(p1))
+							continue;
+
                         double volume1 = m_convexHulls[p1]->ComputeVolume();
                         size_t p2 = p1 + 1;
                         while (p2 < nConvexHulls0)
                         {
                             if (p1 != p2 && m_convexHulls[p2] && !m_cancel)
                             {
-                                double volume2 = m_convexHulls[p2]->ComputeVolume();
-
-                                ComputeConvexHull(m_convexHulls[p1], m_convexHulls[p2], pts, &combinedCH);
-
-                                double combinedVolume = combinedCH.ComputeVolume();
-                                double cost           = combinedVolume - volume1 - volume2;
+								double& cost = mergeAccelerator.GetCost(p1, p2);
+								if(mergeAccelerator.WantRefresh(p2))
+								{
+	                                double volume2 = m_convexHulls[p2]->ComputeVolume();
+		                            ComputeConvexHull(m_convexHulls[p1], m_convexHulls[p2], pts, &combinedCH);
+									double combinedVolume = combinedCH.ComputeVolume();
+									cost = combinedVolume - volume1 - volume2;
+								}
+								if(cost < threshold)
+									mergeAccelerator.OnBelowThreshold(p1);
                                 if (cost < bestCost)
                                 {
                                     bestCost       = cost;
@@ -1437,6 +1583,7 @@ namespace VHACD
                 }
                 if (bestCost < threshold && !m_cancel)
                 {
+					mergeAccelerator.OnMerge(bestp1, bestp2);
                     if (params.m_logger)
                     {
                         msg.str("");
@@ -1449,6 +1596,14 @@ namespace VHACD
                     delete m_convexHulls[bestp2];
                     m_convexHulls[bestp2] = 0;
                     m_convexHulls[bestp1] = cch;
+
+					if(params.m_storeConvexHullVoxels)
+					{
+						MeshMerge(m_hullVoxels[bestp1], m_hullVoxels[bestp2]);
+						delete m_hullVoxels[bestp2];
+						m_hullVoxels[bestp2] = 0;
+					}
+
                     iterate             = true;
                     --nConvexHulls;
                 }
@@ -1459,16 +1614,9 @@ namespace VHACD
             }
             if (!m_cancel)
             {
-                SArray<Mesh *> temp;
-                temp.Allocate(nConvexHulls);
-                for (size_t p1 = 0; p1 < nConvexHulls0; ++p1)
-                {
-                    if (m_convexHulls[p1])
-                    {
-                        temp.PushBack(m_convexHulls[p1]);
-                    }
-                }
-                m_convexHulls = temp;
+				MeshArrayCompact(m_convexHulls, nConvexHulls0, nConvexHulls);
+				if(params.m_storeConvexHullVoxels)
+					MeshArrayCompact(m_hullVoxels, nConvexHulls0, nConvexHulls);
             }
         }
         m_overallProgress = 99.0;

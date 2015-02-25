@@ -39,6 +39,7 @@ namespace VHACD
 
     class PrimitiveSet {
     public:
+		PrimitiveSet() : m_uniqueId(0) {}
         virtual                                     ~PrimitiveSet() {};
         virtual PrimitiveSet *                      Create()                    const = 0;
         virtual const size_t                        GetNPrimitives()            const = 0;
@@ -46,7 +47,10 @@ namespace VHACD
         virtual const size_t                        GetNPrimitivesInsideSurf()  const = 0;
         virtual const double                        GetEigenValue(AXIS axis)    const = 0;
         virtual const double                        ComputeMaxVolumeError()     const = 0;
+		virtual const double						ComputeMaxVolumeInsideHull() const = 0;
         virtual const double                        ComputeVolume()             const = 0;
+		virtual const double 						GetUnitVolume()             const { return 0.0; }
+		virtual double								ComputeEmptiness(const Plane& plane) const { return 0.0; }
         virtual void                                Clip(const Plane        &       plane,
                                                                PrimitiveSet * const positivePart,
                                                                PrimitiveSet * const negativePart) const = 0;
@@ -70,8 +74,13 @@ namespace VHACD
 
                 const Mesh &                        GetConvexHull() const { return m_convexHull; };
                       Mesh &                        GetConvexHull()       { return m_convexHull; };
+
+						void						SetUniqueId() { m_uniqueId = ++m_uniqueCounter; }
+					  size_t						UniqueId() const { return m_uniqueId; }
     private:
         Mesh                                        m_convexHull;
+		size_t										m_uniqueId;
+		static size_t								m_uniqueCounter;
     };
 
     //!
@@ -89,12 +98,13 @@ namespace VHACD
         const size_t                                GetNPrimitivesInsideSurf()  const { return m_numVoxelsInsideSurface; }
         const double                                GetEigenValue(AXIS axis)    const { return m_D[axis][axis]; }
         const double                                ComputeVolume()             const { return m_unitVolume * m_voxels.Size(); }
-        const double                                ComputeMaxVolumeError()     const { return m_unitVolume * m_numVoxelsOnSurface;}
+        const double                                ComputeMaxVolumeError()     const;
+		const double                                ComputeMaxVolumeInsideHull() const;
         const Vec3<short> &                         GetMinBBVoxels()            const { return m_minBBVoxels;}
         const Vec3<short> &                         GetMaxBBVoxels()            const { return m_maxBBVoxels;}
         const Vec3<double> &                        GetMinBB()                  const { return m_minBB; }
         const double &                              GetScale()                  const { return m_scale; }
-        const double &                              GetUnitVolume()             const { return m_unitVolume; }
+        const double                                GetUnitVolume()             const { return m_unitVolume; }
         Vec3<double>                                GetPoint(Vec3<short> voxel) const
                                                     {
                                                         return Vec3<double> (voxel[0] * m_scale +  m_minBB[0], 
@@ -122,6 +132,7 @@ namespace VHACD
                                                                     SArray< Vec3<double> > * const positivePts,
                                                                     SArray< Vec3<double> > * const negativePts,
                                                               const size_t                         sampling) const;
+		double										ComputeEmptiness(const Plane& plane) const;
         void                                        ComputeExteriorPoints(const Plane            &       plane,
                                                                           const Mesh             &       mesh,
                                                                           SArray< Vec3<double> > * const exteriorPts) const;
@@ -183,9 +194,10 @@ namespace VHACD
         const Vec3<double> &                        GetMaxBB()                  const { return m_maxBB; }
         const Vec3<double> &                        GetBarycenter()             const { return m_barycenter; }
         const double                                GetEigenValue(AXIS axis)    const { return m_D[axis][axis]; }
-        const double                                GetSacle()                  const { return m_scale; }
+        const double                                GetScale()                  const { return m_scale; }
         const double                                ComputeVolume()             const;
         const double                                ComputeMaxVolumeError()     const;
+		const double                                ComputeMaxVolumeInsideHull() const { return 0.0; }
         void                                        ComputeConvexHull(Mesh & meshCH, const size_t sampling) const;
 
         void                                        ComputePrincipalAxes();
@@ -273,6 +285,7 @@ namespace VHACD
         void                                        Convert(VoxelSet  & vset) const;
         void                                        Convert(TetrahedronSet & tset) const;
         void                                        AlignToPrincipalAxes(double (&rot)[3][3]) const;
+		const double								ComputeDimension(double relative_resolution) const;
 
     private:
         void                                        FillOutsideSurface(const size_t i0,
@@ -361,6 +374,16 @@ namespace VHACD
             }
         }
     }
+	inline const double Volume::ComputeDimension(double relativeResolution) const
+	{
+		Vec3<double> extent = m_maxBB - m_minBB;
+		double max_r = extent.X();
+		if(max_r < extent.Y())
+			max_r = extent.Y();
+		if(max_r < extent.Z())
+			max_r = extent.Z();
+		return max_r / relativeResolution + 1;
+	}
     template <class T>
     void Volume::Voxelize(const T * const      points,
                           const unsigned int   stridePoints,

@@ -65,6 +65,36 @@ namespace VHACD
     };
 #endif // VHACD_DEBUG_MESH
 
+	struct VoxelBase
+	{
+		VoxelBase(double size, const Vec3<double>& minBB, const Vec3<short>& minVoxel, const Vec3<short>& maxVoxel) 
+			: m_size(size), m_minCorner(minBB), m_minVoxel(minVoxel), m_maxVoxel(maxVoxel) {}
+
+		double m_size;
+		Vec3<double> m_minCorner;
+		Vec3<short> m_minVoxel;
+		Vec3<short> m_maxVoxel;
+
+		Vec3<int> Position(const Vec3<double>& point) const // align point to center of voxel
+		{ 
+			return Vec3<int>
+			(
+				int((point[0] - m_minCorner[0]) / m_size + 0.5), 
+				int((point[1] - m_minCorner[1]) / m_size + 0.5),
+				int((point[2] - m_minCorner[2]) / m_size + 0.5)
+			);
+		}
+		Vec3<double> Point(const Vec3<int>& position) const // return center of voxel
+		{ 
+			return Vec3<double>
+			(
+				position[0] * m_size + m_minCorner[0], 
+				position[1] * m_size + m_minCorner[1],
+				position[2] * m_size + m_minCorner[2]
+			); 
+		}
+	};
+
     //! Triangular mesh data structure
     class Mesh
     {            
@@ -103,6 +133,14 @@ namespace VHACD
                                                  SArray< Vec3<double> > & positivePart, 
                                                  SArray< Vec3<double> > & negativePart) const;
         bool                                IsInside(const Vec3<double> & pt) const;
+
+		// voxel tracing method for evaluating error
+		size_t								ComputeVoxelsInsideHull(const VoxelBase& voxel) const;
+		double								ComputeVoxelizationError(const VoxelBase& voxel) const;
+		int									GetSmallestSideForTracing(Vec3<int>* range_min, Vec3<int>* range_max, const VoxelBase& voxel) const;
+		bool								TraceRayToHull(Vec3<double>* hit0, Vec3<double>* hit1, const Vec3<double>& ray0, const Vec3<double>& ray1) const;
+		bool								CubeInsideHull(const Vec3<double>& cube_center, double cube_size) const;
+		int									GetVoxelLineInsideHull(const Vec3<double>& hit0, const Vec3<double>& hit1, int side, const VoxelBase& voxel, int* z0, int* z1) const;
 
 #ifdef VHACD_DEBUG_MESH
         bool                                LoadOFF(const std::string & fileName, bool invert);

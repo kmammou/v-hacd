@@ -61,6 +61,24 @@ namespace VHACD
                                     {
                                         SetCancel(true);
                                     }
+		void                        GetConvexHullVoxels(const unsigned int index, ConvexHull &ch) const
+									{
+										// m_hullVoxels can be empty, depending on parameters
+										if(index < 0 || index >= m_hullVoxels.Size())
+										{
+											ch.m_nTriangles = ch.m_nPoints = 0;
+											ch.m_points = NULL;
+											ch.m_triangles = NULL;
+										}
+										else
+										{
+											Mesh * mesh = m_hullVoxels[index];
+											ch.m_nPoints = (unsigned int)mesh->GetNPoints();
+											ch.m_nTriangles = (unsigned int)mesh->GetNTriangles();
+											ch.m_points = mesh->GetPoints();
+											ch.m_triangles = mesh->GetTriangles();
+										}
+									}
         void                        GetConvexHull(const unsigned int index, ConvexHull & ch) const
                                     {
                                         Mesh * mesh = m_convexHulls[index];
@@ -73,12 +91,8 @@ namespace VHACD
                                     {
                                         delete m_volume;
                                         delete m_pset;
-                                        size_t nCH = m_convexHulls.Size();
-                                        for (size_t p = 0; p < nCH; ++p)
-                                        {
-                                            delete m_convexHulls[p];
-                                        }
-                                        m_convexHulls.Clear();
+										ArrayCleanup(m_convexHulls);
+										ArrayCleanup(m_hullVoxels);
                                         Init();
                                     }
         void                        Release(void)
@@ -135,7 +149,7 @@ namespace VHACD
         void                        Init()
                                     {
                                         memset(m_rot, 0, sizeof(double) * 9);
-                                        m_dim = 64;
+                                        m_dim = 10;
                                         m_volume = 0;
                                         m_volume0 = 0.0;
                                         m_pset = 0;
@@ -160,6 +174,7 @@ namespace VHACD
                                                              const double            w,
                                                              const double            alpha,
                                                              const double            beta,
+															 const double            omega,
                                                              const int               convexhullDownsampling,
                                                              const double            progress0,
                                                              const double            progress1,
@@ -283,11 +298,28 @@ namespace VHACD
                                                 params.m_logger->Log(msg.str().c_str());
                                             }
 
-                                            double a = pow((double)(params.m_resolution) / n, 0.33);
+											double voxelsWanted = params.m_resolution;
+											if(params.m_relativeResolution > 0.0)
+											{
+												const double voxelsMinimum = 100.0;
+												double dim_required = m_volume->ComputeDimension(params.m_relativeResolution);
+												// C*dim^3 --> n
+												// C*dim_required^3 --> x
+												// n/dim^3*dim_required^3
+												double voxelsBySize = n * pow(dim_required / m_dim, 3.0);
+												if(voxelsWanted > voxelsBySize)
+												{
+													voxelsWanted = voxelsBySize;
+													if(voxelsWanted < voxelsMinimum)
+														voxelsWanted = voxelsMinimum;
+												}
+											}
+
+                                            double a = pow(voxelsWanted / n, 0.33);
                                             size_t dim_next = (size_t)(m_dim * a + 0.5);
-                                            if (n < params.m_resolution &&
+                                            if (n < voxelsWanted &&
                                                 iteration < maxIteration &&
-                                                m_volume->GetNPrimitivesOnSurf() < params.m_resolution / 8 &&
+                                               // m_volume->GetNPrimitivesOnSurf() < voxelsWanted / 8 &&
                                                 m_dim != dim_next)
                                             {
                                                 delete m_volume;
@@ -310,7 +342,8 @@ namespace VHACD
                                             params.m_logger->Log(msg.str().c_str());
                                         }
                                     }
-        template <class T>
+
+		template <class T>
         bool                        ComputeACD(const T * const     points,
                                                const unsigned int  stridePoints,
                                                const unsigned int  nPoints,
@@ -345,6 +378,7 @@ namespace VHACD
 
     private:
         SArray<Mesh *>              m_convexHulls;
+		SArray<Mesh *>				m_hullVoxels;
         std::string                 m_stage;
         std::string                 m_operation;
         double                      m_overallProgress;
