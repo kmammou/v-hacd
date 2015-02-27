@@ -65,7 +65,7 @@ class MyLogger : public IVHACD::IUserLogger
                                         if (m_file.is_open())
                                         {
                                             m_file << msg;
-//                                            m_file.flush();
+                                            m_file.flush();
                                         }
                                     }
         void                        OpenFile(const string & fileName) 
@@ -203,6 +203,7 @@ int main(int argc, char * argv[])
         msg << "\t alpha                                       " << params.m_paramsVHACD.m_alpha                   << endl;
         msg << "\t beta                                        " << params.m_paramsVHACD.m_beta                    << endl;
         msg << "\t gamma                                       " << params.m_paramsVHACD.m_gamma                   << endl;
+        msg << "\t delta                                       " << params.m_paramsVHACD.m_delta                   << endl;
         msg << "\t pca                                         " << params.m_paramsVHACD.m_pca                     << endl;
         msg << "\t mode                                        " << params.m_paramsVHACD.m_mode                    << endl;
         msg << "\t max. vertices per convex-hull               " << params.m_paramsVHACD.m_maxNumVerticesPerCH     << endl;
@@ -323,12 +324,13 @@ void Usage(const Parameters & params)
     msg << "       --convexhullDownsampling    Controls the precision of the convex-hull generation process during the clipping plane selection stage (default=4, range=1-16)" << endl;
     msg << "       --alpha                     Controls the bias toward clipping along symmetry planes (default=0.05, range=0.0-1.0)" << endl;
     msg << "       --beta                      Controls the bias toward clipping along revolution axes (default=0.05, range=0.0-1.0)" << endl;
-    msg << "       --gamma                     Maximum allowed concavity during the merge stage (default=0.00125, range=0.0-1.0)" << endl;
+    msg << "       --gamma                     Controls the maximum allowed concavity during the merge stage (default=0.00125, range=0.0-1.0)" << endl;
+    msg << "       --delta                     Controls the bias toward maximaxing local concavity (default=0.05, range=0.0-1.0)" << endl;
     msg << "       --pca                       Enable/disable normalizing the mesh before applying the convex decomposition (default=0, range={0,1})" << endl;
     msg << "       --mode                      0: voxel-based approximate convex decomposition, 1: tetrahedron-based approximate convex decomposition (default=0, range={0,1})" << endl;
     msg << "       --maxNumVerticesPerCH       Controls the maximum number of triangles per convex-hull (default=64, range=4-1024)" << endl;
     msg << "       --minVolumePerCH            Controls the adaptive sampling of the generated convex-hulls (default=0.0001, range=0.0-0.01)" << endl;
-    msg << "       --convexHullapproximation   Enable/disable approximation when computing convex-hulls (default=1, range={0,1})" << endl;
+    msg << "       --convexhullApproximation   Enable/disable approximation when computing convex-hulls (default=1, range={0,1})" << endl;
     msg << "       --oclAcceleration           Enable/disable OpenCL acceleration (default=0, range={0,1})" << endl;
     msg << "       --oclPlatformID             OpenCL platform id (default=0, range=0-# OCL platforms)" << endl;
     msg << "       --oclDeviceID               OpenCL device id (default=0, range=0-# OCL devices)" << endl;
@@ -358,6 +360,7 @@ void ParseParameters(int          argc,
         else if (!strcmp(argv[i], "--alpha"                  )) { if (++i < argc) params.m_paramsVHACD.m_alpha                   = atof(argv[i]); }
         else if (!strcmp(argv[i], "--beta"                   )) { if (++i < argc) params.m_paramsVHACD.m_beta                    = atof(argv[i]); }
         else if (!strcmp(argv[i], "--gamma"                  )) { if (++i < argc) params.m_paramsVHACD.m_gamma                   = atof(argv[i]); }
+        else if (!strcmp(argv[i], "--delta"                  )) { if (++i < argc) params.m_paramsVHACD.m_delta                   = atof(argv[i]); }
         else if (!strcmp(argv[i], "--pca"                    )) { if (++i < argc) params.m_paramsVHACD.m_pca                     = atoi(argv[i]); }
         else if (!strcmp(argv[i], "--mode"                   )) { if (++i < argc) params.m_paramsVHACD.m_mode                    = atoi(argv[i]); }
         else if (!strcmp(argv[i], "--maxNumVerticesPerCH"    )) { if (++i < argc) params.m_paramsVHACD.m_maxNumVerticesPerCH     = atoi(argv[i]); }

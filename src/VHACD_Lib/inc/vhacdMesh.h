@@ -126,6 +126,7 @@ namespace VHACD
         void                                ResizePoints(size_t nPts)                        { m_points.Resize(nPts);}
         void                                ResizeTriangles(size_t nTri)                     { m_triangles.Resize(nTri);}
         void                                CopyPoints(SArray< Vec3<double> >& points) const { points = m_points; }
+        double                              GetDiagBB()                                const { return m_diag; }
         double                              ComputeVolume() const;
         void                                ComputeConvexHull(const double * const pts, 
                                                               const size_t         nPts);
@@ -133,6 +134,7 @@ namespace VHACD
                                                  SArray< Vec3<double> > & positivePart, 
                                                  SArray< Vec3<double> > & negativePart) const;
         bool                                IsInside(const Vec3<double> & pt) const;
+        double                              ComputeDiagBB();
 
 		// voxel tracing method for evaluating error
 		size_t								ComputeVoxelsInsideHull(const VoxelBase& voxel) const;

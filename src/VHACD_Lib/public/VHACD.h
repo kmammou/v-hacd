@@ -56,13 +56,14 @@ namespace VHACD
                                                 m_resolution              = 100000;
 												m_relativeResolution	  = 0.0;
                                                 m_depth                   = 20;
-                                                m_concavity               = 0.0025;
+                                                m_concavity               = 0.001;
+                                                m_delta                   = 0.05;
                                                 m_planeDownsampling       = 4;
                                                 m_convexhullDownsampling  = 4;
                                                 m_alpha                   = 0.05;
                                                 m_beta                    = 0.05;
 												m_omega					  = 0.05;
-                                                m_gamma                   = 0.00125;
+                                                m_gamma                   = 0.0005;
                                                 m_pca                     = 0;
                                                 m_mode                    = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
                                                 m_maxNumVerticesPerCH     = 64;
@@ -75,24 +76,25 @@ namespace VHACD
                                                 m_oclAcceleration         = true;
 												m_storeConvexHullVoxels	  = false;
                                             }
-            unsigned int                    m_resolution;
 			double                          m_relativeResolution; // 0 - not active
-            int                             m_depth;
             double                          m_concavity;
 			double							m_errorConstant;
 			double							m_errorScale;
-            int                             m_planeDownsampling;
-            int                             m_convexhullDownsampling;
             double                          m_alpha;
             double                          m_beta;
 			double							m_omega;
             double                          m_gamma;
+            double                          m_delta;
             double                          m_minVolumePerCH;
-            int                             m_pca;
-            int                             m_mode;
-            unsigned int                    m_maxNumVerticesPerCH;
             IUserCallback *                 m_callback;
             IUserLogger *                   m_logger;
+            unsigned int                    m_resolution;
+            unsigned int                    m_maxNumVerticesPerCH;
+            int                             m_depth;
+            int                             m_planeDownsampling;
+            int                             m_convexhullDownsampling;
+            int                             m_pca;
+            int                             m_mode;
             int                             m_convexhullApproximation;
             int                             m_oclAcceleration;
 			int								m_storeConvexHullVoxels; // for debug visualizations

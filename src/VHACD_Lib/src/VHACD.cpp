@@ -19,6 +19,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <limits>
 #if _OPENMP
 #include <omp.h>
 #endif // _OPENMP
@@ -37,6 +38,7 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define ABS(a) (((a)<0) ? -(a) : (a))
 #define ZSGN(a) (((a)<0) ? -1 : (a)>0 ? 1 : 0)
+#define MAX_DOUBLE (1.79769e+308)
 
 //#define OCL_SOURCE_FROM_FILE
 #ifndef OCL_SOURCE_FROM_FILE
@@ -672,40 +674,55 @@ namespace VHACD
             }
         }
     }
+    inline double ComputeLocalConcavity(const double volume,
+                                        const double volumeCH)
+    {
+        return fabs(volumeCH - volume) / volumeCH;
+    }
+    inline double ComputeConcavity(const double volume,
+                                   const double volumeCH,
+                                   const double volume0)
+    {
+        return fabs(volumeCH - volume) / volume0;
+    }
     
 //#define DEBUG_TEMP
     void VHACD::ComputeBestClippingPlane(const PrimitiveSet    * inputPSet,
-                                         const double            volume0,
                                          const double            volume,
                                          const SArray< Plane > & planes,
                                          const Vec3<double>    & preferredCuttingDirection,
                                          const double            w,
                                          const double            alpha,
                                          const double            beta,
+                                         const double            delta,
 										 const double            omega,
                                          const int               convexhullDownsampling,
                                          const double            progress0,
                                          const double            progress1,
                                          Plane                 & bestPlane,
                                          double                & minConcavity,
-                                         double                & minBalance,
-                                         double                & minSymmetry,
                                          const Parameters      & params)
     {
         if (GetCancel())
         {
             return;
         }
-        char msg[1024];
+        char   msg[256];
+        size_t nPrimitives                = inputPSet->GetNPrimitives();
+        bool   oclAcceleration            = (nPrimitives > OCL_MIN_NUM_PRIMITIVES && params.m_oclAcceleration && params.m_mode == 0) ? true : false;
         int  iBest = -1;
         int  nPlanes = static_cast<int>(planes.Size());
-        double minTotal = minConcavity + minBalance + minSymmetry;
         bool cancel = false;
         int done = 0;
+        double minTotal                   = MAX_DOUBLE;
+        double minBalance                 = MAX_DOUBLE;
+        double minSymmetry                = MAX_DOUBLE;
+		double minEmptiness				  = MAX_DOUBLE;
+        double minLocalConcavity          = MAX_DOUBLE;
+        minConcavity                      = MAX_DOUBLE;
 
         SArray< Vec3<double> > * chPts = new SArray< Vec3<double> >[2 * m_ompNumProcessors];
         Mesh                   * chs   = new Mesh[2 * m_ompNumProcessors];
-
         PrimitiveSet * onSurfacePSet = inputPSet->Create();
         inputPSet->SelectOnSurface(onSurfacePSet);
 
@@ -718,9 +735,6 @@ namespace VHACD
                 psets[i] = inputPSet->Create();
             }
         }
-
-        size_t nPrimitives = inputPSet->GetNPrimitives();
-        bool oclAcceleration = (nPrimitives > OCL_MIN_NUM_PRIMITIVES && params.m_oclAcceleration && params.m_mode == 0) ? true : false;
 
 #ifdef CL_VERSION_1_1
         // allocate OpenCL data structures
@@ -797,6 +811,7 @@ namespace VHACD
         Timer timerComputeCost;
         timerComputeCost.Tic();
 #endif // DEBUG_TEMP
+
 
 #if USE_THREAD == 1 && _OPENMP
         #pragma omp parallel for
@@ -895,17 +910,32 @@ namespace VHACD
                 leftCH.ResizeTriangles(0);
 
                 // compute convex-hulls
-
+#ifdef TEST_APPROX_CH
+                double volumeLeftCH1;
+                double volumeRightCH1;
+#endif //TEST_APPROX_CH
                 if (params.m_convexhullApproximation)
                 {
                     SArray< Vec3<double> > & leftCHPts = chPts[threadID];
                     SArray< Vec3<double> > & rightCHPts = chPts[threadID + m_ompNumProcessors];
                     rightCHPts.Resize(0);
                     leftCHPts.Resize(0);
-                    onSurfacePSet->Intersect(plane, &rightCHPts, &leftCHPts, convexhullDownsampling);
+                    onSurfacePSet->Intersect(plane, &rightCHPts, &leftCHPts, convexhullDownsampling * 32);
                     inputPSet->GetConvexHull().Clip(plane, rightCHPts, leftCHPts);
                     rightCH.ComputeConvexHull((double *)rightCHPts.Data(), rightCHPts.Size());
                     leftCH.ComputeConvexHull((double *)leftCHPts.Data(), leftCHPts.Size());
+#ifdef TEST_APPROX_CH
+                    Mesh leftCH1;
+                    Mesh rightCH1;
+                    VoxelSet right;
+                    VoxelSet left;
+                    onSurfacePSet->Clip(plane, &right, &left);
+                    right.ComputeConvexHull(rightCH1, convexhullDownsampling);
+                    left.ComputeConvexHull(leftCH1, convexhullDownsampling);
+
+                    volumeLeftCH1 = leftCH1.ComputeVolume();
+                    volumeRightCH1 = rightCH1.ComputeVolume();
+#endif //TEST_APPROX_CH
                 }
                 else
                 {
@@ -915,15 +945,12 @@ namespace VHACD
                     right->ComputeConvexHull(rightCH, convexhullDownsampling);
                     left->ComputeConvexHull(leftCH, convexhullDownsampling);
                 }
-
                 double volumeLeftCH = leftCH.ComputeVolume();
                 double volumeRightCH = rightCH.ComputeVolume();
 
                 // compute clipped volumes
                 double volumeLeft  = 0.0;
                 double volumeRight = 0.0;
-
-
                 if (oclAcceleration)
                 {
 #ifdef CL_VERSION_1_1
@@ -959,36 +986,87 @@ namespace VHACD
 				// Avoid meaningless splits. This could happen with bad parameters configuration
 				if(volumeLeft * volumeRight == 0.0)
 					continue;
+				
+				double concavityLeft       = ComputeConcavity(volumeLeft, volumeLeftCH, m_volumeCH0);
+                double concavityRight      = ComputeConcavity(volumeRight, volumeRightCH, m_volumeCH0);
+                double localConcavityLeft  = ComputeLocalConcavity(volumeLeft, volumeLeftCH);
+                double localConcavityRight = ComputeLocalConcavity(volumeRight, volumeRightCH);
+                double concavity           = (concavityLeft + concavityRight);
+                double localConcavity      = delta * (concavityLeft + concavityRight);
+
+                /*
+                if (useConvexhullApproximation && (volumeLeftCH + volumeRightCH < volumeLeft + volumeRight))
+                {
+                    PrimitiveSet * const right = psets[threadID];
+                    PrimitiveSet * const left = psets[threadID + m_ompNumProcessors];
+                    onSurfacePSet->Clip(plane, right, left);
+                    right->ComputeConvexHull(rightCH, convexhullDownsampling);
+                    left->ComputeConvexHull(leftCH, convexhullDownsampling);
+                    volumeLeftCH = leftCH.ComputeVolume();
+                    volumeRightCH = rightCH.ComputeVolume();
+                    concavityLeft = ComputeConcavity(volumeLeft, volumeLeftCH, m_volumeCH0);
+                    concavityRight = ComputeConcavity(volumeRight, volumeRightCH, m_volumeCH0);
+                    localConcavityLeft = ComputeLocalConcavity(volumeLeft, volumeLeftCH);
+                    localConcavityRight = ComputeLocalConcavity(volumeRight, volumeRightCH);
+                    concavity = (concavityLeft + concavityRight);
+                    localConcavity = delta * (concavityLeft + concavityRight);
+                }
+                */
 
                 // compute cost
-                double concavity = fabs(volumeLeftCH + volumeRightCH - volume) / volume0;
-                double balance   = alpha * fabs(volumeLeft - volumeRight) / volume0;
+#ifdef TEST_APPROX_CH
+                double concavityLeft1       = ComputeConcavity(volumeLeft, volumeLeftCH1, m_volumeCH0);
+                double concavityRight1      = ComputeConcavity(volumeRight, volumeRightCH1, m_volumeCH0);
+                double localConcavityLeft1  = ComputeLocalConcavity(volumeLeft, volumeLeftCH1);
+                double localConcavityRight1 = ComputeLocalConcavity(volumeRight, volumeRightCH1);
+                double concavity1           = (concavityLeft1 + concavityRight1);
+                double localConcavity1      = delta * (concavityLeft1 + concavityRight1);
+#endif //TEST_APPROX_CH
+
+				double balance   = alpha * fabs(volumeLeft - volumeRight) / m_volumeCH0;
                 double d         = w * (preferredCuttingDirection[0] * plane.m_a + preferredCuttingDirection[1] * plane.m_b + preferredCuttingDirection[2] * plane.m_c);
                 double symmetry  = beta * d;
 				double e		 = inputPSet->ComputeEmptiness(plane);
 				double emptiness = (1.0 - e) * omega;
-                double total     = concavity + balance + symmetry + emptiness;
+                double total     = concavity + balance + symmetry + emptiness + localConcavity;
 
+#ifdef TEST_APPROX_CH
+                double total1 = concavity1 + balance + symmetry + localConcavity1;
+                double err    = 0.0;
+                if (useConvexhullApproximation)
+                {
+                    err = fabs(total - total1) / total1;
+                }
+#endif //TEST_APPROX_CH
 #if USE_THREAD == 1 && _OPENMP
                 #pragma omp critical
 #endif
                 {
-					if (params.m_logger)
-					{
-						sprintf(msg, "\t\t\t Plane %04i T=%2.5f C=%2.5f B=%2.5f E=%2.5f S=%2.5f D=%1.6f W=%1.6f [%1.1f, %1.1f, %1.1f](%1.1f, %1.1f, %1.1f, %3.3f) \n",
-							x, total, concavity, balance, emptiness, symmetry, d, w,
-							preferredCuttingDirection[0], preferredCuttingDirection[1], preferredCuttingDirection[2],
-							plane.m_a, plane.m_b, plane.m_c, plane.m_d);
-						params.m_logger->Log(msg);
-					}
-                    if (total <  minTotal || (total == minTotal && x < iBest))
+                    if (total < minTotal || (total == minTotal && x < iBest))
                     {
+						if (params.m_logger)
+						{
+							sprintf(msg, "\t\t\t Plane %04i T=%2.6f C=%2.6f B=%2.6f E=%2.6f LC=%2.6f S=%2.6f D=%1.6f W=%1.6f [%1.1f, %1.1f, %1.1f](%1.1f, %1.1f, %1.1f, %3.3f) \n",
+								x, total, concavity, balance, emptiness, localConcavity, symmetry, d, w,
+								preferredCuttingDirection[0], preferredCuttingDirection[1], preferredCuttingDirection[2],
+								plane.m_a, plane.m_b, plane.m_c, plane.m_d);
+							params.m_logger->Log(msg);
+						}
+#ifdef TEST_APPROX_CH
+						if (params.m_logger)
+						{
+							sprintf(msg, "\t\t\t--------> Error=%f\n", err);
+							params.m_logger->Log(msg);
+						}
+#endif //TEST_APPROX_CH
+                        minConcavity      = concavity;
+                        minBalance        = balance;
+                        minSymmetry       = symmetry;
+						minEmptiness	  = emptiness;
+                        minLocalConcavity = localConcavity;
                         bestPlane    = plane;
                         minTotal     = total;
-                        minConcavity = concavity;
                         iBest        = x;
-                        minBalance   = balance;
-                        minSymmetry  = symmetry;
                     }
                     ++done;
                     if (!(done & 127)) // reduce update frequency
@@ -1030,7 +1108,8 @@ namespace VHACD
         delete[] chs;
         if (params.m_logger)
         {
-            sprintf(msg, "\n\t\t\t Best  %04i T=%2.3f C=%2.3f B=%2.3f S=%2.3f (%1.1f, %1.1f, %1.1f, %3.3f)\n\n", iBest, minTotal, minConcavity, minBalance, minSymmetry, bestPlane.m_a, bestPlane.m_b, bestPlane.m_c, bestPlane.m_d);
+            sprintf(msg, "\n\t\t\t Best  %04i T=%2.6f C=%2.6f B=%2.6f E=%2.6f LC=%2.6f S=%2.6f (%1.1f, %1.1f, %1.1f, %3.3f)\n\n", 
+				iBest, minTotal, minConcavity, minBalance, minEmptiness, minLocalConcavity, minSymmetry, bestPlane.m_a, bestPlane.m_b, bestPlane.m_c, bestPlane.m_d);
             params.m_logger->Log(msg);
         }
     }
@@ -1086,8 +1165,7 @@ namespace VHACD
         SArray< Plane > planesRef;
         int sub = 0;
         bool firstIteration = true;
-        m_volume0 = 1.0;
-        double concavity0 = 1.0;
+        m_volumeCH0 = 1.0;
         while (sub++ < params.m_depth && inputParts.Size() > 0 && !m_cancel)
         {
             msg.str("");
@@ -1123,24 +1201,23 @@ namespace VHACD
                     pset->AlignToPrincipalAxes();
                 }
 
-                pset->ComputeConvexHull(pset->GetConvexHull(), 1);
+                pset->ComputeConvexHull(pset->GetConvexHull());
                 double volumeCH = fabs(pset->GetConvexHull().ComputeVolume());
-
                 if (firstIteration)
                 {
-                    m_volume0 = volumeCH;
+                    m_volumeCH0 = volumeCH;
                 }
 
+                double concavity      = ComputeConcavity(volume, volumeCH, m_volumeCH0);
+                double localConcavity = (volumeCH > 0.0) ? ComputeLocalConcavity(volume, volumeCH) : 0.0;
 				double volumeTraced = pset->ComputeMaxVolumeInsideHull();
-				double concavity = fabs(volumeCH - volume) / m_volume0;
 				double errorVolume = fabs(volumeCH - volumeTraced);
-				double concavityWithError = (volumeTraced - volume - errorVolume * params.m_errorScale - pset->GetUnitVolume() * params.m_errorConstant) / m_volume0;
+				double concavityWithError = (volumeTraced - volume - errorVolume * params.m_errorScale - pset->GetUnitVolume() * params.m_errorConstant) / m_volumeCH0;
 				if(concavityWithError < 0.0)
 					concavityWithError = 0.0;
 
                 if (firstIteration)
                 {
-                    concavity0 = concavity;
                     firstIteration = false;
                 }
 
@@ -1154,6 +1231,7 @@ namespace VHACD
 						<< ", VCH = " << volumeCH
 						<< ", VTR = " << volumeTraced
 						<< ", V = " << volume
+                        << ", LC = " << localConcavity
                         << ", VS = " << pset->GetNPrimitivesOnSurf()
                         << ", VT = " << pset->GetNPrimitives()
 						<< ", UID" << pset->UniqueId()
@@ -1161,7 +1239,7 @@ namespace VHACD
                     params.m_logger->Log(msg.str().c_str());
                 }
 
-                //if (concavity > concavityRequired && concavity > error)
+                //if (concavity > params.m_concavity && concavity > error)
 				if(concavityWithError > params.m_concavity)
                 {
                     Vec3<double> preferredCuttingDirection;
@@ -1187,26 +1265,21 @@ namespace VHACD
                     }
 
                     Plane bestPlane;
-                    double minConcavity = 1.0;
-                    double minBalance = 1.0;
-                    double minSymmetry = 1.0;
-
+                    double minConcavity = MAX_DOUBLE;
                     ComputeBestClippingPlane(pset,
-                                             m_volume0,
                                              volume,
                                              planes,
                                              preferredCuttingDirection,
                                              w,
                                              concavity * params.m_alpha,
                                              concavity * params.m_beta,
+                                             concavity * params.m_delta,
 											 concavity * params.m_omega,
                                              params.m_convexhullDownsampling,
                                              progress0,
                                              progress1,
                                              bestPlane,
                                              minConcavity,
-                                             minBalance,
-                                             minSymmetry,
                                              params);
                     if (!m_cancel && (params.m_planeDownsampling > 1 || params.m_convexhullDownsampling > 1))
                     {
@@ -1230,25 +1303,20 @@ namespace VHACD
                             msg << "\t\t [Refining] Number of clipping planes " << planesRef.Size() << std::endl;
                             params.m_logger->Log(msg.str().c_str());
                         }
-                        minConcavity = 1.0;
-                        minBalance   = 1.0;
-                        minSymmetry  = 1.0;
                         ComputeBestClippingPlane(pset,
-                                                 m_volume0,
                                                  volume,
                                                  planesRef,
                                                  preferredCuttingDirection,
                                                  w,
                                                  concavity * params.m_alpha,
                                                  concavity * params.m_beta,
+                                                 concavity * params.m_delta,
 												 concavity * params.m_omega,
                                                  1,                 // convexhullDownsampling = 1
                                                  progress1,
                                                  progress2,
                                                  bestPlane,
                                                  minConcavity,
-                                                 minBalance,
-                                                 minSymmetry,
                                                  params);
                     }
                     if (GetCancel())
@@ -1348,7 +1416,7 @@ namespace VHACD
         {
             Update(m_stageProgress, p * 100.0 / nConvexHulls, params);
             m_convexHulls.PushBack(new Mesh);
-            parts[p]->ComputeConvexHull(*m_convexHulls[p], 1);
+            parts[p]->ComputeConvexHull(*m_convexHulls[p]);
 			MeshTransform(*m_convexHulls[p], m_rot, m_barycenter);
 
 			if(params.m_storeConvexHullVoxels)
@@ -1522,7 +1590,7 @@ namespace VHACD
         if (nConvexHulls > 1 && !m_cancel)
         {
             const size_t nConvexHulls0 = nConvexHulls;
-            const double threshold = params.m_gamma * m_volume0;
+            const double threshold = params.m_gamma;
             SArray< Vec3<double> > pts;
 
 			MergeAccelerator mergeAccelerator(nConvexHulls0);
@@ -1538,7 +1606,7 @@ namespace VHACD
 
                 size_t bestp1;
                 size_t bestp2;
-                double bestCost = m_volume0;
+                double bestCost = m_volumeCH0;
                 for (size_t p1 = 0; (p1 < nConvexHulls0 - 1) && (!m_cancel); ++p1)
                 {
                     Update(iteration * 100.0 / nConvexHulls0, p1 * 100.0 / (nConvexHulls0 - 1), params);
@@ -1559,8 +1627,10 @@ namespace VHACD
 								{
 	                                double volume2 = m_convexHulls[p2]->ComputeVolume();
 		                            ComputeConvexHull(m_convexHulls[p1], m_convexHulls[p2], pts, &combinedCH);
-									double combinedVolume = combinedCH.ComputeVolume();
-									cost = combinedVolume - volume1 - volume2;
+                                double combinedVolumeCH = combinedCH.ComputeVolume();
+                                double combinedVolume   = volume1 + volume2;
+                                cost             = ComputeConcavity(combinedVolume, combinedVolumeCH, m_volumeCH0);
+
 								}
 								if(cost < threshold)
 									mergeAccelerator.OnBelowThreshold(p1);
@@ -1572,7 +1642,7 @@ namespace VHACD
                                     if (params.m_logger)
                                     {
                                         msg.str("");
-                                        msg << "\t\t Cost (" << p1 << ", " << p2 << ") " << cost / m_volume0 << std::endl;
+                                        msg << "\t\t Cost (" << p1 << ", " << p2 << ") " << std::endl;
                                         params.m_logger->Log(msg.str().c_str());
                                     }
                                 }
@@ -1587,7 +1657,7 @@ namespace VHACD
                     if (params.m_logger)
                     {
                         msg.str("");
-                        msg << "\t\t Merging (" << bestp1 << ", " << bestp2 << ") " << bestCost / m_volume0 << std::endl << std::endl;
+                        msg << "\t\t Merging (" << bestp1 << ", " << bestp2 << ") " << bestCost << std::endl << std::endl;
                         params.m_logger->Log(msg.str().c_str());
                     }
                     Mesh * cch = new Mesh;
@@ -1675,7 +1745,7 @@ namespace VHACD
                 msg << "\t\t Simplify CH[" << std::setfill('0') << std::setw(5) << i << "] " << m_convexHulls[i]->GetNPoints() << " V, " << m_convexHulls[i]->GetNTriangles() << " T" << std::endl;
                 params.m_logger->Log(msg.str().c_str());
             }
-            SimplifyConvexHull(m_convexHulls[i], params.m_maxNumVerticesPerCH, m_volume0*params.m_minVolumePerCH);
+            SimplifyConvexHull(m_convexHulls[i], params.m_maxNumVerticesPerCH, m_volumeCH0*params.m_minVolumePerCH);
         }
 
         m_overallProgress = 100.0;

@@ -359,9 +359,8 @@ namespace VHACD
 
         Vec3<double> * points = new Vec3<double> [CLUSTER_SIZE];
         size_t p = 0;
-        short i, j, k;
-
         size_t s = 0;
+        short i, j, k;
         while( p < nVoxels)
         {
             size_t q = 0;
@@ -488,16 +487,18 @@ namespace VHACD
         Vec3<double> pts[8];
         Vec3<double> pt;
         Voxel voxel;
-        if (sampling == 1)
-        {
+        size_t sp = 0;
+        size_t sn = 0;
             for (size_t v = 0; v < nVoxels; ++v)
             {
                 voxel = m_voxels[v];
                 pt = GetPoint(voxel);
                 d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
-//                 if      (d >= 0.0 && d <= d0) positivePts->PushBack(pt);
-//                 else if (d < 0.0 && -d <= d0) negativePts->PushBack(pt);
-                if (d >= 0.0 && d <= d0)
+//            if      (d >= 0.0 && d <= d0) positivePts->PushBack(pt);
+//            else if (d < 0.0 && -d <= d0) negativePts->PushBack(pt);
+            if (d >= 0.0)
+            {
+                if (d <= d0)
                 {
                     GetPoints(voxel, pts);
                     for (int k = 0; k < 8; ++k)
@@ -505,41 +506,41 @@ namespace VHACD
                         positivePts->PushBack(pts[k]);
                     }
                 }
-                else if (d < 0.0 && -d <= d0)
+                else
                 {
+                    if (++sp == sampling)
+                    {
+//                        positivePts->PushBack(pt);
                     GetPoints(voxel, pts);
                     for (int k = 0; k < 8; ++k)
                     {
-                        negativePts->PushBack(pts[k]);
+                            positivePts->PushBack(pts[k]);
                     }
+                        sp = 0;
                 }
             }
         }
         else
         {
-            size_t sp = 0;
-            size_t sn = 0;
-            for (size_t v = 0; v < nVoxels; ++v)
+                if (-d <= d0)
             {
-                voxel = m_voxels[v];
-                pt = GetPoint(voxel);
-                d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
-                if (d >= 0.0 && d <= d0)
+                    GetPoints(voxel, pts);
+                    for (int k = 0; k < 8; ++k)
                 {
-                    ++sp;
-                    if (sp == sampling)
-                    {
-                        sp = 0;
-                        positivePts->PushBack(pt);
+                        negativePts->PushBack(pts[k]);
                     }
                 }
-                else if (d < 0.0 && -d <= d0)
+                else
                 {
-                    ++sn;
-                    if (sn == sampling)
+                    if (++sn == sampling)
                     {
+//                        negativePts->PushBack(pt);
+                        GetPoints(voxel, pts);
+                        for (int k = 0; k < 8; ++k)
+                        {
+                            negativePts->PushBack(pts[k]);
+                        }
                         sn = 0;
-                        negativePts->PushBack(pt);
                     }
                 }
             }

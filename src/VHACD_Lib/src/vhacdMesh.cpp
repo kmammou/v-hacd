@@ -142,6 +142,27 @@ namespace VHACD
         }
         return true;
     }
+    double Mesh::ComputeDiagBB()
+    {
+        const size_t nPoints = GetNPoints();
+        if (nPoints == 0) return 0.0;
+        Vec3< double > minBB = m_points[0];
+        Vec3< double > maxBB = m_points[0];
+        double x, y, z;
+        for (size_t v = 1; v < nPoints; v++)
+        {
+            x = m_points[v][0];
+            y = m_points[v][1];
+            z = m_points[v][2];
+            if (x < minBB[0]) minBB[0] = x;
+            else if (x > maxBB[0]) maxBB[0] = x;
+            if (y < minBB[1]) minBB[1] = y;
+            else if (y > maxBB[1]) maxBB[1] = y;
+            if (z < minBB[2]) minBB[2] = z;
+            else if (z > maxBB[2]) maxBB[2] = z;
+        }
+        return (m_diag = (maxBB - minBB).GetNorm());
+    }
 	int Mesh::GetSmallestSideForTracing(Vec3<int>* range_min, Vec3<int>* range_max, const VoxelBase& basis) const
 	{
 		Vec3<short> voxel_extent = basis.m_maxVoxel - basis.m_minVoxel;
