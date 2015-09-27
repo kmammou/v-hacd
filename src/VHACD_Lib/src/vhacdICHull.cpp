@@ -440,7 +440,6 @@ namespace VHACD
             Vec3<double> newPt = bary + m_normal;
             AddPoint(newPt, sc_dummyIndex); 
             m_isFlat = true;
-            v3 = v2->GetNext();
             return ICHullErrorOK;
         }
         else if (v3 != vertices.GetHead())

@@ -77,7 +77,7 @@
 
 #define VHACD_DEBUG
 
-#define VHACD_NDEBUG
+//#define VHACD_NDEBUG
 #ifdef  VHACD_NDEBUG
 #define VHACD_VERIFY( x ) (x)
 #else

@@ -966,8 +966,8 @@ namespace VHACD
                 }
                 double concavityLeft       = ComputeConcavity(volumeLeft, volumeLeftCH, m_volumeCH0);
                 double concavityRight      = ComputeConcavity(volumeRight, volumeRightCH, m_volumeCH0);
-                double localConcavityLeft  = ComputeLocalConcavity(volumeLeft, volumeLeftCH);
-                double localConcavityRight = ComputeLocalConcavity(volumeRight, volumeRightCH);
+//                double localConcavityLeft  = ComputeLocalConcavity(volumeLeft, volumeLeftCH);
+//                double localConcavityRight = ComputeLocalConcavity(volumeRight, volumeRightCH);
                 double concavity           = (concavityLeft + concavityRight);
                 double localConcavity      = delta * (concavityLeft + concavityRight);
 
@@ -1450,8 +1450,8 @@ namespace VHACD
                 msg << "Iteration " << iteration++;
                 m_operation = msg.str();
 
-                size_t bestp1;
-                size_t bestp2;
+                size_t bestp1 = -1;
+                size_t bestp2 = -1;
                 double bestCost = m_volumeCH0;
                 for (size_t p1 = 0; (p1 < nConvexHulls0 - 1) && (!m_cancel); ++p1)
                 {

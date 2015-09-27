@@ -154,6 +154,7 @@ bool InitOCL(const unsigned int   oclPlatformID,
 
 int main(int argc, char * argv[])
 {
+    // --input camel.off --output camel_acd.wrl --log log.txt --resolution 1000000 --depth 20 --concavity 0.0025 --planeDownsampling 4 --convexhullDownsampling 4 --alpha 0.05 --beta 0.05 --gamma 0.00125 --pca 0 --mode 0 --maxNumVerticesPerCH 256 --minVolumePerCH 0.0001 --convexhullApproximation 1 --oclDeviceID 2
     {
         // set parameters
         Parameters params;
@@ -211,7 +212,7 @@ int main(int argc, char * argv[])
         msg << "\t convex-hull approximation                   " << params.m_paramsVHACD.m_convexhullApproximation << endl;
         msg << "\t OpenCL acceleration                         " << params.m_paramsVHACD.m_oclAcceleration         << endl;
         msg << "\t OpenCL platform ID                          " << params.m_oclPlatformID                         << endl;
-        msg << "\t OpenCL acceleration                         " << params.m_oclDeviceID                           << endl;
+        msg << "\t OpenCL device ID                            " << params.m_oclDeviceID                           << endl;
         msg << "\t output                                      " << params.m_fileNameOut                           << endl;
         msg << "\t log                                         " << params.m_fileNameLog                           << endl;
         msg << "+ Load mesh" << std::endl;

@@ -26,7 +26,11 @@ bool OCLHelper::InitPlatform(const unsigned int platformIndex)
 
     cl_platform_id  * platforms = new cl_platform_id[numPlatforms];
     m_lastError = clGetPlatformIDs(numPlatforms, platforms, NULL);
-    if (m_lastError != CL_SUCCESS) return false;
+    if (m_lastError != CL_SUCCESS)
+    {
+        delete[] platforms;
+        return false;
+    }
 
     m_platform = platforms[platformIndex];
     delete[] platforms;
@@ -47,7 +51,11 @@ bool OCLHelper::GetPlatformsInfo(std::vector< std::string > & info,
 
     cl_platform_id  * platforms = new cl_platform_id[numPlatforms];
     m_lastError = clGetPlatformIDs(numPlatforms, platforms, NULL);
-    if (m_lastError != CL_SUCCESS) return false;
+    if (m_lastError != CL_SUCCESS)
+    {
+        delete[] platforms;
+        return false;
+    }
 
     size_t bufferSize = 4096;
     char * buffer = new char[bufferSize];
@@ -59,7 +67,12 @@ bool OCLHelper::GetPlatformsInfo(std::vector< std::string > & info,
         {
             info[i] += indentation + platformInfoParameters[j - CL_PLATFORM_PROFILE] + std::string(": ");
             m_lastError = clGetPlatformInfo(platforms[i], j, 0, NULL, &size);
-            if (m_lastError != CL_SUCCESS) return false;
+            if (m_lastError != CL_SUCCESS)
+            {
+                delete[] buffer;
+                delete[] platforms;
+                return false;
+            }
             if (bufferSize < size)
             {
                 delete[] buffer;
@@ -67,7 +80,12 @@ bool OCLHelper::GetPlatformsInfo(std::vector< std::string > & info,
                 buffer = new char[bufferSize];
             }
             m_lastError = clGetPlatformInfo(platforms[i], j, size, buffer, NULL);
-            if (m_lastError != CL_SUCCESS) return false;
+            if (m_lastError != CL_SUCCESS)
+            {
+                delete[] buffer;
+                delete[] platforms;
+                return false;
+            }
             info[i] += buffer + std::string("\n");
         }
     }
@@ -75,8 +93,6 @@ bool OCLHelper::GetPlatformsInfo(std::vector< std::string > & info,
     delete[] buffer;
     return true;
 }
-
-
 bool OCLHelper::InitDevice(const unsigned int deviceIndex)
 {
     cl_uint numDevices;
@@ -85,13 +101,15 @@ bool OCLHelper::InitDevice(const unsigned int deviceIndex)
 
     cl_device_id  * devices = new cl_device_id[numDevices];
     m_lastError = clGetDeviceIDs(m_platform, CL_DEVICE_TYPE_ALL, numDevices, devices, NULL);
-    if (m_lastError != CL_SUCCESS) return false;
-
+    if (m_lastError != CL_SUCCESS)
+    {
+        delete[] devices;
+        return false;
+    }
     m_device = devices[deviceIndex];
     delete[] devices;
     return true;
 }
-
 bool OCLHelper::GetDevicesInfo(std::vector< std::string > & info,
                                const std::string          & indentation)
 {
@@ -177,8 +195,11 @@ bool OCLHelper::GetDevicesInfo(std::vector< std::string > & info,
 
     cl_device_id  * devices = new cl_device_id[numDevices];
     m_lastError = clGetDeviceIDs(m_platform, CL_DEVICE_TYPE_ALL, numDevices, devices, NULL);
-    if (m_lastError != CL_SUCCESS) return false;
-
+    if (m_lastError != CL_SUCCESS)
+    {
+        delete[] devices;
+        return false;
+    }
     size_t bufferSize = 4096;
     char * buffer = new char[bufferSize];
     size_t size;
@@ -203,7 +224,12 @@ bool OCLHelper::GetDevicesInfo(std::vector< std::string > & info,
                         buffer = new char[bufferSize];
                     }
                     m_lastError = clGetDeviceInfo(devices[i], infoParam.id, size, buffer, NULL);
-                    if (m_lastError != CL_SUCCESS) return false;
+                    if (m_lastError != CL_SUCCESS)
+                    {
+                        delete[] devices;
+                        delete[] buffer;
+                        return false;
+                    }
                     info[i] += buffer + std::string("\n");
                 }
             }
