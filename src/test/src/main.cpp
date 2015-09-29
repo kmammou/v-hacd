@@ -33,7 +33,7 @@
 #endif // _CRTDBG_MAP_ALLOC
 
 #include "VHACD.h"
-#include "OCLHelper.h"
+#include "oclHelper.h"
 
 using namespace VHACD;
 using namespace std;
