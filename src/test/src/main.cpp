@@ -204,7 +204,6 @@ int main(int argc, char * argv[])
         msg << "\t alpha                                       " << params.m_paramsVHACD.m_alpha                   << endl;
         msg << "\t beta                                        " << params.m_paramsVHACD.m_beta                    << endl;
         msg << "\t gamma                                       " << params.m_paramsVHACD.m_gamma                   << endl;
-        msg << "\t delta                                       " << params.m_paramsVHACD.m_delta                   << endl;
         msg << "\t pca                                         " << params.m_paramsVHACD.m_pca                     << endl;
         msg << "\t mode                                        " << params.m_paramsVHACD.m_mode                    << endl;
         msg << "\t max. vertices per convex-hull               " << params.m_paramsVHACD.m_maxNumVerticesPerCH     << endl;
@@ -361,7 +360,6 @@ void ParseParameters(int          argc,
         else if (!strcmp(argv[i], "--alpha"                  )) { if (++i < argc) params.m_paramsVHACD.m_alpha                   = atof(argv[i]); }
         else if (!strcmp(argv[i], "--beta"                   )) { if (++i < argc) params.m_paramsVHACD.m_beta                    = atof(argv[i]); }
         else if (!strcmp(argv[i], "--gamma"                  )) { if (++i < argc) params.m_paramsVHACD.m_gamma                   = atof(argv[i]); }
-        else if (!strcmp(argv[i], "--delta"                  )) { if (++i < argc) params.m_paramsVHACD.m_delta                   = atof(argv[i]); }
         else if (!strcmp(argv[i], "--pca"                    )) { if (++i < argc) params.m_paramsVHACD.m_pca                     = atoi(argv[i]); }
         else if (!strcmp(argv[i], "--mode"                   )) { if (++i < argc) params.m_paramsVHACD.m_mode                    = atoi(argv[i]); }
         else if (!strcmp(argv[i], "--maxNumVerticesPerCH"    )) { if (++i < argc) params.m_paramsVHACD.m_maxNumVerticesPerCH     = atoi(argv[i]); }

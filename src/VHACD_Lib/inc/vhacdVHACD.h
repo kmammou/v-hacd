@@ -160,7 +160,6 @@ namespace VHACD
                                                              const double            w,
                                                              const double            alpha,
                                                              const double            beta,
-                                                             const double            delta,
                                                              const int               convexhullDownsampling,
                                                              const double            progress0,
                                                              const double            progress1,

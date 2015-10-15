@@ -56,7 +56,6 @@ namespace VHACD
                                                 m_resolution              = 100000;
                                                 m_depth                   = 20;
                                                 m_concavity               = 0.001;
-                                                m_delta                   = 0.05;
                                                 m_planeDownsampling       = 4;
                                                 m_convexhullDownsampling  = 4;
                                                 m_alpha                   = 0.05;
@@ -75,7 +74,6 @@ namespace VHACD
             double                          m_alpha;
             double                          m_beta;
             double                          m_gamma;
-            double                          m_delta;
             double                          m_minVolumePerCH;
             IUserCallback *                 m_callback;
             IUserLogger *                   m_logger;
