@@ -510,8 +510,6 @@ bool LoadOBJ(const string              & fileName,
     {
         char buffer[BufferSize];
         int  ip[3];
-        int  in[3];
-        int  it[3];
         float x[3];
         char * pch;
         char * str;
@@ -567,8 +565,7 @@ bool LoadOBJ(const string              & fileName,
                     if (nt > 0)
                     {
                         pch = strtok(NULL, ObjDelimiters);
-                        if (pch)  it[k] = atoi(pch) - 1;
-                        else
+                        if (!pch)
                         {
                             return false;
                         }
@@ -576,8 +573,7 @@ bool LoadOBJ(const string              & fileName,
                     if (nn > 0)
                     {
                         pch = strtok(NULL, ObjDelimiters);
-                        if (pch)  in[k] = atoi(pch) - 1;
-                        else
+                        if (!pch)
                         {
                             return false;
                         }
