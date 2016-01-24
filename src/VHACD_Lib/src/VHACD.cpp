@@ -40,6 +40,101 @@
 #define ZSGN(a) (((a)<0) ? -1 : (a)>0 ? 1 : 0)
 #define MAX_DOUBLE (1.79769e+308)
 
+#ifdef USE_SSE
+#include <immintrin.h>
+
+const int SIMD_WIDTH = 4;
+inline int FindMinimumElement(const float *const d, float *const m, const int n)
+{
+    // Min within vectors
+    __m128 min_i = _mm_set1_ps(-1.0f);
+    __m128 min_v = _mm_set1_ps(std::numeric_limits<float>::max());
+    for (int i = 0; i <= n - SIMD_WIDTH; i += SIMD_WIDTH)
+    {
+        const __m128 data = _mm_load_ps(&d[i]);
+        const __m128 pred = _mm_cmplt_ps(data, min_v);
+
+        min_i = _mm_blendv_ps(min_i, _mm_set1_ps(i), pred);
+        min_v = _mm_min_ps(data, min_v);
+    }
+
+    /* Min within vector */
+    const __m128 min1 = _mm_shuffle_ps(min_v, min_v, _MM_SHUFFLE(1,0,3,2));
+    const __m128 min2 = _mm_min_ps(min_v, min1);
+    const __m128 min3 = _mm_shuffle_ps(min2, min2, _MM_SHUFFLE(0,1,0,1));
+    const __m128 min4 = _mm_min_ps(min2, min3);
+    float min_d = _mm_cvtss_f32(min4);
+
+    // Min index
+    const int min_idx = __builtin_ctz(_mm_movemask_ps(_mm_cmpeq_ps(min_v, min4)));
+    int ret = min_i[min_idx] + min_idx;
+
+    // Trailing elements
+    for (int i = (n & ~(SIMD_WIDTH - 1)); i < n; ++i)
+    {
+        if (d[i] < min_d)
+        {
+            min_d   = d[i];
+            ret     = i;
+        }
+    }
+
+    *m = min_d;
+    return ret;
+}
+
+inline int FindMinimumElement(const float *const d, float *const m, const int begin, const int end)
+{
+    // Leading elements
+    int min_i = -1;
+    float min_d = std::numeric_limits<float>::max();
+    const int aligned = (begin & ~(SIMD_WIDTH - 1)) + ((begin & (SIMD_WIDTH - 1)) ? SIMD_WIDTH : 0);
+    for (int i = begin; i < std::min(end, aligned); ++i)
+    {
+        if (d[i] < min_d)
+        {
+            min_d = d[i];
+            min_i = i;
+        }
+    }
+
+    // Middle and trailing elements
+    float r_m = std::numeric_limits<float>::max();
+    const int n = end - aligned;
+    const int r_i = (n > 0) ? FindMinimumElement(&d[aligned], &r_m, n) : 0;
+
+    // Pick the lowest
+    if (r_m < min_d)
+    {
+        *m = r_m;
+        return r_i + aligned;
+    }
+    else
+    {
+        *m = min_d;
+        return min_i;
+    }
+}
+#else
+inline int FindMinimumElement(const float *const d, float *const m, const int begin, const int end)
+{
+    int idx = -1;
+    float min = std::numeric_limits<float>::max();
+    for (size_t i = begin; i < end; ++i)
+    {
+        if (d[i] < min)
+        {
+            idx = i;
+            min = d[i];
+        }
+    }
+
+    *m = min;
+    return idx;
+}
+#endif
+
+
 //#define OCL_SOURCE_FROM_FILE
 #ifndef OCL_SOURCE_FROM_FILE
 const char * oclProgramSource = "\
@@ -169,7 +264,7 @@ namespace VHACD
         if (error != CL_SUCCESS) 
         {
             size_t log_size;
-            /* Find size of log and print to std output */
+            /* Find Size of log and print to std output */
             clGetProgramBuildInfo(m_oclProgram, *m_oclDevice, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
             char * program_log = new char [log_size + 2];
             program_log[log_size    ] = '\n';
@@ -1392,86 +1487,109 @@ namespace VHACD
             Mesh combinedCH;
             bool iterate = true;
 
-            while (iterate && !m_cancel)
+            // Populate the cost matrix
+            size_t idx = 0;
+            SArray<float> costMatrix;
+            costMatrix.Resize(((nConvexHulls * nConvexHulls) - nConvexHulls) >> 1);
+            for (size_t p1 = 1; p1 < nConvexHulls; ++p1)
+            {
+                const float volume1 = m_convexHulls[p1]->ComputeVolume();
+                for (size_t p2 = 0; p2 < p1; ++p2)
+                {
+                    ComputeConvexHull(m_convexHulls[p1], m_convexHulls[p2], pts, &combinedCH);
+                    costMatrix[idx++] = ComputeConcavity(volume1 + m_convexHulls[p2]->ComputeVolume(), combinedCH.ComputeVolume(), m_volumeCH0);
+                }
+            }
+
+            // Until we cant merge below the maximum cost
+            size_t costSize = m_convexHulls.Size();
+            while (!m_cancel)
             {
                 msg.str("");
                 msg << "Iteration " << iteration++;
                 m_operation = msg.str();
 
-                size_t bestp1 = -1;
-                size_t bestp2 = -1;
-                double bestCost = m_volumeCH0;
-                for (size_t p1 = 0; (p1 < nConvexHulls0 - 1) && (!m_cancel); ++p1)
-                {
-                    Update(iteration * 100.0 / nConvexHulls0, p1 * 100.0 / (nConvexHulls0 - 1), params);
+                // Search for lowest cost
+                float bestCost      = std::numeric_limits<float>::max();
+                const size_t addr   = FindMinimumElement(costMatrix.Data(), &bestCost, 0, costMatrix.Size());
 
-                    if (m_convexHulls[p1] && !m_cancel)
+                // Check if we should merge these hulls
+                if (bestCost >= threshold)
+                {
+                    break;
+                }
+
+                const size_t addrI  = (static_cast<int>(sqrt(1 + (8 * addr))) - 1) >> 1;
+                const size_t p1     = addrI + 1;
+                const size_t p2     = addr - ((addrI * (addrI + 1)) >> 1);
+                assert(p1 >= 0);
+                assert(p2 >= 0);
+                assert(p1 < costSize);
+                assert(p2 < costSize);
+
+                if (params.m_logger)
+                {
+                    msg.str("");
+                    msg << "\t\t Merging (" << p1 << ", " << p2 << ") " << bestCost << std::endl << std::endl;
+                    params.m_logger->Log(msg.str().c_str());
+                }
+
+                // Make the lowest cost row and column into a new hull 
+                Mesh * cch = new Mesh;
+                ComputeConvexHull(m_convexHulls[p1], m_convexHulls[p2], pts, cch);
+                delete m_convexHulls[p2];
+                m_convexHulls[p2] = cch;
+
+                delete m_convexHulls[p1];
+                std::swap(m_convexHulls[p1], m_convexHulls[m_convexHulls.Size() - 1]);
+                m_convexHulls.PopBack();
+
+                costSize = costSize - 1;
+
+                // Calculate costs versus the new hull
+                size_t rowIdx = ((p2 - 1) * p2) >> 1;
+                const float volume1 = m_convexHulls[p2]->ComputeVolume();
+                for (size_t i = 0;( i < p2) && (!m_cancel); ++i)
+                {
+                    ComputeConvexHull(m_convexHulls[p2], m_convexHulls[i], pts, &combinedCH);
+                    costMatrix[rowIdx++] = ComputeConcavity(volume1 + m_convexHulls[i]->ComputeVolume(), combinedCH.ComputeVolume(), m_volumeCH0);
+                }
+
+                rowIdx += p2;
+                for (size_t i = p2 + 1; (i < costSize) && (!m_cancel); ++i)
+                {
+                    ComputeConvexHull(m_convexHulls[p2], m_convexHulls[i], pts, &combinedCH);
+                    costMatrix[rowIdx] = ComputeConcavity(volume1 + m_convexHulls[i]->ComputeVolume(), combinedCH.ComputeVolume(), m_volumeCH0);
+                    rowIdx += i;
+                    assert(rowIdx >= 0);
+                }
+
+                // Move the top column in to replace its space
+                const size_t erase_idx = ((costSize - 1) * costSize) >> 1;
+                if (p1 < costSize)
+                {
+                    rowIdx = (addrI * p1) >> 1;
+                    size_t top_row = erase_idx;
+                    for (size_t i = 0; i < p1; ++i)
                     {
-                        double volume1 = m_convexHulls[p1]->ComputeVolume();
-                        size_t p2 = p1 + 1;
-                        while (p2 < nConvexHulls0)
+                        if (i != p2)
                         {
-                            if (p1 != p2 && m_convexHulls[p2] && !m_cancel)
-                            {
-                                double volume2 = m_convexHulls[p2]->ComputeVolume();
-
-                                ComputeConvexHull(m_convexHulls[p1], m_convexHulls[p2], pts, &combinedCH);
-
-                                double combinedVolumeCH = combinedCH.ComputeVolume();
-                                double combinedVolume   = volume1 + volume2;
-                                double cost             = ComputeConcavity(combinedVolume, combinedVolumeCH, m_volumeCH0);
-
-                                if (cost < bestCost)
-                                {
-                                    bestCost       = cost;
-                                    bestp1         = p1;
-                                    bestp2         = p2;
-                                    if (params.m_logger)
-                                    {
-                                        msg.str("");
-                                        msg << "\t\t Cost (" << p1 << ", " << p2 << ") " << std::endl;
-                                        params.m_logger->Log(msg.str().c_str());
-                                    }
-                                }
-                            }
-                            ++p2;
+                            costMatrix[rowIdx] = costMatrix[top_row];
                         }
+                        ++rowIdx;
+                        ++top_row;
                     }
-                }
-                if (bestCost < threshold && !m_cancel)
-                {
-                    if (params.m_logger)
+
+                    ++top_row;
+                    rowIdx += p1;
+                    for (size_t i = p1 + 1; i < (costSize + 1); ++i)
                     {
-                        msg.str("");
-                        msg << "\t\t Merging (" << bestp1 << ", " << bestp2 << ") " << bestCost << std::endl << std::endl;
-                        params.m_logger->Log(msg.str().c_str());
-                    }
-                    Mesh * cch = new Mesh;
-                    ComputeConvexHull(m_convexHulls[bestp1], m_convexHulls[bestp2], pts, cch);
-                    delete m_convexHulls[bestp1];
-                    delete m_convexHulls[bestp2];
-                    m_convexHulls[bestp2] = 0;
-                    m_convexHulls[bestp1] = cch;
-                    iterate             = true;
-                    --nConvexHulls;
-                }
-                else
-                {
-                    iterate             = false;
-                }
-            }
-            if (!m_cancel)
-            {
-                SArray<Mesh *> temp;
-                temp.Allocate(nConvexHulls);
-                for (size_t p1 = 0; p1 < nConvexHulls0; ++p1)
-                {
-                    if (m_convexHulls[p1])
-                    {
-                        temp.PushBack(m_convexHulls[p1]);
+                        costMatrix[rowIdx] = costMatrix[top_row++];
+                        rowIdx += i;
+                        assert(rowIdx >= 0);
                     }
                 }
-                m_convexHulls = temp;
+                costMatrix.Resize(erase_idx);
             }
         }
         m_overallProgress = 99.0;
