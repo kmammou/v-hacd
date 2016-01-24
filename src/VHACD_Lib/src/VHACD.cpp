@@ -119,7 +119,7 @@ inline int FindMinimumElement(const float *const d, float *const m, const int be
 inline int FindMinimumElement(const float *const d, float *const m, const int begin, const int end)
 {
     int idx = -1;
-    float min = std::numeric_limits<float>::max();
+    float min = (std::numeric_limits<float>::max)();
     for (size_t i = begin; i < end; ++i)
     {
         if (d[i] < min)
@@ -1510,7 +1510,7 @@ namespace VHACD
                 m_operation = msg.str();
 
                 // Search for lowest cost
-                float bestCost      = std::numeric_limits<float>::max();
+                float bestCost      = (std::numeric_limits<float>::max)();
                 const size_t addr   = FindMinimumElement(costMatrix.Data(), &bestCost, 0, costMatrix.Size());
 
                 // Check if we should merge these hulls
