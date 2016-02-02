@@ -1,0 +1,1 @@
+include(VHACD_LIB-targets.cmake)
