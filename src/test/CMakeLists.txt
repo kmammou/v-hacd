@@ -16,7 +16,7 @@ endif()
 
 add_executable(testVHACD ${PROJECT_CPP_FILES} ${PROJECT_C_FILES} ${PROJECT_INC_FILES} ${PROJECT_INL_FILES})
 
-include_directories("${CMAKE_SOURCE_DIR}/VHACD_Lib/public")
+target_include_directories(testVHACD PRIVATE ${CMAKE_SOURCE_DIR}/VHACD_Lib/public ${CMAKE_CURRENT_SOURCE_DIR}/inc)
 
 if (OpenCL_FOUND)
     include_directories("${OpenCL_INCLUDE_DIRS}")
@@ -24,11 +24,11 @@ if (OpenCL_FOUND)
 endif()
 
 IF(WIN32)
-target_link_libraries(testVHACD ${OpenCL_LIBRARIES} VHACD_LIB)
+target_link_libraries(testVHACD ${OpenCL_LIBRARIES} vhacd)
 ELSEIF(APPLE)
-target_link_libraries(testVHACD ${OpenCL_LIBRARIES} VHACD_LIB)
+target_link_libraries(testVHACD ${OpenCL_LIBRARIES} vhacd)
 ELSE ()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall")
-target_link_libraries(testVHACD ${OpenCL_LIBRARIES} VHACD_LIB rt)
+target_link_libraries(testVHACD ${OpenCL_LIBRARIES} vhacd rt)
 ENDIF()
 
