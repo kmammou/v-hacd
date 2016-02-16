@@ -54,9 +54,6 @@ namespace VHACD
                                                                     SArray< Vec3<double> > * const positivePts,
                                                                     SArray< Vec3<double> > * const negativePts,
                                                               const size_t                         sampling) const = 0;
-        virtual void                                ComputeExteriorPoints(const Plane            &       plane,
-                                                                          const Mesh             &       mesh,
-                                                                          SArray< Vec3<double> > * const exteriorPts) const = 0;
         virtual void                                ComputeClippedVolumes(const Plane  & plane,
                                                                                 double & positiveVolume,
                                                                                 double & negativeVolume) const = 0;
@@ -122,9 +119,6 @@ namespace VHACD
                                                                     SArray< Vec3<double> > * const positivePts,
                                                                     SArray< Vec3<double> > * const negativePts,
                                                               const size_t                         sampling) const;
-        void                                        ComputeExteriorPoints(const Plane            &       plane,
-                                                                          const Mesh             &       mesh,
-                                                                          SArray< Vec3<double> > * const exteriorPts) const;
         void                                        ComputeClippedVolumes(const Plane  & plane,
                                                                           double & positiveVolume,
                                                                           double & negativeVolume) const;
@@ -197,9 +191,6 @@ namespace VHACD
                                                                     SArray< Vec3<double> > * const positivePts,
                                                                     SArray< Vec3<double> > * const negativePts,
                                                               const size_t                         sampling) const;
-        void                                        ComputeExteriorPoints(const Plane            &       plane,
-                                                                          const Mesh             &       mesh,
-                                                                          SArray< Vec3<double> > * const exteriorPts) const;
         void                                        ComputeClippedVolumes(const Plane  & plane,
                                                                                 double & positiveVolume,
                                                                                 double & negativeVolume) const;

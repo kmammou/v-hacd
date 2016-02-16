@@ -530,34 +530,6 @@ namespace VHACD
             }
         }
     }
-    void VoxelSet::ComputeExteriorPoints(const Plane                  &       plane,
-                                         const Mesh                   &       mesh,
-                                               SArray< Vec3<double> > * const exteriorPts) const
-    {
-        const size_t nVoxels = m_voxels.Size();
-        if (nVoxels == 0) return;
-        double d;
-        Vec3<double> pt;
-        Vec3<double> pts[8];
-        Voxel voxel;
-        for (size_t v = 0; v < nVoxels; ++v)
-        {
-            voxel = m_voxels[v];
-            pt = GetPoint(voxel);
-            d = plane.m_a * pt[0] + plane.m_b * pt[1] + plane.m_c * pt[2] + plane.m_d;
-            if (d >= 0.0)
-            {
-                if (!mesh.IsInside(pt))
-                {
-                    GetPoints(voxel, pts);
-                    for (int k = 0; k < 8; ++k)
-                    {
-                        exteriorPts->PushBack(pts[k]);
-                    }
-                }
-            }
-        }
-    }
     void VoxelSet::ComputeClippedVolumes(const Plane  & plane,
                                                double & positiveVolume,
                                                double & negativeVolume) const
@@ -1418,11 +1390,73 @@ namespace VHACD
     {
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0) return;
-    }
-    void TetrahedronSet::ComputeExteriorPoints(const Plane                  &       plane,
-                                               const Mesh                   &       mesh,
-                                                     SArray< Vec3<double> > * const exteriorPts) const
-    {
+
+        int sp = 0;
+        int sn = 0;
+        Tetrahedron tetrahedron;
+        for (size_t v = 0; v < nTetrahedra; ++v)
+        {
+            int npos = 0;
+            int nneg = 0;
+            double cenDist = 0.0;
+            tetrahedron = m_tetrahedra[v];
+            for (int i = 0; i < 4; ++i)
+            {
+                const double dist = plane.m_a * tetrahedron.m_pts[i][0] + plane.m_b * tetrahedron.m_pts[i][1] + plane.m_c * tetrahedron.m_pts[i][2] + plane.m_d;
+                cenDist += dist;
+                if (dist > 0.0f)
+                {
+                    ++npos;
+                }
+                else
+                {
+                    ++nneg;
+                }
+            }
+
+            if (cenDist >= 0.0)
+            {
+                if (nneg == 0)
+                {
+                    positivePts->PushBack(tetrahedron.m_pts[0]);
+                    positivePts->PushBack(tetrahedron.m_pts[1]);
+                    positivePts->PushBack(tetrahedron.m_pts[2]);
+                    positivePts->PushBack(tetrahedron.m_pts[3]);
+                }
+                else
+                {
+                    if (++sp == sampling)
+                    {
+                        positivePts->PushBack(tetrahedron.m_pts[0]);
+                        positivePts->PushBack(tetrahedron.m_pts[1]);
+                        positivePts->PushBack(tetrahedron.m_pts[2]);
+                        positivePts->PushBack(tetrahedron.m_pts[3]);
+                        sp = 0;
+                    }
+                }
+            }
+            else
+            {
+                if (npos == 0)
+                {
+                    negativePts->PushBack(tetrahedron.m_pts[0]);
+                    negativePts->PushBack(tetrahedron.m_pts[1]);
+                    negativePts->PushBack(tetrahedron.m_pts[2]);
+                    negativePts->PushBack(tetrahedron.m_pts[3]);
+                }
+                else
+                {
+                    if (++sn == sampling)
+                    {
+                        negativePts->PushBack(tetrahedron.m_pts[0]);
+                        negativePts->PushBack(tetrahedron.m_pts[1]);
+                        negativePts->PushBack(tetrahedron.m_pts[2]);
+                        negativePts->PushBack(tetrahedron.m_pts[3]);
+                        sn = 0;
+                    }
+                }
+            }
+        }
     }
     void TetrahedronSet::ComputeClippedVolumes(const Plane  & plane,
                                                      double & positiveVolume,
@@ -1430,6 +1464,33 @@ namespace VHACD
     {
         const size_t nTetrahedra = m_tetrahedra.Size();
         if (nTetrahedra == 0) return;
+
+        // Classify tetrahedron and sum volume
+        double posVol = 0.0;
+        double negVol = 0.0;
+        Tetrahedron tetrahedron;
+        for (size_t v = 0; v < nTetrahedra; ++v)
+        {
+            double cenDist = 0.0;
+            tetrahedron = m_tetrahedra[v];
+            for (int i = 0; i < 4; ++i)
+            {
+                cenDist += plane.m_a * tetrahedron.m_pts[i][0] + plane.m_b * tetrahedron.m_pts[i][1] + plane.m_c * tetrahedron.m_pts[i][2] + plane.m_d;
+            }
+
+            const double vol = fabs(ComputeVolume4(tetrahedron.m_pts[0], tetrahedron.m_pts[1], tetrahedron.m_pts[2], tetrahedron.m_pts[3]));
+            if (cenDist >= 0.0)
+            {
+                posVol += vol;
+            }
+            else
+            {
+                negVol += vol;
+            }
+        }
+
+        positiveVolume = posVol * (1.0 / 6.0);
+        negativeVolume = negVol * (1.0 / 6.0);
     }
 
     void TetrahedronSet::SelectOnSurface(PrimitiveSet * const onSurfP) const
