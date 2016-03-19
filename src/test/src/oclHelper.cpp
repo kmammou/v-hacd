@@ -36,8 +36,7 @@ bool OCLHelper::InitPlatform(const unsigned int platformIndex)
     delete[] platforms;
     return true;
 }
-bool OCLHelper::GetPlatformsInfo(std::vector<std::string>& info,
-    const std::string& indentation)
+bool OCLHelper::GetPlatformsInfo(std::vector<std::string>& info, const std::string& indentation)
 {
     const char* platformInfoParameters[] = { "CL_PLATFORM_NAME",
         "CL_PLATFORM_VENDOR",
@@ -105,8 +104,7 @@ bool OCLHelper::InitDevice(const unsigned int deviceIndex)
     delete[] devices;
     return true;
 }
-bool OCLHelper::GetDevicesInfo(std::vector<std::string>& info,
-    const std::string& indentation)
+bool OCLHelper::GetDevicesInfo(std::vector<std::string>& info, const std::string& indentation)
 {
     enum {
         DATA_TYPE_CL_UINT,

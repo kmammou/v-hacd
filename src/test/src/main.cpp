@@ -42,11 +42,8 @@ class MyCallback : public IVHACD::IUserCallback {
 public:
     MyCallback(void) {}
     ~MyCallback(){};
-    void Update(const double overallProgress,
-        const double stageProgress,
-        const double operationProgress,
-        const char* const stage,
-        const char* const operation)
+    void Update(const double overallProgress, const double stageProgress, const double operationProgress,
+        const char* const stage, const char* const operation)
     {
         cout << setfill(' ') << setw(3) << (int)(overallProgress + 0.5) << "% "
              << "[ " << stage << " " << setfill(' ') << setw(3) << (int)(stageProgress + 0.5) << "% ] "
@@ -115,37 +112,19 @@ struct Parameters {
         m_fileNameLog = "log.txt";
     }
 };
-bool LoadOFF(const string& fileName,
-    vector<float>& points,
-    vector<int>& triangles,
-    IVHACD::IUserLogger& logger);
-bool LoadOBJ(const string& fileName,
-    vector<float>& points,
-    vector<int>& triangles,
-    IVHACD::IUserLogger& logger);
-bool SaveOFF(const string& fileName,
-    const vector<float>& points,
-    const vector<int>& triangles,
-    IVHACD::IUserLogger& logger);
-bool SaveVRML2(ofstream& fout,
-    const double* const& points,
-    const int* const& triangles,
-    const unsigned int& nPoints,
-    const unsigned int& nTriangles,
-    const Material& material,
-    IVHACD::IUserLogger& logger);
+bool LoadOFF(const string& fileName, vector<float>& points, vector<int>& triangles, IVHACD::IUserLogger& logger);
+bool LoadOBJ(const string& fileName, vector<float>& points, vector<int>& triangles, IVHACD::IUserLogger& logger);
+bool SaveOFF(const string& fileName, const float* const& points, const int* const& triangles, const unsigned int& nPoints,
+    const unsigned int& nTriangles, IVHACD::IUserLogger& logger);
+bool SaveVRML2(ofstream& fout, const double* const& points, const int* const& triangles, const unsigned int& nPoints,
+    const unsigned int& nTriangles, const Material& material, IVHACD::IUserLogger& logger);
 void GetFileExtension(const string& fileName, string& fileExtension);
 void ComputeRandomColor(Material& mat);
 void Usage(const Parameters& params);
-void ParseParameters(int argc,
-    char* argv[],
-    Parameters& params);
+void ParseParameters(int argc, char* argv[], Parameters& params);
 
 #ifdef CL_VERSION_1_1
-bool InitOCL(const unsigned int oclPlatformID,
-    const unsigned int oclDeviceID,
-    OCLHelper& oclHelper,
-    std::ostringstream& msg);
+bool InitOCL(const unsigned int oclPlatformID, const unsigned int oclDeviceID, OCLHelper& oclHelper, std::ostringstream& msg);
 #endif // CL_VERSION_1_1
 
 int main(int argc, char* argv[])
@@ -231,6 +210,8 @@ int main(int argc, char* argv[])
             myLogger.Log("Format not supported!\n");
             return -1;
         }
+
+        SaveOFF("test.off", &(points[0]), &(triangles[0]), points.size() / 3, triangles.size() / 3, myLogger);
 
         // run V-HACD
         IVHACD* interfaceVHACD = CreateVHACD();
@@ -325,9 +306,7 @@ void Usage(const Parameters& params)
         params.m_paramsVHACD.m_logger->Log(msg.str().c_str());
     }
 }
-void ParseParameters(int argc,
-    char* argv[],
-    Parameters& params)
+void ParseParameters(int argc, char* argv[], Parameters& params)
 {
     for (int i = 1; i < argc; ++i) {
         if (!strcmp(argv[i], "--input")) {
@@ -416,10 +395,7 @@ void ParseParameters(int argc,
 }
 
 #ifdef CL_VERSION_1_1
-bool InitOCL(const unsigned int oclPlatformID,
-    const unsigned int oclDeviceID,
-    OCLHelper& oclHelper,
-    std::ostringstream& msg)
+bool InitOCL(const unsigned int oclPlatformID, const unsigned int oclDeviceID, OCLHelper& oclHelper, std::ostringstream& msg)
 {
 
     bool res = true;
@@ -475,10 +451,7 @@ void ComputeRandomColor(Material& mat)
         mat.m_diffuseColor[2] = (rand() % 100) / 100.0f;
     }
 }
-bool LoadOFF(const string& fileName,
-    vector<float>& points,
-    vector<int>& triangles,
-    IVHACD::IUserLogger& logger)
+bool LoadOFF(const string& fileName, vector<float>& points, vector<int>& triangles, IVHACD::IUserLogger& logger)
 {
     FILE* fid = fopen(fileName.c_str(), "r");
     if (fid) {
@@ -526,10 +499,7 @@ bool LoadOFF(const string& fileName,
     }
     return true;
 }
-bool LoadOBJ(const string& fileName,
-    vector<float>& points,
-    vector<int>& triangles,
-    IVHACD::IUserLogger& logger)
+bool LoadOBJ(const string& fileName, vector<float>& points, vector<int>& triangles, IVHACD::IUserLogger& logger)
 {
     const char ObjDelimiters[] = " /";
     const unsigned int BufferSize = 1024;
@@ -537,13 +507,14 @@ bool LoadOBJ(const string& fileName,
 
     if (fid) {
         char buffer[BufferSize];
-        int ip[3];
+        int ip[4];
         float x[3];
         char* pch;
         char* str;
         size_t nn = 0;
         size_t nt = 0;
-        bool newMaterial = true;
+        bool hasNormals = false;
+        bool hasTexCoords = false;
         while (!feof(fid)) {
             if (!fgets(buffer, BufferSize, fid)) {
                 break;
@@ -563,11 +534,6 @@ bool LoadOBJ(const string& fileName,
                     points.push_back(x[0]);
                     points.push_back(x[1]);
                     points.push_back(x[2]);
-                    if (newMaterial) {
-                        nn = 0;
-                        nt = 0;
-                        newMaterial = false;
-                    }
                 }
                 else if (buffer[1] == 'n') {
                     ++nn;
@@ -576,36 +542,34 @@ bool LoadOBJ(const string& fileName,
                     ++nt;
                 }
             }
-            else if (buffer[0] == 'u' && strstr(buffer, "usemtl") != NULL) {
-                newMaterial = true;
-            }
             else if (buffer[0] == 'f') {
 
-                str = buffer + 2;
-                for (int k = 0; k < 3; ++k) {
-                    pch = strtok(str, ObjDelimiters);
-                    if (pch)
-                        ip[k] = atoi(pch) - 1;
+                pch = str = buffer + 2;
+                int k = 0;
+                while (pch) {
+                    pch = strtok(str, " ");
+                    if (pch) {
+                        ip[k++] = atoi(pch) - 1;
+                    }
                     else {
-                        return false;
+                        break;
                     }
                     str = NULL;
-                    if (nt > 0) {
-                        pch = strtok(NULL, ObjDelimiters);
-                        if (!pch) {
-                            return false;
-                        }
-                    }
-                    if (nn > 0) {
-                        pch = strtok(NULL, ObjDelimiters);
-                        if (!pch) {
-                            return false;
-                        }
-                    }
                 }
-                triangles.push_back(ip[0]);
-                triangles.push_back(ip[1]);
-                triangles.push_back(ip[2]);
+                if (k == 3) {
+                    triangles.push_back(ip[0]);
+                    triangles.push_back(ip[1]);
+                    triangles.push_back(ip[2]);
+                }
+                else if (k == 4) {
+                    triangles.push_back(ip[0]);
+                    triangles.push_back(ip[1]);
+                    triangles.push_back(ip[2]);
+
+                    triangles.push_back(ip[0]);
+                    triangles.push_back(ip[2]);
+                    triangles.push_back(ip[3]);
+                }
             }
         }
         fclose(fid);
@@ -616,12 +580,104 @@ bool LoadOBJ(const string& fileName,
     }
     return true;
 }
-bool SaveOFF(const string& fileName,
-    const float* const& points,
-    const int* const& triangles,
-    const unsigned int& nPoints,
-    const unsigned int& nTriangles,
-    IVHACD::IUserLogger& logger)
+/*
+ bool LoadOBJ(const string& fileName, vector<float>& points, vector<int>& triangles, IVHACD::IUserLogger& logger)
+ {
+ const char ObjDelimiters[] = " /";
+ const unsigned int BufferSize = 1024;
+ FILE* fid = fopen(fileName.c_str(), "r");
+
+ if (fid) {
+ char buffer[BufferSize];
+ int ip[4];
+ float x[3];
+ char* pch;
+ char* str;
+ size_t nn = 0;
+ size_t nt = 0;
+ bool hasNormals = false;
+ bool hasTexCoords = false;
+ while (!feof(fid)) {
+ if (!fgets(buffer, BufferSize, fid)) {
+ break;
+ }
+ else if (buffer[0] == 'v') {
+ if (buffer[1] == ' ') {
+ str = buffer + 2;
+ for (int k = 0; k < 3; ++k) {
+ pch = strtok(str, " ");
+ if (pch)
+ x[k] = (float)atof(pch);
+ else {
+ return false;
+ }
+ str = NULL;
+ }
+ points.push_back(x[0]);
+ points.push_back(x[1]);
+ points.push_back(x[2]);
+ }
+ else if (buffer[1] == 'n') {
+ ++nn;
+ }
+ else if (buffer[1] == 't') {
+ ++nt;
+ }
+ }
+ else if (buffer[0] == 'f') {
+ if (nt > 0) {
+ hasTexCoords = true;
+ nt = 0;
+ }
+ else {
+ hasTexCoords = false;
+ }
+ if (nn > 0) {
+ hasNormals = true;
+ nn = 0;
+ }
+ else {
+ hasNormals = false;
+ }
+ str = buffer + 2;
+ for (int k = 0; k < 3; ++k) {
+ pch = strtok(str, ObjDelimiters);
+ if (pch)
+ ip[k] = atoi(pch) - 1;
+ else {
+ return false;
+ }
+ str = NULL;
+ if (hasTexCoords) {
+ pch = strtok(NULL, ObjDelimiters);
+ if (!pch) {
+ return false;
+ }
+ }
+ if (hasNormals) {
+ pch = strtok(NULL, ObjDelimiters);
+ if (!pch) {
+ return false;
+ }
+ }
+ }
+ triangles.push_back(ip[0]);
+ triangles.push_back(ip[1]);
+ triangles.push_back(ip[2]);
+ }
+ }
+ fclose(fid);
+ }
+ else {
+ logger.Log("File not found\n");
+ return false;
+ }
+ return true;
+ }
+
+ */
+bool SaveOFF(const string& fileName, const float* const& points, const int* const& triangles, const unsigned int& nPoints,
+    const unsigned int& nTriangles, IVHACD::IUserLogger& logger)
 {
     ofstream fout(fileName.c_str());
     if (fout.is_open()) {
@@ -647,13 +703,8 @@ bool SaveOFF(const string& fileName,
         return false;
     }
 }
-bool SaveVRML2(ofstream& fout,
-    const double* const& points,
-    const int* const& triangles,
-    const unsigned int& nPoints,
-    const unsigned int& nTriangles,
-    const Material& material,
-    IVHACD::IUserLogger& logger)
+bool SaveVRML2(ofstream& fout, const double* const& points, const int* const& triangles, const unsigned int& nPoints,
+    const unsigned int& nTriangles, const Material& material, IVHACD::IUserLogger& logger)
 {
     if (fout.is_open()) {
         fout.setf(std::ios::fixed, std::ios::floatfield);

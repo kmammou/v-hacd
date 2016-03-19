@@ -201,8 +201,7 @@ IVHACD* CreateVHACD(void)
 {
     return new VHACD();
 }
-bool VHACD::OCLInit(void* const oclDevice,
-    IUserLogger* const logger)
+bool VHACD::OCLInit(void* const oclDevice, IUserLogger* const logger)
 {
 #ifdef CL_VERSION_1_1
     m_oclDevice = (cl_device_id*)oclDevice;
@@ -434,23 +433,13 @@ void VHACD::ComputePrimitiveSet(const Parameters& params)
         params.m_logger->Log(msg.str().c_str());
     }
 }
-bool VHACD::Compute(const double* const points,
-    const unsigned int stridePoints,
-    const unsigned int nPoints,
-    const int* const triangles,
-    const unsigned int strideTriangles,
-    const unsigned int nTriangles,
-    const Parameters& params)
+bool VHACD::Compute(const double* const points, const unsigned int stridePoints, const unsigned int nPoints,
+    const int* const triangles, const unsigned int strideTriangles, const unsigned int nTriangles, const Parameters& params)
 {
     return ComputeACD(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
 }
-bool VHACD::Compute(const float* const points,
-    const unsigned int stridePoints,
-    const unsigned int nPoints,
-    const int* const triangles,
-    const unsigned int strideTriangles,
-    const unsigned int nTriangles,
-    const Parameters& params)
+bool VHACD::Compute(const float* const points, const unsigned int stridePoints, const unsigned int nPoints,
+    const int* const triangles, const unsigned int strideTriangles, const unsigned int nTriangles, const Parameters& params)
 {
     return ComputeACD(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
 }
@@ -484,9 +473,7 @@ double ComputePreferredCuttingDirection(const PrimitiveSet* const tset, Vec3<dou
         return (e == 0.0) ? 0.0 : 1.0 - vz / e;
     }
 }
-void ComputeAxesAlignedClippingPlanes(const VoxelSet& vset,
-    const short downsampling,
-    SArray<Plane>& planes)
+void ComputeAxesAlignedClippingPlanes(const VoxelSet& vset, const short downsampling, SArray<Plane>& planes)
 {
     const Vec3<short> minV = vset.GetMinBBVoxels();
     const Vec3<short> maxV = vset.GetMaxBBVoxels();
@@ -529,9 +516,7 @@ void ComputeAxesAlignedClippingPlanes(const VoxelSet& vset,
         planes.PushBack(plane);
     }
 }
-void ComputeAxesAlignedClippingPlanes(const TetrahedronSet& tset,
-    const short downsampling,
-    SArray<Plane>& planes)
+void ComputeAxesAlignedClippingPlanes(const TetrahedronSet& tset, const short downsampling, SArray<Plane>& planes)
 {
     const Vec3<double> minV = tset.GetMinBB();
     const Vec3<double> maxV = tset.GetMaxBB();
@@ -539,9 +524,9 @@ void ComputeAxesAlignedClippingPlanes(const TetrahedronSet& tset,
     const short i0 = 0;
     const short j0 = 0;
     const short k0 = 0;
-    const short i1 = (short)((maxV[0] - minV[0]) / scale + 0.5);
-    const short j1 = (short)((maxV[1] - minV[1]) / scale + 0.5);
-    const short k1 = (short)((maxV[2] - minV[2]) / scale + 0.5);
+    const short i1 = static_cast<short>((maxV[0] - minV[0]) / scale + 0.5);
+    const short j1 = static_cast<short>((maxV[1] - minV[1]) / scale + 0.5);
+    const short k1 = static_cast<short>((maxV[2] - minV[2]) / scale + 0.5);
 
     Plane plane;
     plane.m_a = 1.0;
@@ -575,9 +560,7 @@ void ComputeAxesAlignedClippingPlanes(const TetrahedronSet& tset,
         planes.PushBack(plane);
     }
 }
-void RefineAxesAlignedClippingPlanes(const VoxelSet& vset,
-    const Plane& bestPlane,
-    const short downsampling,
+void RefineAxesAlignedClippingPlanes(const VoxelSet& vset, const Plane& bestPlane, const short downsampling,
     SArray<Plane>& planes)
 {
     const Vec3<short> minV = vset.GetMinBBVoxels();
@@ -628,9 +611,7 @@ void RefineAxesAlignedClippingPlanes(const VoxelSet& vset,
         }
     }
 }
-void RefineAxesAlignedClippingPlanes(const TetrahedronSet& tset,
-    const Plane& bestPlane,
-    const short downsampling,
+void RefineAxesAlignedClippingPlanes(const TetrahedronSet& tset, const Plane& bestPlane, const short downsampling,
     SArray<Plane>& planes)
 {
     const Vec3<double> minV = tset.GetMinBB();
@@ -640,7 +621,7 @@ void RefineAxesAlignedClippingPlanes(const TetrahedronSet& tset,
 
     if (bestPlane.m_axis == AXIS_X) {
         const short i0 = MAX(0, bestPlane.m_index - downsampling);
-        const short i1 = (short)MIN((maxV[0] - minV[0]) / scale + 0.5, bestPlane.m_index + downsampling);
+        const short i1 = static_cast<short>(MIN((maxV[0] - minV[0]) / scale + 0.5, bestPlane.m_index + downsampling));
         plane.m_a = 1.0;
         plane.m_b = 0.0;
         plane.m_c = 0.0;
@@ -654,7 +635,7 @@ void RefineAxesAlignedClippingPlanes(const TetrahedronSet& tset,
     }
     else if (bestPlane.m_axis == AXIS_Y) {
         const short j0 = MAX(0, bestPlane.m_index - downsampling);
-        const short j1 = (short)MIN((maxV[1] - minV[1]) / scale + 0.5, bestPlane.m_index + downsampling);
+        const short j1 = static_cast<short>(MIN((maxV[1] - minV[1]) / scale + 0.5, bestPlane.m_index + downsampling));
         plane.m_a = 0.0;
         plane.m_b = 1.0;
         plane.m_c = 0.0;
@@ -668,7 +649,7 @@ void RefineAxesAlignedClippingPlanes(const TetrahedronSet& tset,
     }
     else {
         const short k0 = MAX(0, bestPlane.m_index - downsampling);
-        const short k1 = (short)MIN((maxV[2] - minV[2]) / scale + 0.5, bestPlane.m_index + downsampling);
+        const short k1 = static_cast<short>(MIN((maxV[2] - minV[2]) / scale + 0.5, bestPlane.m_index + downsampling));
         plane.m_a = 0.0;
         plane.m_b = 0.0;
         plane.m_c = 1.0;
@@ -681,32 +662,20 @@ void RefineAxesAlignedClippingPlanes(const TetrahedronSet& tset,
         }
     }
 }
-inline double ComputeLocalConcavity(const double volume,
-    const double volumeCH)
+inline double ComputeLocalConcavity(const double volume, const double volumeCH)
 {
     return fabs(volumeCH - volume) / volumeCH;
 }
-inline double ComputeConcavity(const double volume,
-    const double volumeCH,
-    const double volume0)
+inline double ComputeConcavity(const double volume, const double volumeCH, const double volume0)
 {
     return fabs(volumeCH - volume) / volume0;
 }
 
 //#define DEBUG_TEMP
-void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet,
-    const double volume,
-    const SArray<Plane>& planes,
-    const Vec3<double>& preferredCuttingDirection,
-    const double w,
-    const double alpha,
-    const double beta,
-    const int convexhullDownsampling,
-    const double progress0,
-    const double progress1,
-    Plane& bestPlane,
-    double& minConcavity,
-    const Parameters& params)
+void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double volume, const SArray<Plane>& planes,
+    const Vec3<double>& preferredCuttingDirection, const double w, const double alpha, const double beta,
+    const int convexhullDownsampling, const double progress0, const double progress1, Plane& bestPlane,
+    double& minConcavity, const Parameters& params)
 {
     if (GetCancel()) {
         return;
@@ -715,7 +684,7 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet,
     size_t nPrimitives = inputPSet->GetNPrimitives();
     bool oclAcceleration = (nPrimitives > OCL_MIN_NUM_PRIMITIVES && params.m_oclAcceleration && params.m_mode == 0) ? true : false;
     int iBest = -1;
-    int nPlanes = (int)static_cast<int>(planes.Size());
+    int nPlanes = static_cast<int>(planes.Size());
     bool cancel = false;
     int done = 0;
     double minTotal = MAX_DOUBLE;
@@ -834,15 +803,8 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet,
                     SetCancel(true);
                 }
 
-                error = clEnqueueNDRangeKernel(m_oclQueue[threadID],
-                    m_oclKernelComputePartialVolumes[threadID],
-                    1,
-                    NULL,
-                    &globalSize,
-                    &m_oclWorkGroupSize,
-                    0,
-                    NULL,
-                    NULL);
+                error = clEnqueueNDRangeKernel(m_oclQueue[threadID], m_oclKernelComputePartialVolumes[threadID],
+                    1, NULL, &globalSize, &m_oclWorkGroupSize, 0, NULL, NULL);
                 if (error != CL_SUCCESS) {
                     if (params.m_logger) {
                         params.m_logger->Log("Couldn't run kernel \n");
@@ -860,15 +822,8 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet,
                     }
                     size_t nWorkGroups = (nValues + m_oclWorkGroupSize - 1) / m_oclWorkGroupSize;
                     size_t globalSize = nWorkGroups * m_oclWorkGroupSize;
-                    error = clEnqueueNDRangeKernel(m_oclQueue[threadID],
-                        m_oclKernelComputeSum[threadID],
-                        1,
-                        NULL,
-                        &globalSize,
-                        &m_oclWorkGroupSize,
-                        0,
-                        NULL,
-                        NULL);
+                    error = clEnqueueNDRangeKernel(m_oclQueue[threadID], m_oclKernelComputeSum[threadID],
+                        1, NULL, &globalSize, &m_oclWorkGroupSize, 0, NULL, NULL);
                     if (error != CL_SUCCESS) {
                         if (params.m_logger) {
                             params.m_logger->Log("Couldn't run kernel \n");
@@ -930,15 +885,8 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet,
             if (oclAcceleration) {
 #ifdef CL_VERSION_1_1
                 unsigned int volumes[4];
-                cl_int error = clEnqueueReadBuffer(m_oclQueue[threadID],
-                    partialVolumes[threadID],
-                    CL_TRUE,
-                    0,
-                    sizeof(unsigned int) * 4,
-                    volumes,
-                    0,
-                    NULL,
-                    NULL);
+                cl_int error = clEnqueueReadBuffer(m_oclQueue[threadID], partialVolumes[threadID], CL_TRUE,
+                    0, sizeof(unsigned int) * 4, volumes, 0, NULL, NULL);
                 size_t nPrimitivesRight = volumes[0] + volumes[1] + volumes[2] + volumes[3];
                 size_t nPrimitivesLeft = nPrimitives - nPrimitivesRight;
                 volumeRight = nPrimitivesRight * unitVolume;
@@ -1277,10 +1225,7 @@ void AddPoints(const Mesh* const mesh, SArray<Vec3<double> >& pts)
         pts.PushBack(mesh->GetPoint(i));
     }
 }
-void ComputeConvexHull(const Mesh* const ch1,
-    const Mesh* const ch2,
-    SArray<Vec3<double> >& pts,
-    Mesh* const combinedCH)
+void ComputeConvexHull(const Mesh* const ch1, const Mesh* const ch2, SArray<Vec3<double> >& pts, Mesh* const combinedCH)
 {
     pts.Resize(0);
     AddPoints(ch1, pts);
@@ -1434,9 +1379,7 @@ void VHACD::MergeConvexHulls(const Parameters& params)
         params.m_logger->Log(msg.str().c_str());
     }
 }
-void SimplifyConvexHull(Mesh* const ch,
-    const size_t nvertices,
-    const double minVolume)
+void SimplifyConvexHull(Mesh* const ch, const size_t nvertices, const double minVolume)
 {
     if (nvertices <= 4) {
         return;

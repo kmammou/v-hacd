@@ -33,16 +33,11 @@ public:
     ~OCLHelper(void){};
     bool InitPlatform(const unsigned int platformIndex = 0);
     bool InitDevice(const unsigned int deviceIndex);
-    bool GetPlatformsInfo(std::vector<std::string>& info,
-        const std::string& indentation);
-    bool GetDevicesInfo(std::vector<std::string>& info,
-        const std::string& indentation);
+    bool GetPlatformsInfo(std::vector<std::string>& info, const std::string& indentation);
+    bool GetDevicesInfo(std::vector<std::string>& info, const std::string& indentation);
     cl_platform_id* GetPlatform() { return &m_platform; }
     const cl_platform_id* GetPlatform() const { return &m_platform; }
-    cl_device_id* GetDevice()
-    {
-        return &m_device;
-    }
+    cl_device_id* GetDevice() { return &m_device; }
     const cl_device_id* GetDevice() const { return &m_device; }
 private:
     cl_platform_id m_platform;
