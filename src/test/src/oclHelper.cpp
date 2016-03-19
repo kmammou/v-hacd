@@ -14,20 +14,20 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 #ifdef OPENCL_FOUND
 
-#include <sstream>
-#include <assert.h>
 #include "oclHelper.h"
+#include <assert.h>
+#include <sstream>
 
 bool OCLHelper::InitPlatform(const unsigned int platformIndex)
 {
     cl_uint numPlatforms;
     m_lastError = clGetPlatformIDs(1, NULL, &numPlatforms);
-    if (m_lastError != CL_SUCCESS || platformIndex >= numPlatforms) return false;
+    if (m_lastError != CL_SUCCESS || platformIndex >= numPlatforms)
+        return false;
 
-    cl_platform_id  * platforms = new cl_platform_id[numPlatforms];
+    cl_platform_id* platforms = new cl_platform_id[numPlatforms];
     m_lastError = clGetPlatformIDs(numPlatforms, platforms, NULL);
-    if (m_lastError != CL_SUCCESS)
-    {
+    if (m_lastError != CL_SUCCESS) {
         delete[] platforms;
         return false;
     }
@@ -36,52 +36,47 @@ bool OCLHelper::InitPlatform(const unsigned int platformIndex)
     delete[] platforms;
     return true;
 }
-bool OCLHelper::GetPlatformsInfo(std::vector< std::string > & info,
-                                 const std::string          & indentation)
+bool OCLHelper::GetPlatformsInfo(std::vector<std::string>& info,
+    const std::string& indentation)
 {
-    const char * platformInfoParameters[] = {"CL_PLATFORM_NAME",
-                                             "CL_PLATFORM_VENDOR",
-                                             "CL_PLATFORM_VERSION",
-                                             "CL_PLATFORM_PROFILE",
-                                             "CL_PLATFORM_EXTENSIONS"};
+    const char* platformInfoParameters[] = { "CL_PLATFORM_NAME",
+        "CL_PLATFORM_VENDOR",
+        "CL_PLATFORM_VERSION",
+        "CL_PLATFORM_PROFILE",
+        "CL_PLATFORM_EXTENSIONS" };
 
     cl_uint numPlatforms;
     m_lastError = clGetPlatformIDs(1, NULL, &numPlatforms);
-    if (m_lastError != CL_SUCCESS) return false;
-
-    cl_platform_id  * platforms = new cl_platform_id[numPlatforms];
-    m_lastError = clGetPlatformIDs(numPlatforms, platforms, NULL);
     if (m_lastError != CL_SUCCESS)
-    {
+        return false;
+
+    cl_platform_id* platforms = new cl_platform_id[numPlatforms];
+    m_lastError = clGetPlatformIDs(numPlatforms, platforms, NULL);
+    if (m_lastError != CL_SUCCESS) {
         delete[] platforms;
         return false;
     }
 
     size_t bufferSize = 4096;
-    char * buffer = new char[bufferSize];
+    char* buffer = new char[bufferSize];
     size_t size;
     info.resize(numPlatforms);
-    for (cl_uint i = 0; i < numPlatforms; ++i)
-    {
-        for (int j = CL_PLATFORM_PROFILE; j <= CL_PLATFORM_EXTENSIONS; ++j)
-        {
+    for (cl_uint i = 0; i < numPlatforms; ++i) {
+        for (int j = CL_PLATFORM_PROFILE; j <= CL_PLATFORM_EXTENSIONS; ++j) {
             info[i] += indentation + platformInfoParameters[j - CL_PLATFORM_PROFILE] + std::string(": ");
             m_lastError = clGetPlatformInfo(platforms[i], j, 0, NULL, &size);
-            if (m_lastError != CL_SUCCESS)
-            {
+            if (m_lastError != CL_SUCCESS) {
                 delete[] buffer;
                 delete[] platforms;
                 return false;
             }
-            if (bufferSize < size)
-            {
+            if (bufferSize < size) {
                 delete[] buffer;
                 bufferSize = size;
                 buffer = new char[bufferSize];
             }
             m_lastError = clGetPlatformInfo(platforms[i], j, size, buffer, NULL);
-            if (m_lastError != CL_SUCCESS)
-            {
+            if (m_lastError != CL_SUCCESS) {
                 delete[] buffer;
                 delete[] platforms;
                 return false;
@@ -97,12 +92,12 @@ bool OCLHelper::InitDevice(const unsigned int deviceIndex)
 {
     cl_uint numDevices;
     m_lastError = clGetDeviceIDs(m_platform, CL_DEVICE_TYPE_ALL, 0, NULL, &numDevices);
-    if (m_lastError != CL_SUCCESS || deviceIndex >= numDevices) return false;
+    if (m_lastError != CL_SUCCESS || deviceIndex >= numDevices)
+        return false;
 
-    cl_device_id  * devices = new cl_device_id[numDevices];
+    cl_device_id* devices = new cl_device_id[numDevices];
     m_lastError = clGetDeviceIDs(m_platform, CL_DEVICE_TYPE_ALL, numDevices, devices, NULL);
-    if (m_lastError != CL_SUCCESS)
-    {
+    if (m_lastError != CL_SUCCESS) {
         delete[] devices;
         return false;
     }
@@ -110,14 +105,13 @@ bool OCLHelper::InitDevice(const unsigned int deviceIndex)
     delete[] devices;
     return true;
 }
-bool OCLHelper::GetDevicesInfo(std::vector< std::string > & info,
-                               const std::string          & indentation)
+bool OCLHelper::GetDevicesInfo(std::vector<std::string>& info,
+    const std::string& indentation)
 {
-    enum
-    {
+    enum {
         DATA_TYPE_CL_UINT,
         DATA_TYPE_CL_BOOL,
-        DATA_TYPE_STRING ,
+        DATA_TYPE_STRING,
         DATA_TYPE_CL_ULONG,
         DATA_TYPE_CL_DEVICE_FP_CONFIG,
         DATA_TYPE_CL_DEVICE_EXEC_CAPABILITIES,
@@ -131,12 +125,11 @@ bool OCLHelper::GetDevicesInfo(std::vector< std::string > & info,
     typedef struct
     {
         cl_device_info id;
-        const char *   name;
-        int            type;
+        const char* name;
+        int type;
     } DeviceInfoParam;
     const int numDeviceInfoParameters = 49;
-    const DeviceInfoParam deviceInfoParameters[numDeviceInfoParameters] =
-    {
+    const DeviceInfoParam deviceInfoParameters[numDeviceInfoParameters] = {
         { CL_DEVICE_NAME, "CL_DEVICE_NAME", DATA_TYPE_STRING },
         { CL_DEVICE_PROFILE, "CL_DEVICE_PROFILE", DATA_TYPE_STRING },
         { CL_DEVICE_VENDOR, "CL_DEVICE_VENDOR", DATA_TYPE_STRING },
@@ -186,46 +179,40 @@ bool OCLHelper::GetDevicesInfo(std::vector< std::string > & info,
         { CL_DEVICE_TYPE, "CL_DEVICE_TYPE", DATA_TYPE_CL_DEVICE_TYPE },
         { CL_DEVICE_LOCAL_MEM_TYPE, "CL_DEVICE_LOCAL_MEM_TYPE", DATA_TYPE_CL_DEVICE_MEM_LOCAL_TYPE },
         { CL_DEVICE_MAX_WORK_ITEM_SIZES, "CL_DEVICE_MAX_WORK_ITEM_SIZES", DATA_TYPE_SIZE_T_3 }
-//        { CL_DEVICE_DOUBLE_FP_CONFIG, "CL_DEVICE_DOUBLE_FP_CONFIG", DATA_TYPE_CL_DEVICE_FP_CONFIG },
+        //        { CL_DEVICE_DOUBLE_FP_CONFIG, "CL_DEVICE_DOUBLE_FP_CONFIG", DATA_TYPE_CL_DEVICE_FP_CONFIG },
         //
     };
     cl_uint numDevices;
     m_lastError = clGetDeviceIDs(m_platform, CL_DEVICE_TYPE_ALL, 0, NULL, &numDevices);
-    if (m_lastError != CL_SUCCESS) return false;
-
-    cl_device_id  * devices = new cl_device_id[numDevices];
-    m_lastError = clGetDeviceIDs(m_platform, CL_DEVICE_TYPE_ALL, numDevices, devices, NULL);
     if (m_lastError != CL_SUCCESS)
-    {
+        return false;
+
+    cl_device_id* devices = new cl_device_id[numDevices];
+    m_lastError = clGetDeviceIDs(m_platform, CL_DEVICE_TYPE_ALL, numDevices, devices, NULL);
+    if (m_lastError != CL_SUCCESS) {
         delete[] devices;
         return false;
     }
     size_t bufferSize = 4096;
-    char * buffer = new char[bufferSize];
+    char* buffer = new char[bufferSize];
     size_t size;
     info.resize(numDevices);
-    
-    for (cl_uint i = 0; i < numDevices; ++i)
-    {
-        for (int j = 0; j < numDeviceInfoParameters; ++j)
-        {
-            const DeviceInfoParam & infoParam = deviceInfoParameters[j];
+
+    for (cl_uint i = 0; i < numDevices; ++i) {
+        for (int j = 0; j < numDeviceInfoParameters; ++j) {
+            const DeviceInfoParam& infoParam = deviceInfoParameters[j];
             info[i] += indentation + infoParam.name + std::string(": ");
 
-            if (infoParam.type == DATA_TYPE_STRING)
-            {
+            if (infoParam.type == DATA_TYPE_STRING) {
                 m_lastError = clGetDeviceInfo(devices[i], infoParam.id, 0, NULL, &size);
-                if (m_lastError == CL_SUCCESS)
-                {
-                    if (bufferSize < size)
-                    {
+                if (m_lastError == CL_SUCCESS) {
+                    if (bufferSize < size) {
                         delete[] buffer;
                         bufferSize = size;
                         buffer = new char[bufferSize];
                     }
                     m_lastError = clGetDeviceInfo(devices[i], infoParam.id, size, buffer, NULL);
-                    if (m_lastError != CL_SUCCESS)
-                    {
+                    if (m_lastError != CL_SUCCESS) {
                         delete[] devices;
                         delete[] buffer;
                         return false;
@@ -233,129 +220,106 @@ bool OCLHelper::GetDevicesInfo(std::vector< std::string > & info,
                     info[i] += buffer + std::string("\n");
                 }
             }
-            else if (infoParam.type == DATA_TYPE_CL_UINT)
-            {
+            else if (infoParam.type == DATA_TYPE_CL_UINT) {
                 cl_uint value;
                 m_lastError = clGetDeviceInfo(devices[i], infoParam.id, sizeof(cl_uint), &value, &size);
-                if (m_lastError == CL_SUCCESS)
-                {
+                if (m_lastError == CL_SUCCESS) {
                     std::ostringstream svalue;
                     svalue << value;
                     info[i] += svalue.str() + "\n";
                 }
             }
-            else if (infoParam.type == DATA_TYPE_CL_BOOL)
-            {
+            else if (infoParam.type == DATA_TYPE_CL_BOOL) {
                 cl_bool value;
                 m_lastError = clGetDeviceInfo(devices[i], infoParam.id, sizeof(cl_bool), &value, &size);
-                if (m_lastError == CL_SUCCESS)
-                {
+                if (m_lastError == CL_SUCCESS) {
                     std::ostringstream svalue;
                     svalue << value;
                     info[i] += svalue.str() + "\n";
                 }
             }
-            else if (infoParam.type == DATA_TYPE_CL_ULONG)
-            {
+            else if (infoParam.type == DATA_TYPE_CL_ULONG) {
                 cl_ulong value;
                 m_lastError = clGetDeviceInfo(devices[i], infoParam.id, sizeof(cl_ulong), &value, &size);
-                if (m_lastError == CL_SUCCESS)
-                {
+                if (m_lastError == CL_SUCCESS) {
                     std::ostringstream svalue;
                     svalue << value;
                     info[i] += svalue.str() + "\n";
                 }
             }
-            else if (infoParam.type == DATA_TYPE_CL_DEVICE_FP_CONFIG)
-            {
+            else if (infoParam.type == DATA_TYPE_CL_DEVICE_FP_CONFIG) {
                 cl_device_fp_config value;
                 m_lastError = clGetDeviceInfo(devices[i], infoParam.id, sizeof(cl_device_fp_config), &value, &size);
-                if (m_lastError == CL_SUCCESS)
-                {
+                if (m_lastError == CL_SUCCESS) {
                     std::ostringstream svalue;
                     svalue << value;
                     info[i] += svalue.str() + "\n";
                 }
             }
-            else if (infoParam.type == DATA_TYPE_CL_DEVICE_EXEC_CAPABILITIES)
-            {
+            else if (infoParam.type == DATA_TYPE_CL_DEVICE_EXEC_CAPABILITIES) {
                 cl_device_exec_capabilities value;
                 m_lastError = clGetDeviceInfo(devices[i], infoParam.id, sizeof(cl_device_exec_capabilities), &value, &size);
-                if (m_lastError == CL_SUCCESS)
-                {
+                if (m_lastError == CL_SUCCESS) {
                     std::ostringstream svalue;
                     svalue << value;
                     info[i] += svalue.str() + "\n";
                 }
             }
-            else if (infoParam.type == DATA_TYPE_CL_DEVICE_MEM_CACHE_TYPE)
-            {
+            else if (infoParam.type == DATA_TYPE_CL_DEVICE_MEM_CACHE_TYPE) {
                 cl_device_mem_cache_type value;
                 m_lastError = clGetDeviceInfo(devices[i], infoParam.id, sizeof(cl_device_mem_cache_type), &value, &size);
-                if (m_lastError == CL_SUCCESS)
-                {
+                if (m_lastError == CL_SUCCESS) {
                     std::ostringstream svalue;
                     svalue << value;
                     info[i] += svalue.str() + "\n";
                 }
             }
-            else if (infoParam.type == DATA_TYPE_CL_DEVICE_MEM_LOCAL_TYPE)
-            {
+            else if (infoParam.type == DATA_TYPE_CL_DEVICE_MEM_LOCAL_TYPE) {
                 cl_device_local_mem_type value;
                 m_lastError = clGetDeviceInfo(devices[i], infoParam.id, sizeof(cl_device_local_mem_type), &value, &size);
-                if (m_lastError == CL_SUCCESS)
-                {
+                if (m_lastError == CL_SUCCESS) {
                     std::ostringstream svalue;
                     svalue << value;
                     info[i] += svalue.str() + "\n";
                 }
             }
-            else if (infoParam.type == DATA_TYPE_CL_DEVICE_CMD_QUEUE_PROP)
-            {
+            else if (infoParam.type == DATA_TYPE_CL_DEVICE_CMD_QUEUE_PROP) {
                 cl_command_queue_properties value;
                 m_lastError = clGetDeviceInfo(devices[i], infoParam.id, sizeof(cl_command_queue_properties), &value, &size);
-                if (m_lastError == CL_SUCCESS)
-                {
+                if (m_lastError == CL_SUCCESS) {
                     std::ostringstream svalue;
                     svalue << value;
                     info[i] += svalue.str() + "\n";
                 }
             }
-            else if (infoParam.type == DATA_TYPE_CL_DEVICE_TYPE)
-            {
+            else if (infoParam.type == DATA_TYPE_CL_DEVICE_TYPE) {
                 cl_device_type value;
                 m_lastError = clGetDeviceInfo(devices[i], infoParam.id, sizeof(cl_device_type), &value, &size);
-                if (m_lastError == CL_SUCCESS)
-                {
+                if (m_lastError == CL_SUCCESS) {
                     std::ostringstream svalue;
                     svalue << value;
                     info[i] += svalue.str() + "\n";
                 }
             }
-            else if (infoParam.type == DATA_TYPE_SIZE_T)
-            {
+            else if (infoParam.type == DATA_TYPE_SIZE_T) {
                 size_t value;
                 m_lastError = clGetDeviceInfo(devices[i], infoParam.id, sizeof(size_t), &value, &size);
-                if (m_lastError == CL_SUCCESS)
-                {
+                if (m_lastError == CL_SUCCESS) {
                     std::ostringstream svalue;
                     svalue << value;
                     info[i] += svalue.str() + "\n";
                 }
             }
-            else if (infoParam.type == DATA_TYPE_SIZE_T_3)
-            {
+            else if (infoParam.type == DATA_TYPE_SIZE_T_3) {
                 size_t value[3];
-                m_lastError = clGetDeviceInfo(devices[i], infoParam.id, 3*sizeof(size_t), &value, &size);
-                if (m_lastError == CL_SUCCESS)
-                {
+                m_lastError = clGetDeviceInfo(devices[i], infoParam.id, 3 * sizeof(size_t), &value, &size);
+                if (m_lastError == CL_SUCCESS) {
                     std::ostringstream svalue;
                     svalue << "(" << value[0] << ", " << value[1] << ", " << value[2] << ")";
                     info[i] += svalue.str() + "\n";
                 }
             }
-            else
-            {
+            else {
                 assert(0);
             }
         }
@@ -365,4 +329,3 @@ bool OCLHelper::GetDevicesInfo(std::vector< std::string > & info,
     return true;
 }
 #endif // OPENCL_FOUND
-
