@@ -211,8 +211,6 @@ int main(int argc, char* argv[])
             return -1;
         }
 
-        SaveOFF("test.off", &(points[0]), &(triangles[0]), points.size() / 3, triangles.size() / 3, myLogger);
-
         // run V-HACD
         IVHACD* interfaceVHACD = CreateVHACD();
 
