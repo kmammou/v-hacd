@@ -10,7 +10,7 @@ source_group (Src FILES ${PROJECT_CPP_FILES}  )
 source_group (SrcC FILES ${PROJECT_C_FILES}  )
 source_group (CL FILES ${PROJECT_CL_FILES})
 
-include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+#include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
 message("[VHACD] \t INC_FILES: ${PROJECT_INC_FILES}")
 message("[VHACD] \t INL_FILES: ${PROJECT_INL_FILES}")
 message("[VHACD] \t CPP_FILES: ${PROJECT_CPP_FILES}")

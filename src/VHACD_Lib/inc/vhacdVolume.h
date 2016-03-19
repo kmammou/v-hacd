@@ -44,18 +44,13 @@ public:
     virtual const double GetEigenValue(AXIS axis) const = 0;
     virtual const double ComputeMaxVolumeError() const = 0;
     virtual const double ComputeVolume() const = 0;
-    virtual void Clip(const Plane& plane,
-        PrimitiveSet* const positivePart,
+    virtual void Clip(const Plane& plane, PrimitiveSet* const positivePart,
         PrimitiveSet* const negativePart) const = 0;
-    virtual void Intersect(const Plane& plane,
-        SArray<Vec3<double> >* const positivePts,
-        SArray<Vec3<double> >* const negativePts,
-        const size_t sampling) const = 0;
-    virtual void ComputeExteriorPoints(const Plane& plane,
-        const Mesh& mesh,
+    virtual void Intersect(const Plane& plane, SArray<Vec3<double> >* const positivePts,
+        SArray<Vec3<double> >* const negativePts, const size_t sampling) const = 0;
+    virtual void ComputeExteriorPoints(const Plane& plane, const Mesh& mesh,
         SArray<Vec3<double> >* const exteriorPts) const = 0;
-    virtual void ComputeClippedVolumes(const Plane& plane,
-        double& positiveVolume,
+    virtual void ComputeClippedVolumes(const Plane& plane, double& positiveVolume,
         double& negativeVolume) const = 0;
     virtual void SelectOnSurface(PrimitiveSet* const onSurfP) const = 0;
     virtual void ComputeConvexHull(Mesh& meshCH, const size_t sampling = 1) const = 0;
@@ -64,7 +59,6 @@ public:
     virtual void AlignToPrincipalAxes() = 0;
     virtual void RevertAlignToPrincipalAxes() = 0;
     virtual void Convert(Mesh& mesh, const VOXEL_VALUE value) const = 0;
-
     const Mesh& GetConvexHull() const { return m_convexHull; };
     Mesh& GetConvexHull() { return m_convexHull; };
 private:
@@ -112,19 +106,12 @@ public:
     }
     void GetPoints(const Voxel& voxel, Vec3<double>* const pts) const;
     void ComputeConvexHull(Mesh& meshCH, const size_t sampling = 1) const;
-    void Clip(const Plane& plane,
-        PrimitiveSet* const positivePart,
-        PrimitiveSet* const negativePart) const;
-    void Intersect(const Plane& plane,
-        SArray<Vec3<double> >* const positivePts,
-        SArray<Vec3<double> >* const negativePts,
-        const size_t sampling) const;
-    void ComputeExteriorPoints(const Plane& plane,
-        const Mesh& mesh,
+    void Clip(const Plane& plane, PrimitiveSet* const positivePart, PrimitiveSet* const negativePart) const;
+    void Intersect(const Plane& plane, SArray<Vec3<double> >* const positivePts,
+        SArray<Vec3<double> >* const negativePts, const size_t sampling) const;
+    void ComputeExteriorPoints(const Plane& plane, const Mesh& mesh,
         SArray<Vec3<double> >* const exteriorPts) const;
-    void ComputeClippedVolumes(const Plane& plane,
-        double& positiveVolume,
-        double& negativeVolume) const;
+    void ComputeClippedVolumes(const Plane& plane, double& positiveVolume, double& negativeVolume) const;
     void SelectOnSurface(PrimitiveSet* const onSurfP) const;
     void ComputeBB();
     void Convert(Mesh& mesh, const VOXEL_VALUE value) const;
@@ -185,19 +172,12 @@ public:
     void ComputePrincipalAxes();
     void AlignToPrincipalAxes();
     void RevertAlignToPrincipalAxes();
-    void Clip(const Plane& plane,
-        PrimitiveSet* const positivePart,
-        PrimitiveSet* const negativePart) const;
-    void Intersect(const Plane& plane,
-        SArray<Vec3<double> >* const positivePts,
-        SArray<Vec3<double> >* const negativePts,
-        const size_t sampling) const;
-    void ComputeExteriorPoints(const Plane& plane,
-        const Mesh& mesh,
+    void Clip(const Plane& plane, PrimitiveSet* const positivePart, PrimitiveSet* const negativePart) const;
+    void Intersect(const Plane& plane, SArray<Vec3<double> >* const positivePts,
+        SArray<Vec3<double> >* const negativePts, const size_t sampling) const;
+    void ComputeExteriorPoints(const Plane& plane, const Mesh& mesh,
         SArray<Vec3<double> >* const exteriorPts) const;
-    void ComputeClippedVolumes(const Plane& plane,
-        double& positiveVolume,
-        double& negativeVolume) const;
+    void ComputeClippedVolumes(const Plane& plane, double& positiveVolume, double& negativeVolume) const;
     void SelectOnSurface(PrimitiveSet* const onSurfP) const;
     void ComputeBB();
     void Convert(Mesh& mesh, const VOXEL_VALUE value) const;
@@ -233,15 +213,9 @@ public:
 
     //! Voxelize
     template <class T>
-    void Voxelize(const T* const points,
-        const unsigned int stridePoints,
-        const unsigned int nPoints,
-        const int* const triangles,
-        const unsigned int strideTriangles,
-        const unsigned int nTriangles,
-        const size_t dim,
-        const Vec3<double>& barycenter,
-        const double (&rot)[3][3]);
+    void Voxelize(const T* const points, const unsigned int stridePoints, const unsigned int nPoints,
+        const int* const triangles, const unsigned int strideTriangles, const unsigned int nTriangles,
+        const size_t dim, const Vec3<double>& barycenter, const double (&rot)[3][3]);
     unsigned char& GetVoxel(const size_t i, const size_t j, const size_t k)
     {
         assert(i < m_dim[0] || i >= 0);
@@ -264,19 +238,12 @@ public:
     void AlignToPrincipalAxes(double (&rot)[3][3]) const;
 
 private:
-    void FillOutsideSurface(const size_t i0,
-        const size_t j0,
-        const size_t k0,
-        const size_t i1,
-        const size_t j1,
-        const size_t k1);
+    void FillOutsideSurface(const size_t i0, const size_t j0, const size_t k0, const size_t i1,
+        const size_t j1, const size_t k1);
     void FillInsideSurface();
     template <class T>
-    void ComputeBB(const T* const points,
-        const unsigned int stridePoints,
-        const unsigned int nPoints,
-        const Vec3<double>& barycenter,
-        const double (&rot)[3][3]);
+    void ComputeBB(const T* const points, const unsigned int stridePoints, const unsigned int nPoints,
+        const Vec3<double>& barycenter, const double (&rot)[3][3]);
     void Allocate();
     void Free();
 
@@ -289,23 +256,13 @@ private:
     size_t m_numVoxelsOutsideSurface;
     unsigned char* m_data;
 };
-int TriBoxOverlap(const Vec3<double>& boxcenter,
-    const Vec3<double>& boxhalfsize,
-    const Vec3<double>& triver0,
-    const Vec3<double>& triver1,
-    const Vec3<double>& triver2);
+int TriBoxOverlap(const Vec3<double>& boxcenter, const Vec3<double>& boxhalfsize, const Vec3<double>& triver0,
+    const Vec3<double>& triver1, const Vec3<double>& triver2);
 template <class T>
-inline void ComputeAlignedPoint(const T* const points,
-    const unsigned int idx,
-    const Vec3<double>& barycenter,
-    const double (&rot)[3][3],
-    Vec3<double>& pt){};
+inline void ComputeAlignedPoint(const T* const points, const unsigned int idx, const Vec3<double>& barycenter,
+    const double (&rot)[3][3], Vec3<double>& pt){};
 template <>
-inline void ComputeAlignedPoint<float>(const float* const points,
-    const unsigned int idx,
-    const Vec3<double>& barycenter,
-    const double (&rot)[3][3],
-    Vec3<double>& pt)
+inline void ComputeAlignedPoint<float>(const float* const points, const unsigned int idx, const Vec3<double>& barycenter, const double (&rot)[3][3], Vec3<double>& pt)
 {
     double x = points[idx + 0] - barycenter[0];
     double y = points[idx + 1] - barycenter[1];
@@ -315,11 +272,7 @@ inline void ComputeAlignedPoint<float>(const float* const points,
     pt[2] = rot[0][2] * x + rot[1][2] * y + rot[2][2] * z;
 }
 template <>
-inline void ComputeAlignedPoint<double>(const double* const points,
-    const unsigned int idx,
-    const Vec3<double>& barycenter,
-    const double (&rot)[3][3],
-    Vec3<double>& pt)
+inline void ComputeAlignedPoint<double>(const double* const points, const unsigned int idx, const Vec3<double>& barycenter, const double (&rot)[3][3], Vec3<double>& pt)
 {
     double x = points[idx + 0] - barycenter[0];
     double y = points[idx + 1] - barycenter[1];
@@ -329,11 +282,8 @@ inline void ComputeAlignedPoint<double>(const double* const points,
     pt[2] = rot[0][2] * x + rot[1][2] * y + rot[2][2] * z;
 }
 template <class T>
-void Volume::ComputeBB(const T* const points,
-    const unsigned int stridePoints,
-    const unsigned int nPoints,
-    const Vec3<double>& barycenter,
-    const double (&rot)[3][3])
+void Volume::ComputeBB(const T* const points, const unsigned int stridePoints, const unsigned int nPoints,
+    const Vec3<double>& barycenter, const double (&rot)[3][3])
 {
     Vec3<double> pt;
     ComputeAlignedPoint(points, 0, barycenter, rot, pt);
@@ -350,15 +300,9 @@ void Volume::ComputeBB(const T* const points,
     }
 }
 template <class T>
-void Volume::Voxelize(const T* const points,
-    const unsigned int stridePoints,
-    const unsigned int nPoints,
-    const int* const triangles,
-    const unsigned int strideTriangles,
-    const unsigned int nTriangles,
-    const size_t dim,
-    const Vec3<double>& barycenter,
-    const double (&rot)[3][3])
+void Volume::Voxelize(const T* const points, const unsigned int stridePoints, const unsigned int nPoints,
+    const int* const triangles, const unsigned int strideTriangles, const unsigned int nTriangles,
+    const size_t dim, const Vec3<double>& barycenter, const double (&rot)[3][3])
 {
     if (nPoints == 0) {
         return;
