@@ -150,7 +150,7 @@ class VHACD(bpy.types.Operator):
             default = 32, min = 4, max = 1024)
 
     minVolumePerCH = FloatProperty(
-            name = 'Maximum Vertices Per CH',
+            name = 'Minimum Volume Per CH',
             description = 'Minimum volume to add vertices to convex-hulls',
             default = 0.0001, min = 0.0, max = 0.01, precision = 5)
 
