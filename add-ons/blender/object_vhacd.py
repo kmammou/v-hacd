@@ -251,7 +251,7 @@ class VHACD(bpy.types.Operator):
 
             print('\nExporting mesh for V-HACD: {}...'.format(off_filename))
             off_export(mesh, off_filename)
-            cmd_line = '{} --input "{}" --resolution {} --depth {} --concavity {:g} --planeDownsampling {} --convexhullDownsampling {} --alpha {:g} --beta {:g} --gamma {:g} --pca {:b} --mode {:b} --maxNumVerticesPerCH {} --minVolumePerCH {:g} --output "{}" --log "{}"'.format(
+            cmd_line = '"{}" --input "{}" --resolution {} --depth {} --concavity {:g} --planeDownsampling {} --convexhullDownsampling {} --alpha {:g} --beta {:g} --gamma {:g} --pca {:b} --mode {:b} --maxNumVerticesPerCH {} --minVolumePerCH {:g} --output "{}" --log "{}"'.format(
                     vhacd_path,
                     off_filename,
                     self.resolution,
