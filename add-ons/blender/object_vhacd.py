@@ -150,7 +150,7 @@ class VHACD(bpy.types.Operator):
             default = 32, min = 4, max = 1024)
 
     minVolumePerCH = FloatProperty(
-            name = 'Maximum Vertices Per CH',
+            name = 'Minimum Volume Per CH',
             description = 'Minimum volume to add vertices to convex-hulls',
             default = 0.0001, min = 0.0, max = 0.01, precision = 5)
 
@@ -251,7 +251,7 @@ class VHACD(bpy.types.Operator):
 
             print('\nExporting mesh for V-HACD: {}...'.format(off_filename))
             off_export(mesh, off_filename)
-            cmd_line = '{} --input "{}" --resolution {} --depth {} --concavity {:g} --planeDownsampling {} --convexhullDownsampling {} --alpha {:g} --beta {:g} --gamma {:g} --pca {:b} --mode {:b} --maxNumVerticesPerCH {} --minVolumePerCH {:g} --output "{}" --log "{}"'.format(
+            cmd_line = '"{}" --input "{}" --resolution {} --depth {} --concavity {:g} --planeDownsampling {} --convexhullDownsampling {} --alpha {:g} --beta {:g} --gamma {:g} --pca {:b} --mode {:b} --maxNumVerticesPerCH {} --minVolumePerCH {:g} --output "{}" --log "{}"'.format(
                     vhacd_path,
                     off_filename,
                     self.resolution,
