@@ -19,7 +19,7 @@
 #include "vhacdVector.h"
 
 namespace VHACD {
-//!    Incremental Convex Hull algorithm (cf. http://maven.smith.edu/~orourke/books/ftp.html ).
+//!    Incremental Convex Hull algorithm (cf. http://cs.smith.edu/~orourke/books/ftp.html ).
 enum ICHullError {
     ICHullErrorOK = 0,
     ICHullErrorCoplanarPoints,
