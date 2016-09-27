@@ -118,6 +118,8 @@ bool SaveOFF(const string& fileName, const float* const& points, const int* cons
     const unsigned int& nTriangles, IVHACD::IUserLogger& logger);
 bool SaveVRML2(ofstream& fout, const double* const& points, const int* const& triangles, const unsigned int& nPoints,
     const unsigned int& nTriangles, const Material& material, IVHACD::IUserLogger& logger);
+bool SaveOBJ(ofstream& fout, const double* const& points, const int* const& triangles, const unsigned int& nPoints,
+    const unsigned int& nTriangles, const Material& material, IVHACD::IUserLogger& logger, int convexPart, int vertexOffset);
 void GetFileExtension(const string& fileName, string& fileExtension);
 void ComputeRandomColor(Material& mat);
 void Usage(const Parameters& params);
@@ -224,6 +226,7 @@ int main(int argc, char* argv[])
 #endif //CL_VERSION_1_1
         bool res = interfaceVHACD->Compute(&points[0], 3, (unsigned int)points.size() / 3,
             &triangles[0], 3, (unsigned int)triangles.size() / 3, params.m_paramsVHACD);
+#ifdef SAVE_VRML2
         if (res) {
             // save output
             unsigned int nConvexHulls = interfaceVHACD->GetNConvexHulls();
@@ -248,6 +251,34 @@ int main(int argc, char* argv[])
         else {
             myLogger.Log("Decomposition cancelled by user!\n");
         }
+#else
+        if (res) {
+            // save output
+            unsigned int nConvexHulls = interfaceVHACD->GetNConvexHulls();
+            msg.str("");
+            msg << "+ Generate output: " << nConvexHulls << " convex-hulls " << endl;
+            myLogger.Log(msg.str().c_str());
+            ofstream foutCH(params.m_fileNameOut.c_str());
+            IVHACD::ConvexHull ch;
+            if (foutCH.is_open()) {
+                Material mat;
+	        int vertexOffset = 1;//obj wavefront starts counting at 1...
+                for (unsigned int p = 0; p < nConvexHulls; ++p) {
+                    interfaceVHACD->GetConvexHull(p, ch);
+                    SaveOBJ(foutCH, ch.m_points, ch.m_triangles, ch.m_nPoints, ch.m_nTriangles, mat, myLogger, p, vertexOffset);
+					vertexOffset+=ch.m_nPoints;
+                    msg.str("");
+                    msg << "\t CH[" << setfill('0') << setw(5) << p << "] " << ch.m_nPoints << " V, " << ch.m_nTriangles << " T" << endl;
+                    myLogger.Log(msg.str().c_str());
+                }
+                foutCH.close();
+            }
+        }
+        else {
+            myLogger.Log("Decomposition cancelled by user!\n");
+        }
+
+#endif
 
 #ifdef CL_VERSION_1_1
         if (params.m_paramsVHACD.m_oclAcceleration) {
@@ -662,3 +693,39 @@ bool SaveVRML2(ofstream& fout, const double* const& points, const int* const& tr
         return false;
     }
 }
+
+
+bool SaveOBJ(ofstream& fout, const double* const& points, const int* const& triangles, const unsigned int& nPoints,
+    const unsigned int& nTriangles, const Material& material, IVHACD::IUserLogger& logger, int convexPart, int vertexOffset)
+{
+    if (fout.is_open()) {
+
+        fout.setf(std::ios::fixed, std::ios::floatfield);
+        fout.setf(std::ios::showpoint);
+        fout.precision(6);
+        size_t nV = nPoints * 3;
+        size_t nT = nTriangles * 3;
+
+		fout << "o convex_" << convexPart << std::endl;
+
+        if (nV > 0) {
+            for (size_t v = 0; v < nV; v += 3) {
+                fout << "v " << points[v + 0] << " " << points[v + 1] << " " << points[v + 2] << std::endl;
+            }
+        }
+        if (nT > 0) {
+            for (size_t f = 0; f < nT; f += 3) {
+                     fout << "f " 
+                     << triangles[f + 0]+vertexOffset << " "
+                     << triangles[f + 1]+vertexOffset << " "
+                     << triangles[f + 2]+vertexOffset << " " << std::endl;
+            }
+        }
+        return true;
+    }
+    else {
+        logger.Log("Can't open file\n");
+        return false;
+    }
+}
+
