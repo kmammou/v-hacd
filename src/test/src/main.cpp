@@ -566,7 +566,7 @@ bool LoadOBJ(const string& fileName, vector<float>& points, vector<int>& triangl
                 int k = 0;
                 while (pch) {
                     pch = strtok(str, " ");
-                    if (pch) {
+                    if (pch && *pch != '\n') {
                         ip[k++] = atoi(pch) - 1;
                     }
                     else {
