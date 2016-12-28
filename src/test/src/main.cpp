@@ -226,59 +226,62 @@ int main(int argc, char* argv[])
 #endif //CL_VERSION_1_1
         bool res = interfaceVHACD->Compute(&points[0], 3, (unsigned int)points.size() / 3,
             &triangles[0], 3, (unsigned int)triangles.size() / 3, params.m_paramsVHACD);
-#ifdef SAVE_VRML2
-        if (res) {
-            // save output
-            unsigned int nConvexHulls = interfaceVHACD->GetNConvexHulls();
-            msg.str("");
-            msg << "+ Generate output: " << nConvexHulls << " convex-hulls " << endl;
-            myLogger.Log(msg.str().c_str());
-            ofstream foutCH(params.m_fileNameOut.c_str());
-            IVHACD::ConvexHull ch;
-            if (foutCH.is_open()) {
-                Material mat;
-                for (unsigned int p = 0; p < nConvexHulls; ++p) {
-                    interfaceVHACD->GetConvexHull(p, ch);
-                    ComputeRandomColor(mat);
-                    SaveVRML2(foutCH, ch.m_points, ch.m_triangles, ch.m_nPoints, ch.m_nTriangles, mat, myLogger);
-                    msg.str("");
-                    msg << "\t CH[" << setfill('0') << setw(5) << p << "] " << ch.m_nPoints << " V, " << ch.m_nTriangles << " T" << endl;
-                    myLogger.Log(msg.str().c_str());
-                }
-                foutCH.close();
-            }
-        }
-        else {
-            myLogger.Log("Decomposition cancelled by user!\n");
-        }
-#else
-        if (res) {
-            // save output
-            unsigned int nConvexHulls = interfaceVHACD->GetNConvexHulls();
-            msg.str("");
-            msg << "+ Generate output: " << nConvexHulls << " convex-hulls " << endl;
-            myLogger.Log(msg.str().c_str());
-            ofstream foutCH(params.m_fileNameOut.c_str());
-            IVHACD::ConvexHull ch;
-            if (foutCH.is_open()) {
-                Material mat;
-	        int vertexOffset = 1;//obj wavefront starts counting at 1...
-                for (unsigned int p = 0; p < nConvexHulls; ++p) {
-                    interfaceVHACD->GetConvexHull(p, ch);
-                    SaveOBJ(foutCH, ch.m_points, ch.m_triangles, ch.m_nPoints, ch.m_nTriangles, mat, myLogger, p, vertexOffset);
-					vertexOffset+=ch.m_nPoints;
-                    msg.str("");
-                    msg << "\t CH[" << setfill('0') << setw(5) << p << "] " << ch.m_nPoints << " V, " << ch.m_nTriangles << " T" << endl;
-                    myLogger.Log(msg.str().c_str());
-                }
-                foutCH.close();
-            }
-        }
-        else {
-            myLogger.Log("Decomposition cancelled by user!\n");
-        }
 
-#endif
+
+
+
+        if (res) {
+            std::string ext;
+            if (params.m_fileNameOut.length() > 4) {
+                ext = params.m_fileNameOut.substr(params.m_fileNameOut.length()-4);
+            }
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            if (ext != ".obj") {
+                // save output
+                unsigned int nConvexHulls = interfaceVHACD->GetNConvexHulls();
+                msg.str("");
+                msg << "+ Generate output: " << nConvexHulls << " convex-hulls " << endl;
+                myLogger.Log(msg.str().c_str());
+                ofstream foutCH(params.m_fileNameOut.c_str());
+                IVHACD::ConvexHull ch;
+                if (foutCH.is_open()) {
+                    Material mat;
+                    for (unsigned int p = 0; p < nConvexHulls; ++p) {
+                        interfaceVHACD->GetConvexHull(p, ch);
+                        ComputeRandomColor(mat);
+                        SaveVRML2(foutCH, ch.m_points, ch.m_triangles, ch.m_nPoints, ch.m_nTriangles, mat, myLogger);
+                        msg.str("");
+                        msg << "\t CH[" << setfill('0') << setw(5) << p << "] " << ch.m_nPoints << " V, " << ch.m_nTriangles << " T" << endl;
+                        myLogger.Log(msg.str().c_str());
+                    }
+                    foutCH.close();
+                }
+            }
+            else {
+                unsigned int nConvexHulls = interfaceVHACD->GetNConvexHulls();
+                msg.str("");
+                msg << "+ Generate output: " << nConvexHulls << " convex-hulls " << endl;
+                myLogger.Log(msg.str().c_str());
+                ofstream foutCH(params.m_fileNameOut.c_str());
+                IVHACD::ConvexHull ch;
+                if (foutCH.is_open()) {
+                    Material mat;
+                    int vertexOffset = 1;//obj wavefront starts counting at 1...
+                    for (unsigned int p = 0; p < nConvexHulls; ++p) {
+                        interfaceVHACD->GetConvexHull(p, ch);
+                        SaveOBJ(foutCH, ch.m_points, ch.m_triangles, ch.m_nPoints, ch.m_nTriangles, mat, myLogger, p, vertexOffset);
+                        vertexOffset+=ch.m_nPoints;
+                        msg.str("");
+                        msg << "\t CH[" << setfill('0') << setw(5) << p << "] " << ch.m_nPoints << " V, " << ch.m_nTriangles << " T" << endl;
+                        myLogger.Log(msg.str().c_str());
+                    }
+                    foutCH.close();
+                }
+            }
+        }
+        else {
+            myLogger.Log("Decomposition cancelled by user!\n");
+        }
 
 #ifdef CL_VERSION_1_1
         if (params.m_paramsVHACD.m_oclAcceleration) {
