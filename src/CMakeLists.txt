@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.0.0 FATAL_ERROR)
 project(VHACD)
 option(NO_OPENCL "NO_OPENCL" OFF)
 option(NO_OPENMP "NO_OPENMP" OFF)
