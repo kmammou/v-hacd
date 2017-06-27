@@ -75,11 +75,6 @@ static void  fm_computCenter(uint32_t vcount,const double *vertices,double cente
 
 }
 
-void callFromThread(void)
-{
-
-}
-
 class MyHACD_API : public VHACD::IVHACD, public VHACD::IVHACD::IUserCallback, VHACD::IVHACD::IUserLogger
 {
 public:
@@ -109,7 +104,7 @@ public:
 	virtual ~MyHACD_API(void)
 	{
 		releaseHACD();
-		cancelThread();
+		Cancel();
 		mVHACD->Release();
 		if (mMergeHullsInterface)
 		{
@@ -128,7 +123,7 @@ public:
 		const Parameters& _desc) final
 	{
 #if ENABLE_ASYNC
-		cancelThread(); // if we previously had a solution running; cancel it.
+		Cancel(); // if we previously had a solution running; cancel it.
 		releaseHACD();
 		mRunning = true;
 		mThread = new std::thread([this, points, stridePoints, countPoints, triangles, strideTriangles, countTriangles, _desc]()
@@ -282,23 +277,6 @@ public:
 		}
 	}
 
-	void cancelThread(void)
-	{
-		// If the thread is still running we need to cancel the operation and wait for it to complete.
-		if (mRunning)
-		{
-			Cancel();
-			while (mRunning)
-			{
-				using namespace std::chrono_literals;
-				std::this_thread::sleep_for(1ms);
-			}
-			delete mThread;
-			mThread = nullptr;
-			mCancel = false; // clear the cancel semaphore
-		}
-	}
-
 	void	releaseHACD(void) // release memory associated with the last HACD request
 	{
 		for (uint32_t i=0; i<mHullCount; i++)
@@ -327,14 +305,21 @@ public:
 	{
 		if (mRunning)
 		{
-			mVHACD->Cancel();
+			mVHACD->Cancel();	// Set the cancel signal to teh base VHACD
 			if (mMergeHullsInterface)
 			{
 				mMergeHullsInterface->cancel();
 			}
-			mCancel = true;
-			Update(1, 1, 1, "ConvexDecomposition", "Cancelled");
-			Log("Convex Decomposition Cancelled\n");
+			using namespace std::chrono_literals;
+			while (mRunning)
+			{
+				std::this_thread::sleep_for(1ms);
+			}
+			std::this_thread::sleep_for(1ms);
+//??			delete mThread;
+			mThread = nullptr;
+			mCancel = false; // clear the cancel semaphore
+			Log("Convex Decomposition thread canceled\n");
 		}
 	}
 
@@ -372,7 +357,7 @@ public:
 
 	virtual void Clean(void) final // release internally allocated memory
 	{
-		cancelThread();
+		Cancel();
 		releaseHACD();
 		mVHACD->Clean();
 	}
