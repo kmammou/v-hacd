@@ -86,7 +86,7 @@ public:
 		{
 			if ( !mHACD->IsReady()) // if we are still computing the convex decomposition in a background thread, display the current status
 			{
-				mRenderDebug->debugText2D(0, 0.3f, 0.5f, 2.0f, false, 0xFFFF00, "%s : %s : %0.2f : %0.2f : %0.2f\n", mStage.c_str(), mOperation.c_str(), mOverallProgress, mStageProgress, mOperationProgress);
+				mRenderDebug->debugText2D(0, 0.2f, 0.5f, 2.0f, false, 0xFF8080, "%s : %s : %0.2f : %0.2f : %0.2f\n", mStage.c_str(), mOperation.c_str(), mOverallProgress, mStageProgress, mOperationProgress);
 			}
 		}
 	}
@@ -99,6 +99,7 @@ public:
 		VHACD::IVHACD::Parameters &desc)
 	{
 		desc.m_callback = this;
+		desc.m_logger = this;
 		mHACD->Compute(points, 3, countPoints, triangles, 3, countTriangles, desc);
 	}
 
@@ -122,8 +123,8 @@ public:
 
 	virtual void Log(const char* const msg) final
 	{
-		printf("VHACD:%s\n", msg);
-		mRenderDebug->debugMessage("VHACD:%s\n", msg);
+		printf("%s", msg);
+		mRenderDebug->debugMessage("VHACD:%s", msg);
 	}
 
 	virtual bool Cancelled() final

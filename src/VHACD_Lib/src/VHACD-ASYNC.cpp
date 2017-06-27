@@ -334,7 +334,7 @@ public:
 			}
 			mCancel = true;
 			Update(1, 1, 1, "ConvexDecomposition", "Cancelled");
-			Log("Convex Decomposition Cancelled");
+			Log("Convex Decomposition Cancelled\n");
 		}
 	}
 

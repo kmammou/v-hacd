@@ -194,14 +194,19 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
 	
-	gRenderDebug->sendRemoteCommand("BeginGroup \"V-HACD Settings\"");	// Mark the beginning of a group of controls.
-
+	gRenderDebug->sendRemoteCommand("BeginGroup \"V-HACD Settings1\"");	// Mark the beginning of a group of controls.
 	gRenderDebug->sendRemoteCommand("SliderInt DecompositionDepth 10 1 20 DecompositionDepth");
 	gRenderDebug->sendRemoteCommand("SliderInt MaxHullVertices 32 8 512 MaxHullVertices");
 	gRenderDebug->sendRemoteCommand("SliderInt MaxConvexHulls 32 1 512 MaxConvexHulls");
 	gRenderDebug->sendRemoteCommand("Slider Concavity 0.001 0 0.1 Concavity");
+	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'HACD settings'
+
+	gRenderDebug->sendRemoteCommand("BeginGroup \"V-HACD Settings2\"");	// Mark the beginning of a group of controls.
+	gRenderDebug->sendRemoteCommand("Slider Alpha 0.0005 0 0.1 Alpha");
+	gRenderDebug->sendRemoteCommand("Slider Beta 0.0005 0 0.1 Beta");
 	gRenderDebug->sendRemoteCommand("Slider Gamma 0.0005 0 0.1 Gamma");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'HACD settings'
+
 
 	gRenderDebug->sendRemoteCommand("EndTab"); // End the tab called 'Test RenderDebug'
 }
@@ -396,6 +401,18 @@ int main(int argc,const char **argv)
 								const char *value = argv[1];
 								gDesc.m_concavity = (float)atof(value);
 								printf("Concavity=%0.5f\n", gDesc.m_concavity);
+							}
+							else if (strcmp(cmd, "Alpha") == 0 && argc == 2)
+							{
+								const char *value = argv[1];
+								gDesc.m_alpha = (float)atof(value);
+								printf("Alpha=%0.5f\n", gDesc.m_alpha);
+							}
+							else if (strcmp(cmd, "Beta") == 0 && argc == 2)
+							{
+								const char *value = argv[1];
+								gDesc.m_beta = (float)atof(value);
+								printf("Beta=%0.5f\n", gDesc.m_beta);
 							}
 							else if (strcmp(cmd, "Gamma") == 0 && argc == 2)
 							{
