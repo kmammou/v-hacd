@@ -45,6 +45,8 @@ public:
         int* m_triangles;
         unsigned int m_nPoints;
         unsigned int m_nTriangles;
+		double		 m_volume;
+		double		m_center[3];
     };
 
     class Parameters {
@@ -68,6 +70,7 @@ public:
             m_logger = 0;
             m_convexhullApproximation = true;
             m_oclAcceleration = true;
+            m_maxConvexHulls = 1024;
         }
         double m_concavity;
         double m_alpha;
@@ -85,6 +88,7 @@ public:
         int m_mode;
         int m_convexhullApproximation;
         int m_oclAcceleration;
+        unsigned int	m_maxConvexHulls;
     };
 
     virtual void Cancel() = 0;
@@ -113,9 +117,19 @@ public:
         = 0;
     virtual bool OCLRelease(IUserLogger* const logger = 0) = 0;
 
+	// In synchronous mode (non-multi-threaded) the state is always 'ready'
+	// In asynchronous mode, this returns true if the background thread is not still actively computing
+	// a new solution.  In an asynchronous config the 'IsReady' call will report any update or log
+	// messages in the caller's current thread.
+	virtual bool IsReady(void) const
+	{
+		return true;
+	}
+
 protected:
     virtual ~IVHACD(void) {}
 };
 IVHACD* CreateVHACD(void);
+IVHACD* CreateVHACD_ASYNC(void);
 }
 #endif // VHACD_H
