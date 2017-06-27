@@ -305,7 +305,7 @@ public:
 	{
 		if (mRunning)
 		{
-			mVHACD->Cancel();	// Set the cancel signal to teh base VHACD
+			mVHACD->Cancel();	// Set the cancel signal to the base VHACD
 			if (mMergeHullsInterface)
 			{
 				mMergeHullsInterface->cancel();
@@ -315,8 +315,8 @@ public:
 			{
 				std::this_thread::sleep_for(1ms);
 			}
-			std::this_thread::sleep_for(1ms);
-//??			delete mThread;
+			mThread->join();	// Wait for the thread to fully exit before we delete the instance
+			delete mThread;
 			mThread = nullptr;
 			mCancel = false; // clear the cancel semaphore
 			Log("Convex Decomposition thread canceled\n");

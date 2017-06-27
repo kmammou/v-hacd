@@ -246,24 +246,14 @@ int main(int argc,const char **argv)
 				gRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::CenterText);
 
 				{
-
-
-
 					uint32_t meshId = 0;
-
-					uint32_t frameCount = 2;
-					if ( gRenderDebug->getRunMode() == RENDER_DEBUG::RenderDebug::RM_CLIENT )
-					{
-						frameCount = 500000;
-					}
 					bool solid=true;
-
 					const char *meshName = argv[1];
 
 					// main pump loop...
 					WavefrontObj w;
 
-					for (uint32_t i=0; i<frameCount; i++)
+					for (;;)
 					{
 						if (meshId == 0 && sourceMesh.mVertexCount )
 						{
@@ -468,9 +458,10 @@ int main(int argc,const char **argv)
 							data = gRenderDebug->getRemoteResource(nameSpace, resourceName, dlen, isBigEndianRemote);
 						}
 
-
-						if ( i == 1 )
+						static bool first = true;
+						if (first)
 						{
+							first = false;
 							createMenus();
 						}
 					}
