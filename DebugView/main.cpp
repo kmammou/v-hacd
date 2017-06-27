@@ -231,7 +231,7 @@ int main(int argc,const char **argv)
 				sourceMesh.loadObj(argv[1]);
 			}
 			{
-				TestHACD *thacd = TestHACD::create();
+				TestHACD *thacd = TestHACD::create(gRenderDebug);
 
 
 				double *meshVertices = nullptr;
@@ -332,11 +332,11 @@ int main(int argc,const char **argv)
 						}
 						if (thacd == nullptr)
 						{
-							thacd = TestHACD::create();
+							thacd = TestHACD::create(gRenderDebug);
 						}
 						if (thacd && gShowConvexDecomposition )
 						{
-							thacd->render(gRenderDebug,gExplodeViewScale,gCenter);
+							thacd->render(gExplodeViewScale,gCenter);
 						}
 
 						gRenderDebug->render(1.0f/60.0f,NULL);

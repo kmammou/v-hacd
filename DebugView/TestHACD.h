@@ -14,7 +14,7 @@ namespace RENDER_DEBUG
 class TestHACD
 {
 public:
-	static TestHACD *create(void);
+	static TestHACD *create(RENDER_DEBUG::RenderDebug *renderDebug);
 
 	virtual void decompose(
 		const double* const points,
@@ -23,7 +23,7 @@ public:
 		const unsigned int countTriangles,
 		VHACD::IVHACD::Parameters &desc) = 0;
 
-	virtual void render(RENDER_DEBUG::RenderDebug *renderDebug,float explodeViewScale,const float center[3]) = 0;
+	virtual void render(float explodeViewScale,const float center[3]) = 0;
 
 	virtual uint32_t getHullCount(void) const = 0;
 

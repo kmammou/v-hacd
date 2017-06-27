@@ -111,6 +111,11 @@ public:
 		releaseHACD();
 		cancelThread();
 		mVHACD->Release();
+		if (mMergeHullsInterface)
+		{
+			mMergeHullsInterface->release();
+			mMergeHullsInterface = nullptr;
+		}
 	}
 
 	
@@ -190,7 +195,10 @@ public:
 
 		if (ret && ret > (uint32_t)desc.m_maxConvexHulls)
 		{
-			mMergeHullsInterface = createMergeHullsInterface();
+			if (mMergeHullsInterface == nullptr)
+			{
+				mMergeHullsInterface = createMergeHullsInterface();
+			}
 			if (mMergeHullsInterface )
 			{
 				if (desc.m_callback)
@@ -218,17 +226,13 @@ public:
 				if (ret)
 				{
 					ret = mMergeHullsInterface->mergeHulls(inputHulls, outputHulls, desc.m_maxConvexHulls, 0.01f + FLT_EPSILON, desc.m_maxNumVerticesPerCH, desc.m_callback);
-
 					releaseHACD();
-
 					if (desc.m_callback)
 					{
 						desc.m_callback->Update(1, 1, 0.2, "Merge Convex Hulls", "Gathering Merged Hulls");
 					}
-
 					ret = uint32_t(outputHulls.size());
 					mHulls = new IVHACD::ConvexHull[ret];
-
 					for (uint32_t i = 0; i < outputHulls.size(); i++)
 					{
 						IVHACD::ConvexHull h;
@@ -250,7 +254,9 @@ public:
 							break;
 						}
 					}
-
+				}
+				if (mMergeHullsInterface)
+				{
 					mMergeHullsInterface->release();
 					mMergeHullsInterface = nullptr;
 				}
@@ -295,11 +301,6 @@ public:
 
 	void	releaseHACD(void) // release memory associated with the last HACD request
 	{
-		if (mMergeHullsInterface)
-		{
-			mMergeHullsInterface->release();
-			mMergeHullsInterface = nullptr;
-		}
 		for (uint32_t i=0; i<mHullCount; i++)
 		{
 			releaseHull(mHulls[i]);

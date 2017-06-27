@@ -3,11 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 
 class TestHACDImpl : public TestHACD, public VHACD::IVHACD::IUserCallback, public VHACD::IVHACD::IUserLogger
 {
 public:
-	TestHACDImpl(void)
+	TestHACDImpl(RENDER_DEBUG::RenderDebug *renderDebug) : mRenderDebug(renderDebug)
 	{
 		mHACD = VHACD::CreateVHACD_ASYNC();
 	}
@@ -24,8 +25,10 @@ public:
 		dest[2] = float(source[2] + diff[2] + center[2]);
 	}
 
-	virtual void render(RENDER_DEBUG::RenderDebug *renderDebug, float explodeViewScale,const float center[3]) final
+	virtual void render(float explodeViewScale,const float center[3]) final
 	{
+
+
 		uint32_t hullCount = mHACD->GetNConvexHulls();
 		if (hullCount)
 		{
@@ -34,12 +37,12 @@ public:
 				VHACD::IVHACD::ConvexHull h;
 				mHACD->GetConvexHull(j, h);
 				{
-					renderDebug->pushRenderState();
+					mRenderDebug->pushRenderState();
 
 					uint32_t cindex = (j % 20) + RENDER_DEBUG::DebugColors::Red;
 
-					uint32_t color = renderDebug->getDebugColor((RENDER_DEBUG::DebugColors::Enum)cindex);
-					renderDebug->setCurrentColor(color,0xFFFFFF);
+					uint32_t color = mRenderDebug->getDebugColor((RENDER_DEBUG::DebugColors::Enum)cindex);
+					mRenderDebug->setCurrentColor(color,0xFFFFFF);
 
 					double diff[3];
 
@@ -73,10 +76,17 @@ public:
 						getExplodePosition(p2, v2, diff, center);
 						getExplodePosition(p3, v3, diff, center);
 
-						renderDebug->debugTri(v1, v2, v3);
+						mRenderDebug->debugTri(v1, v2, v3);
 					}
-					renderDebug->popRenderState();
+					mRenderDebug->popRenderState();
 				}
+			}
+		}
+		else
+		{
+			if ( !mHACD->IsReady()) // if we are still computing the convex decomposition in a background thread, display the current status
+			{
+				mRenderDebug->debugText2D(0, 0.3f, 0.5f, 2.0f, false, 0xFFFF00, "%s : %s : %0.2f : %0.2f : %0.2f\n", mStage.c_str(), mOperation.c_str(), mOverallProgress, mStageProgress, mOperationProgress);
 			}
 		}
 	}
@@ -90,8 +100,6 @@ public:
 	{
 		desc.m_callback = this;
 		mHACD->Compute(points, 3, countPoints, triangles, 3, countTriangles, desc);
-		uint32_t hullCount = mHACD->GetNConvexHulls();
-		printf("Produced: %d convex hulls.\n", hullCount );
 	}
 
 	virtual void release(void)
@@ -105,12 +113,17 @@ public:
 		const char* const stage,
 		const char* const operation) final
 	{
-		printf("%s : %s : %0.2f : %0.2f : %0.2f\n", stage, operation, overallProgress, stageProgress, operationProgress);
+		mOverallProgress = overallProgress;
+		mStageProgress = stageProgress;
+		mOperationProgress = operationProgress;
+		mStage = std::string(stage);
+		mOperation = std::string(operation);
 	}
 
 	virtual void Log(const char* const msg) final
 	{
 		printf("VHACD:%s\n", msg);
+		mRenderDebug->debugMessage("VHACD:%s\n", msg);
 	}
 
 	virtual bool Cancelled() final
@@ -132,12 +145,19 @@ public:
 		}
 	}
 
-	VHACD::IVHACD	*mHACD;
+	RENDER_DEBUG::RenderDebug	*mRenderDebug;
+	VHACD::IVHACD				*mHACD;
+
+	double				mOverallProgress{ 0 };
+	double				mStageProgress{ 0 };
+	double				mOperationProgress{ 0 };
+	std::string			mStage;
+	std::string			mOperation;
 };
 
-TestHACD *TestHACD::create(void)
+TestHACD *TestHACD::create(RENDER_DEBUG::RenderDebug *renderDebug)
 {
-	TestHACDImpl *t = new TestHACDImpl;
+	TestHACDImpl *t = new TestHACDImpl(renderDebug);
 	return static_cast<TestHACD *>(t);
 }
 
