@@ -2,7 +2,7 @@
 
 #define MERGE_HULLS_H
 
-#include "VHACD.h"
+#include "../public/VHACD.h"
 #include <stdint.h>
 #include <vector>
 

@@ -1,6 +1,8 @@
 project(VHACD_LIB CXX C)
 include(${CMAKE_COMMON_INC})
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 if (NOT NO_OPENCL)
 	#include(FindOpenCL OPTIONAL)
 	find_package(OpenCL)

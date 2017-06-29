@@ -1,4 +1,4 @@
-#include "VHACD.h"
+#include "../public/VHACD.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -6,8 +6,8 @@
 #include <atomic>
 #include <mutex>
 #include <string>
-#include "MergeHulls.h"
-
+#include <float.h>
+#include "../inc/MergeHulls.h"
 
 #define ENABLE_ASYNC 1
 
@@ -365,12 +365,12 @@ public:
 	}
 
 	virtual bool OCLInit(void* const oclDevice,
-		IUserLogger* const logger = 0) final
+		IVHACD::IUserLogger* const logger = 0) final
 	{
 		return mVHACD->OCLInit(oclDevice, logger);
 	}
 		
-	virtual bool OCLRelease(IUserLogger* const logger = 0) final
+	virtual bool OCLRelease(IVHACD::IUserLogger* const logger = 0) final
 	{
 		return mVHACD->OCLRelease(logger);
 	}

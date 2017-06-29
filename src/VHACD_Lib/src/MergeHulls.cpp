@@ -1,5 +1,5 @@
-#include "MergeHulls.h"
-#include "vhacdICHull.h"
+#include "../inc/MergeHulls.h"
+#include "../inc/vhacdICHull.h"
 #include <string.h>
 #include <math.h>
 #include <unordered_map>
