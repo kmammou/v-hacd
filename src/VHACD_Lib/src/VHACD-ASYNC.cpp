@@ -4,7 +4,6 @@
 #include <stdarg.h>
 #include <thread>
 #include <atomic>
-#include <chrono>
 #include <mutex>
 #include <string>
 #include "MergeHulls.h"
@@ -310,17 +309,15 @@ public:
 			{
 				mMergeHullsInterface->cancel();
 			}
-			using namespace std::chrono_literals;
-			while (mRunning)
-			{
-				std::this_thread::sleep_for(1ms);
-			}
+		}
+		if (mThread)
+		{
 			mThread->join();	// Wait for the thread to fully exit before we delete the instance
 			delete mThread;
 			mThread = nullptr;
-			mCancel = false; // clear the cancel semaphore
 			Log("Convex Decomposition thread canceled\n");
 		}
+		mCancel = false; // clear the cancel semaphore
 	}
 
 	virtual bool Compute(const float* const points,
