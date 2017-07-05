@@ -517,9 +517,19 @@ class OBJ : public InPlaceParserInterface
 public:
 	uint32_t	LoadMesh(const char *fname);
 	uint32_t	LoadMesh(const uint8_t *data,uint32_t dlen);
+
+	uint32_t	LoadOFF(const char *fname);
+	uint32_t	LoadOFF(const uint8_t *data, uint32_t dlen);
+
+
 	uint32_t	ParseLine(uint32_t lineno,uint32_t argc,const char **argv);  // return TRUE to continue parsing, return FALSE to abort parsing process
 	IntVector		mTriIndices;
 	FloatVector		mVerts;
+	bool			mIsOFF{ false };
+	bool			mIsValidOFF{ false };
+	uint32_t		mVertexCountOFF{ 0 };
+	uint32_t		mFaceCountOFF{ 0 };
+	uint32_t		mEdgeCountOFF{ 0 };
 };
 
 
@@ -530,6 +540,24 @@ public:
 uint32_t OBJ::LoadMesh(const char *fname)
 {
 	uint32_t ret = 0;
+
+	mVerts.clear();
+	mTriIndices.clear();
+	mIsOFF = false;
+
+	InPlaceParser ipp(fname);
+
+	ipp.Parse(this);
+
+
+	return ret;
+}
+
+uint32_t OBJ::LoadOFF(const char *fname)
+{
+	uint32_t ret = 0;
+
+	mIsOFF = true;
 
 	mVerts.clear();
 	mTriIndices.clear();
@@ -546,6 +574,8 @@ uint32_t OBJ::LoadMesh(const uint8_t *data,uint32_t dlen)
 {
 	uint32_t ret = 0;
 
+	mIsOFF = false;
+
 	mVerts.clear();
 	mTriIndices.clear();
 
@@ -560,29 +590,136 @@ uint32_t OBJ::LoadMesh(const uint8_t *data,uint32_t dlen)
 	return ret;
 }
 
-uint32_t OBJ::ParseLine(uint32_t /*lineno*/,uint32_t argc,const char **argv)  // return TRUE to continue parsing, return FALSE to abort parsing process
+uint32_t OBJ::LoadOFF(const uint8_t *data, uint32_t dlen)
+{
+	uint32_t ret = 0;
+
+	mIsOFF = true;
+
+	mVerts.clear();
+	mTriIndices.clear();
+
+	uint8_t *tdata = new uint8_t[dlen + 1];
+	tdata[dlen] = 0;
+	memcpy(tdata, data, dlen);
+	InPlaceParser ipp((char *)tdata, dlen);
+	ipp.Parse(this);
+	delete[]tdata;
+
+
+	return ret;
+}
+
+
+uint32_t OBJ::ParseLine(uint32_t lineno,uint32_t argc,const char **argv)  // return TRUE to continue parsing, return FALSE to abort parsing process
 {
   uint32_t ret = 0;
 
+	if (mIsOFF)
+	{
+		if ( lineno == 1 )
+		{
+			mIsValidOFF = false;
+			if (argc == 1)
+			{
+				const char *prefix = argv[0];
+				if (strcmp(prefix, "OFF") == 0)
+				{
+					mIsValidOFF = true;
+				}
+			}
+		}
+		else if (lineno == 2)
+		{
+			if (argc == 3 && mIsValidOFF )
+			{
+				const char *vcount = argv[0];
+				const char *fcount = argv[1];
+				const char *ecount = argv[2];
+				mVertexCountOFF = atoi(vcount);
+				mFaceCountOFF = atoi(fcount);
+				mEdgeCountOFF = atoi(ecount);
+			}
+			else
+			{
+				mIsValidOFF = false;
+			}
+		}
+		else if (mIsValidOFF)
+		{
+			uint32_t index = lineno - 3;
+			if (index < mVertexCountOFF)
+			{
+				if (argc == 3)
+				{
+					const char *x = argv[0];
+					const char *y = argv[1];
+					const char *z = argv[2];
+					float _x = (float)atof(x);
+					float _y = (float)atof(y);
+					float _z = (float)atof(z);
+					mVerts.push_back(_x);
+					mVerts.push_back(_y);
+					mVerts.push_back(_z);
+				}
+				else
+				{
+					mIsValidOFF = false;
+				}
+			}
+			else
+			{
+				index -= mVertexCountOFF;
+				if (index < mFaceCountOFF)
+				{
+					if (argc == 4)
+					{
+						const char *fcount = argv[0];
+						const char *i1 = argv[1];
+						const char *i2 = argv[2];
+						const char *i3 = argv[3];
+						uint32_t _fcount = atoi(fcount);
+						uint32_t _i1 = atoi(i1);
+						uint32_t _i2 = atoi(i2);
+						uint32_t _i3 = atoi(i3);
+						if (_fcount == 3)
+						{
+							mTriIndices.push_back(_i3);
+							mTriIndices.push_back(_i2);
+							mTriIndices.push_back(_i1);
+						}
+						else
+						{
+							mIsValidOFF = false;
+						}
+					}
+					else
+					{
+						mIsValidOFF = false; // I don't support anything but triangles right now..
+					}
+				}
+			}
+		}
+		return 0;
+	}
+
   if ( argc >= 1 )
   {
-    const char *foo = argv[0];
-    if ( *foo != '#' )
-    {
-      if ( strcasecmp(argv[0],"v") == 0 && argc == 4 )
-      {
-        float vx = (float) atof( argv[1] );
-        float vy = (float) atof( argv[2] );
-        float vz = (float) atof( argv[3] );
-        mVerts.push_back(vx);
-        mVerts.push_back(vy);
-        mVerts.push_back(vz);
-      }
-      else if ( strcasecmp(argv[0],"f") == 0 && argc >= 4 )
-      {
-
-
-        uint32_t vcount = argc-1;
+	const char *foo = argv[0];
+	if ( *foo != '#' )
+	{
+	  if ( strcasecmp(argv[0],"v") == 0 && argc == 4 )
+	  {
+		float vx = (float) atof( argv[1] );
+		float vy = (float) atof( argv[2] );
+		float vz = (float) atof( argv[3] );
+		mVerts.push_back(vx);
+		mVerts.push_back(vy);
+		mVerts.push_back(vz);
+	  }
+	  else if ( strcasecmp(argv[0],"f") == 0 && argc >= 4 )
+	  {
+		uint32_t vcount = argc-1;
 
 		uint32_t i1 = (uint32_t)atoi(argv[1])-1;
 		uint32_t i2 = (uint32_t)atoi(argv[2])-1;
@@ -593,19 +730,19 @@ uint32_t OBJ::ParseLine(uint32_t /*lineno*/,uint32_t argc,const char **argv)  //
 		mTriIndices.push_back(i1);
 
 
-        if ( vcount >=3 ) // do the fan
-        {
-          for (uint32_t i=2; i<(vcount-1); i++)
-          {
+		if ( vcount >=3 ) // do the fan
+		{
+		  for (uint32_t i=2; i<(vcount-1); i++)
+		  {
 			  i2 = i3;
 			  i3 = (uint32_t)atoi(argv[i+2])-1;
 			  mTriIndices.push_back(i3);
 			  mTriIndices.push_back(i2);
 			  mTriIndices.push_back(i1);
-          }
-        }
-      }
-    }
+		  }
+		}
+	  }
+	}
   }
 
   return ret;
@@ -662,6 +799,34 @@ uint32_t WavefrontObj::loadObj(const uint8_t *data,uint32_t dlen)
 	return ret;
 }
 
+uint32_t WavefrontObj::loadOFF(const uint8_t *data, uint32_t dlen)
+{
+	uint32_t ret = 0;
+
+
+	OBJ obj;
+
+	obj.LoadOFF(data, dlen);
+
+	mVertexCount = (uint32_t)obj.mVerts.size() / 3;
+	mTriCount = (uint32_t)obj.mTriIndices.size() / 3;
+
+	if (mVertexCount)
+	{
+		mVertices = new float[mVertexCount * 3];
+		memcpy(mVertices, &obj.mVerts[0], sizeof(float)*mVertexCount * 3);
+	}
+
+	if (mTriCount)
+	{
+		mIndices = new uint32_t[mTriCount * 3];
+		memcpy(mIndices, &obj.mTriIndices[0], mTriCount * 3 * sizeof(uint32_t));
+	}
+	ret = mTriCount;
+
+	return ret;
+}
+
 void WavefrontObj::releaseMesh(void)
 {
 	delete []mVertices;
@@ -674,7 +839,6 @@ void WavefrontObj::releaseMesh(void)
 
 uint32_t WavefrontObj::loadObj(const char *fname) // load a wavefront obj returns number of triangles that were loaded.  Data is persists until the class is destructed.
 {
-
 	uint32_t ret = 0;
 
 
@@ -701,6 +865,33 @@ uint32_t WavefrontObj::loadObj(const char *fname) // load a wavefront obj return
 	return ret;
 }
 
+uint32_t WavefrontObj::loadOFF(const char *fname) // load a wavefront obj returns number of triangles that were loaded.  Data is persists until the class is destructed.
+{
+	uint32_t ret = 0;
+
+
+	OBJ obj;
+
+	obj.LoadOFF(fname);
+
+	mVertexCount = (uint32_t)obj.mVerts.size() / 3;
+	mTriCount = (uint32_t)obj.mTriIndices.size() / 3;
+
+	if (mVertexCount)
+	{
+		mVertices = new float[mVertexCount * 3];
+		memcpy(mVertices, &obj.mVerts[0], sizeof(float)*mVertexCount * 3);
+	}
+
+	if (mTriCount)
+	{
+		mIndices = new uint32_t[mTriCount * 3];
+		memcpy(mIndices, &obj.mTriIndices[0], mTriCount * 3 * sizeof(uint32_t));
+	}
+	ret = mTriCount;
+
+	return ret;
+}
 
 bool WavefrontObj::saveObj(const char *fname,uint32_t vcount,const float *vertices,uint32_t tcount,const uint32_t *indices)
 {

@@ -48,7 +48,9 @@ public:
 	~WavefrontObj(void);
 
 	uint32_t loadObj(const uint8_t *data,uint32_t dlen);
+	uint32_t loadOFF(const uint8_t *data, uint32_t dlen);
 	uint32_t loadObj(const char *fname); // load a wavefront obj returns number of triangles that were loaded.  Data is persists until the class is destructed.
+	uint32_t loadOFF(const char *fname);
 
 	void releaseMesh(void);
 

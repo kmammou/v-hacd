@@ -184,6 +184,7 @@ void createMenus(void)
 
 	gRenderDebug->sendRemoteCommand("BeginGroup \"Controls\"");	// Mark the beginning of a group of controls.
 	gRenderDebug->sendRemoteCommand("FileTransferButton \" Select Wavefront File\" WavefrontFile \"Choose a Wavefront OBJ file to transfer\" *.obj");
+	gRenderDebug->sendRemoteCommand("FileTransferButton \" Select OFF File\" OFFFile \"Choose an OFF file to transfer\" *.off");
 	
 	gRenderDebug->sendRemoteCommand("CheckBox ShowSourceMesh true ShowSourceMesh");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowConvexDecomposition true ShowConvexDecomposition");
@@ -451,6 +452,16 @@ int main(int argc,const char **argv)
 								meshName = resourceName;
 								sourceMesh.loadObj((const uint8_t *)data, dlen);
 								printf("Loaded Wavefront file %s with %d triangles and %d vertices.\r\n", resourceName, sourceMesh.mTriCount, sourceMesh.mVertexCount);
+								gRenderDebug->releaseTriangleMesh(meshId);
+								meshId = 0;
+							}
+							if (strcmp(nameSpace, "OFFFile") == 0)
+							{
+								thacd->release();
+								thacd = nullptr;
+								meshName = resourceName;
+								sourceMesh.loadOFF((const uint8_t *)data, dlen);
+								printf("Loaded OFF file %s with %d triangles and %d vertices.\r\n", resourceName, sourceMesh.mTriCount, sourceMesh.mVertexCount);
 								gRenderDebug->releaseTriangleMesh(meshId);
 								meshId = 0;
 							}
