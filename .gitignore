@@ -54,3 +54,5 @@ build/
 /DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/vhacdMesh.obj
 /DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/vhacdVolume.obj
 /DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/wavefront.obj
+/DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/ConvexDecompositionDEBUG.Build.CppClean.log
+/DebugView/compiler/xpj/ConvexDecomposition.bak

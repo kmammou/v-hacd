@@ -43,6 +43,7 @@
 	</PropertyGroup>
 	<ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">
 		<ClCompile>
+			<TreatWarningAsError>true</TreatWarningAsError>
 			<FloatingPointModel>Fast</FloatingPointModel>
 			<AdditionalOptions>/W4</AdditionalOptions>
 			<Optimization>Disabled</Optimization>
@@ -80,6 +81,7 @@
 	</PropertyGroup>
 	<ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='release|Win32'">
 		<ClCompile>
+			<TreatWarningAsError>true</TreatWarningAsError>
 			<FloatingPointModel>Fast</FloatingPointModel>
 			<AdditionalOptions>/W4</AdditionalOptions>
 			<Optimization>MaxSpeed</Optimization>

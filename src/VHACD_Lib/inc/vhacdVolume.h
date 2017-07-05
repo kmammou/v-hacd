@@ -19,6 +19,11 @@
 #include "vhacdVector.h"
 #include <assert.h>
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4456 4701)
+#endif
+
 namespace VHACD {
 
 enum VOXEL_VALUE {
@@ -416,4 +421,10 @@ void Volume::Voxelize(const T* const points, const unsigned int stridePoints, co
     FillInsideSurface();
 }
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+
 #endif // VHACD_VOLUME_H

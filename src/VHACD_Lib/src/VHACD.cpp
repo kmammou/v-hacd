@@ -40,6 +40,10 @@
 #define ZSGN(a) (((a) < 0) ? -1 : (a) > 0 ? 1 : 0)
 #define MAX_DOUBLE (1.79769e+308)
 
+#ifdef _MSC_VER
+#pragma warning(disable:4267 4100 4244 4456)
+#endif
+
 #ifdef USE_SSE
 #include <immintrin.h>
 

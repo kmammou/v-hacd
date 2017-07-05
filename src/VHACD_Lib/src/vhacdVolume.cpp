@@ -21,6 +21,11 @@
 #include <queue>
 #include <string.h>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4458 4100)
+#endif
+
+
 namespace VHACD {
 /********************************************************/
 /* AABB-triangle overlap test code                      */

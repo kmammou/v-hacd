@@ -51,7 +51,7 @@
       <Configuration name="debug" platform="win32">
         <OutDir>../../</OutDir>
         <OutFile>ConvexDecompositionDEBUG.exe</OutFile>
-        <CFlags>/fp:fast /W4 /MTd /Zi</CFlags>
+        <CFlags>/fp:fast /WX /W4 /MTd /Zi</CFlags>
         <LFlags>/DEBUG</LFlags>
         <Preprocessor type="define">
           _DEBUG
@@ -64,7 +64,7 @@
       <Configuration name="release" platform="win32">
         <OutDir>../../</OutDir>
         <OutFile>ConvexDecomposition.exe</OutFile>
-        <CFlags>/fp:fast /W4 /MT /Zi /O2</CFlags>
+        <CFlags>/fp:fast /WX /W4 /MT /Zi /O2</CFlags>
         <LFlags>/DEBUG</LFlags>
         <Preprocessor type="define">NDEBUG</Preprocessor>
         <Libraries>
@@ -74,7 +74,7 @@
       <Configuration name="debug" platform="win64">
         <OutDir>../../</OutDir>
         <OutFile>ConvexDecompositionDEBUG.exe</OutFile>
-        <CFlags>/fp:fast /W4 /MTd /Zi</CFlags>
+        <CFlags>/fp:fast /WX /W4 /MTd /Zi</CFlags>
         <LFlags>/DEBUG</LFlags>
         <Preprocessor type="define">
           _DEBUG
@@ -87,7 +87,7 @@
       <Configuration name="release" platform="win64">
         <OutDir>../../</OutDir>
         <OutFile>ConvexDecomposition.exe</OutFile>
-        <CFlags>/fp:fast /W4 /MT /Zi /O2</CFlags>
+        <CFlags>/fp:fast /WX /W4 /MT /Zi /O2</CFlags>
         <LFlags>/DEBUG</LFlags>
         <Preprocessor type="define">NDEBUG</Preprocessor>
         <Libraries>
