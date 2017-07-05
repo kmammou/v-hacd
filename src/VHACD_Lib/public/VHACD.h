@@ -61,7 +61,6 @@ public:
             m_convexhullDownsampling = 4;
             m_alpha = 0.05;
             m_beta = 0.05;
-            m_gamma = 0.0005;
             m_pca = 0;
             m_mode = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
             m_maxNumVerticesPerCH = 64;
@@ -75,7 +74,6 @@ public:
         double m_concavity;
         double m_alpha;
         double m_beta;
-        double m_gamma;
         double m_minVolumePerCH;
         IUserCallback* m_callback;
         IUserLogger* m_logger;

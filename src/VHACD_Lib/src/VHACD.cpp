@@ -1272,10 +1272,14 @@ void VHACD::MergeConvexHulls(const Parameters& params)
         params.m_logger->Log(msg.str().c_str());
     }
 
+	// Get the current number of convex hulls
     size_t nConvexHulls = m_convexHulls.Size();
+	// Iteration counter
     int iteration = 0;
-    if (nConvexHulls > 1 && !m_cancel) {
-        const double threshold = params.m_gamma;
+	// While we have more than at least one convex hull and the user has not asked us to cancel the operation
+    if (nConvexHulls > 1 && !m_cancel) 
+	{
+		// Get the gamma error threshold for when to exit
         SArray<Vec3<double> > pts;
         Mesh combinedCH;
 
@@ -1283,9 +1287,11 @@ void VHACD::MergeConvexHulls(const Parameters& params)
         size_t idx = 0;
         SArray<float> costMatrix;
         costMatrix.Resize(((nConvexHulls * nConvexHulls) - nConvexHulls) >> 1);
-        for (size_t p1 = 1; p1 < nConvexHulls; ++p1) {
+        for (size_t p1 = 1; p1 < nConvexHulls; ++p1) 
+		{
             const float volume1 = m_convexHulls[p1]->ComputeVolume();
-            for (size_t p2 = 0; p2 < p1; ++p2) {
+            for (size_t p2 = 0; p2 < p1; ++p2) 
+			{
                 ComputeConvexHull(m_convexHulls[p1], m_convexHulls[p2], pts, &combinedCH);
                 costMatrix[idx++] = ComputeConcavity(volume1 + m_convexHulls[p2]->ComputeVolume(), combinedCH.ComputeVolume(), m_volumeCH0);
             }
@@ -1293,7 +1299,8 @@ void VHACD::MergeConvexHulls(const Parameters& params)
 
         // Until we cant merge below the maximum cost
         size_t costSize = m_convexHulls.Size();
-        while (!m_cancel) {
+        while (!m_cancel) 
+		{
             msg.str("");
             msg << "Iteration " << iteration++;
             m_operation = msg.str();
@@ -1301,12 +1308,10 @@ void VHACD::MergeConvexHulls(const Parameters& params)
             // Search for lowest cost
             float bestCost = (std::numeric_limits<float>::max)();
             const size_t addr = FindMinimumElement(costMatrix.Data(), &bestCost, 0, costMatrix.Size());
-
-            // Check if we should merge these hulls
-            if (bestCost >= threshold) {
-                break;
-            }
-
+			if ( (costSize-1) < params.m_maxConvexHulls)
+			{
+				break;
+			}
             const size_t addrI = (static_cast<int>(sqrt(1 + (8 * addr))) - 1) >> 1;
             const size_t p1 = addrI + 1;
             const size_t p2 = addr - ((addrI * (addrI + 1)) >> 1);
@@ -1315,7 +1320,8 @@ void VHACD::MergeConvexHulls(const Parameters& params)
             assert(p1 < costSize);
             assert(p2 < costSize);
 
-            if (params.m_logger) {
+            if (params.m_logger) 
+			{
                 msg.str("");
                 msg << "\t\t Merging (" << p1 << ", " << p2 << ") " << bestCost << std::endl
                     << std::endl;
@@ -1337,13 +1343,15 @@ void VHACD::MergeConvexHulls(const Parameters& params)
             // Calculate costs versus the new hull
             size_t rowIdx = ((p2 - 1) * p2) >> 1;
             const float volume1 = m_convexHulls[p2]->ComputeVolume();
-            for (size_t i = 0; (i < p2) && (!m_cancel); ++i) {
+            for (size_t i = 0; (i < p2) && (!m_cancel); ++i) 
+			{
                 ComputeConvexHull(m_convexHulls[p2], m_convexHulls[i], pts, &combinedCH);
                 costMatrix[rowIdx++] = ComputeConcavity(volume1 + m_convexHulls[i]->ComputeVolume(), combinedCH.ComputeVolume(), m_volumeCH0);
             }
 
             rowIdx += p2;
-            for (size_t i = p2 + 1; (i < costSize) && (!m_cancel); ++i) {
+            for (size_t i = p2 + 1; (i < costSize) && (!m_cancel); ++i) 
+			{
                 ComputeConvexHull(m_convexHulls[p2], m_convexHulls[i], pts, &combinedCH);
                 costMatrix[rowIdx] = ComputeConcavity(volume1 + m_convexHulls[i]->ComputeVolume(), combinedCH.ComputeVolume(), m_volumeCH0);
                 rowIdx += i;
