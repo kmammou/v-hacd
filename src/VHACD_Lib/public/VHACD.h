@@ -45,7 +45,7 @@ public:
         int* m_triangles;
         unsigned int m_nPoints;
         unsigned int m_nTriangles;
-		double		 m_volume;
+		double		m_volume;
 		double		m_center[3];
     };
 

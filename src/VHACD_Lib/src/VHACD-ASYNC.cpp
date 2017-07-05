@@ -7,7 +7,6 @@
 #include <mutex>
 #include <string>
 #include <float.h>
-#include "../inc/MergeHulls.h"
 
 #define ENABLE_ASYNC 1
 
@@ -17,62 +16,6 @@
 
 namespace VHACD
 {
-
-inline double det(const double *p1,const double *p2,const double *p3)
-{
-	return  p1[0]*p2[1]*p3[2] + p2[0]*p3[1]*p1[2] + p3[0]*p1[1]*p2[2] -p1[0]*p3[1]*p2[2] - p2[0]*p1[1]*p3[2] - p3[0]*p2[1]*p1[2];
-}
-
-
-static double  fm_computeMeshVolume(const double *vertices,uint32_t tcount,const int *indices)
-{
-	double volume = 0;
-
-	for (uint32_t i=0; i<tcount; i++,indices+=3)
-	{
-		const double *p1 = &vertices[ indices[0]*3 ];
-		const double *p2 = &vertices[ indices[1]*3 ];
-		const double *p3 = &vertices[ indices[2]*3 ];
-		volume+=det(p1,p2,p3); // compute the volume of the tetrahedron relative to the origin.
-	}
-
-	volume*=(1.0f/6.0f);
-	if ( volume < 0 )
-		volume*=-1;
-	return volume;
-}
-
-static void  fm_computCenter(uint32_t vcount,const double *vertices,double center[3])
-{
-	double bmin[3];
-	double bmax[3];
-
-	bmin[0] = vertices[0];
-	bmin[1] = vertices[1];
-	bmin[2] = vertices[2];
-
-	bmax[0] = vertices[0];
-	bmax[1] = vertices[1];
-	bmax[2] = vertices[2];
-
-	for (uint32_t i = 1; i < vcount; i++)
-	{
-		const double *v = &vertices[i * 3];
-
-		if (v[0] < bmin[0]) bmin[0] = v[0];
-		if (v[1] < bmin[1]) bmin[1] = v[1];
-		if (v[2] < bmin[2]) bmin[2] = v[2];
-
-		if (v[0] > bmax[0]) bmax[0] = v[0];
-		if (v[1] > bmax[1]) bmax[1] = v[1];
-		if (v[2] > bmax[2]) bmax[2] = v[2];
-	}
-
-	center[0] = (bmax[0] - bmin[0])*0.5f + bmin[0];
-	center[1] = (bmax[1] - bmin[1])*0.5f + bmin[1];
-	center[2] = (bmax[2] - bmin[2])*0.5f + bmin[2];
-
-}
 
 class MyHACD_API : public VHACD::IVHACD, public VHACD::IVHACD::IUserCallback, VHACD::IVHACD::IUserLogger
 {
@@ -105,11 +48,6 @@ public:
 		releaseHACD();
 		Cancel();
 		mVHACD->Release();
-		if (mMergeHullsInterface)
-		{
-			mMergeHullsInterface->release();
-			mMergeHullsInterface = nullptr;
-		}
 	}
 
 	
@@ -175,8 +113,10 @@ public:
 					h.m_nTriangles = vhull.m_nTriangles;
 					h.m_triangles = (int *)HACD_ALLOC(sizeof(int) * 3 * h.m_nTriangles);
 					memcpy(h.m_triangles, vhull.m_triangles, sizeof(int) * 3 * h.m_nTriangles);
-					h.m_volume = fm_computeMeshVolume(h.m_points, h.m_nTriangles, h.m_triangles);
-					fm_computCenter(h.m_nPoints, h.m_points, h.m_center);
+					h.m_volume = vhull.m_volume;
+					h.m_center[0] = vhull.m_center[0];
+					h.m_center[1] = vhull.m_center[1];
+					h.m_center[2] = vhull.m_center[2];
 					mHulls[i] = h;
 					if (mCancel)
 					{
@@ -187,75 +127,6 @@ public:
 			}
 		}
 
-		if (ret && ret > (uint32_t)desc.m_maxConvexHulls)
-		{
-			if (mMergeHullsInterface == nullptr)
-			{
-				mMergeHullsInterface = createMergeHullsInterface();
-			}
-			if (mMergeHullsInterface )
-			{
-				if (desc.m_callback)
-				{
-					desc.m_callback->Update(1, 1, 0.1, "Merge ConvexHulls", "Gathering Convex Hulls");
-				}
-
-				MergeHullVector inputHulls;
-				MergeHullVector outputHulls;
-				for (uint32_t i = 0; i < ret; i++)
-				{
-					IVHACD::ConvexHull &h = mHulls[i];
-					MergeHull mh;
-					mh.mTriangleCount = h.m_nTriangles;
-					mh.mVertexCount = h.m_nPoints;
-					mh.mVertices = h.m_points;
-					mh.mIndices = (uint32_t *)h.m_triangles;
-					inputHulls.push_back(mh);
-					if (mCancel)
-					{
-						ret = 0;
-						break;
-					}
-				}
-				if (ret)
-				{
-					ret = mMergeHullsInterface->mergeHulls(inputHulls, outputHulls, desc.m_maxConvexHulls, 0.01f + FLT_EPSILON, desc.m_maxNumVerticesPerCH, desc.m_callback);
-					releaseHACD();
-					if (desc.m_callback)
-					{
-						desc.m_callback->Update(1, 1, 0.2, "Merge Convex Hulls", "Gathering Merged Hulls");
-					}
-					ret = uint32_t(outputHulls.size());
-					mHulls = new IVHACD::ConvexHull[ret];
-					for (uint32_t i = 0; i < outputHulls.size(); i++)
-					{
-						IVHACD::ConvexHull h;
-						const MergeHull &mh = outputHulls[i];
-						h.m_nTriangles = mh.mTriangleCount;
-						h.m_nPoints = mh.mVertexCount;
-						h.m_triangles = (int *)HACD_ALLOC(sizeof(int) * 3 * h.m_nTriangles);
-						h.m_points = (double *)HACD_ALLOC(sizeof(double) * 3 * h.m_nPoints);
-						memcpy((uint32_t *)h.m_triangles, mh.mIndices, sizeof(uint32_t) * 3 * h.m_nTriangles);
-						memcpy((double *)h.m_points, mh.mVertices, sizeof(double) * 3 * h.m_nPoints);
-
-						h.m_volume = fm_computeMeshVolume(h.m_points, h.m_nTriangles, h.m_triangles);
-						fm_computCenter(h.m_nPoints, h.m_points, h.m_center);
-
-						mHulls[i] = h;
-						if (mCancel)
-						{
-							ret = 0;
-							break;
-						}
-					}
-				}
-				if (mMergeHullsInterface)
-				{
-					mMergeHullsInterface->release();
-					mMergeHullsInterface = nullptr;
-				}
-			}
-		}
 		mHullCount = ret;
 		return ret ? true : false;
 	}
@@ -305,10 +176,6 @@ public:
 		if (mRunning)
 		{
 			mVHACD->Cancel();	// Set the cancel signal to the base VHACD
-			if (mMergeHullsInterface)
-			{
-				mMergeHullsInterface->cancel();
-			}
 		}
 		if (mThread)
 		{
@@ -429,7 +296,6 @@ public:
 	}
 
 private:
-	MergeHullsInterface				*mMergeHullsInterface{ nullptr };
 	double							*mVertices{ nullptr };
 	std::atomic< uint32_t>			mHullCount{ 0 };
 	VHACD::IVHACD::ConvexHull		*mHulls{ nullptr };

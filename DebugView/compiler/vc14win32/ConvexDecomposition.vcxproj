@@ -141,8 +141,6 @@
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\btVector3.h">
 		</ClInclude>
-		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\MergeHulls.h">
-		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdCircularList.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdICHull.h">
@@ -172,8 +170,6 @@
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\btAlignedAllocator.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\btConvexHullComputer.cpp">
-		</ClCompile>
-		<ClCompile Include="..\..\..\src\VHACD_Lib\src\MergeHulls.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD-ASYNC.cpp">
 		</ClCompile>

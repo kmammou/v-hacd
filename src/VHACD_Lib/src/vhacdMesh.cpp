@@ -31,6 +31,49 @@ Mesh::Mesh()
 Mesh::~Mesh()
 {
 }
+
+Vec3<double>& Mesh::ComputeCenter(void)
+{
+	const size_t nV = GetNPoints();
+	if (nV)
+	{
+		m_minBB = GetPoint(0);
+		m_maxBB = GetPoint(0);
+		for (size_t v = 1; v < nV; v++)
+		{
+			Vec3<double> p = GetPoint(v);
+			if (p.X() < m_minBB.X())
+			{
+				m_minBB.X() = p.X();
+			}
+			if (p.Y() < m_minBB.Y())
+			{
+				m_minBB.Y() = p.Y();
+			}
+			if (p.Z() < m_minBB.Z())
+			{
+				m_minBB.Z() = p.Z();
+			}
+			if (p.X() > m_maxBB.X())
+			{
+				m_maxBB.X() = p.X();
+			}
+			if (p.Y() > m_maxBB.Y())
+			{
+				m_maxBB.Y() = p.Y();
+			}
+			if (p.Z() > m_maxBB.Z())
+			{
+				m_maxBB.Z() = p.Z();
+			}
+		}
+		m_center.X() = (m_maxBB.X() - m_minBB.X())*0.5 + m_minBB.X();
+		m_center.Y() = (m_maxBB.Y() - m_minBB.Y())*0.5 + m_minBB.Y();
+		m_center.Z() = (m_maxBB.Z() - m_minBB.Z())*0.5 + m_minBB.Z();
+	}
+	return m_center;
+}
+
 double Mesh::ComputeVolume() const
 {
     const size_t nV = GetNPoints();
