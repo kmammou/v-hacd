@@ -17,7 +17,29 @@
 #define VHACD_H
 
 #define VHACD_VERSION_MAJOR 2
-#define VHACD_VERSION_MINOR 2
+#define VHACD_VERSION_MINOR 3
+
+// Changes for version 2.3
+//
+// m_gamma : Has been removed.  This used to control the error metric to merge convex hulls.  Now it uses the 'm_maxConvexHulls' value instead.
+// m_maxConvexHulls : This is the maximum number of convex hulls to produce from the merge operation; replaces 'm_gamma'.
+//
+// Note that the decomposition depth controls the maximum number of hulls which can be produced through 
+// recursive binary tree subdivision.
+// For example, if you only want no more than 4 convex hulls, you should set the convex decomposition depth
+// to 2.  For a max of 8 hulls, set it to 3, etc. etc.
+//
+// As a convenience to the user, each convex hull produced now includes the volume of the hull as well as it's center.
+//
+// This version supports a convenience method to automatically make V-HACD run asynchronously in a background thread.
+// To get a fully asynchronous version, call 'CreateVHACD_ASYNC' instead of 'CreateVHACD'.  You get the same interface however,
+// now when computing convex hulls, it is no longer a blocking operation.  All callback messages are still returned
+// in the application's thread so you don't need to worry about mutex locks or anything in that case.
+// To tell if the operation is complete, the application should call 'IsReady'.  This will return true if
+// the last approximation operation is complete and will dispatch any pending messages.
+// If you call 'Compute' while a previous operation was still running, it will automatically cancel the last request
+// and begin a new one.  To cancel a currently running approximation just call 'Cancel'.
+
 
 namespace VHACD {
 class IVHACD {

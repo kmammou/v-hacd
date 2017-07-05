@@ -188,7 +188,7 @@ void createMenus(void)
 	
 	gRenderDebug->sendRemoteCommand("CheckBox ShowSourceMesh true ShowSourceMesh");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowConvexDecomposition true ShowConvexDecomposition");
-	gRenderDebug->sendRemoteCommand("Slider ScaleInputMesh 1 1 50 ScaleInputMesh");
+	gRenderDebug->sendRemoteCommand("Slider ScaleInputMesh 1 0.01 100 ScaleInputMesh");
 	gRenderDebug->sendRemoteCommand("Slider ExplodeViewScale 1 1 4 ExplodeViewScale");
 	gRenderDebug->sendRemoteCommand("Button PerformConvexDecomposition \"decomp\"");
 	gRenderDebug->sendRemoteCommand("Button Cancel \"cancel\"");
