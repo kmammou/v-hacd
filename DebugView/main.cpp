@@ -212,6 +212,9 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("EndTab"); // End the tab called 'Test RenderDebug'
 }
 
+#define HOST_NAME "localhost"
+//#define HOST_NAME "192.168.1.2"
+
 int main(int argc,const char **argv)
 {
 	{
@@ -224,6 +227,8 @@ int main(int argc,const char **argv)
 		printf("Loading RenderDebug DLL\r\n");
 		RENDER_DEBUG::RenderDebug::Desc desc;
 		desc.dllName = dllName;
+
+		desc.hostName = HOST_NAME;
 
 		desc.applicationName = "ConvexDecomposition";
 		desc.runMode = RENDER_DEBUG::RenderDebug::RM_CLIENT;
