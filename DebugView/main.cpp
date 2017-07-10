@@ -185,7 +185,7 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("BeginGroup \"Controls\"");	// Mark the beginning of a group of controls.
 	gRenderDebug->sendRemoteCommand("FileTransferButton \" Select Wavefront File\" WavefrontFile \"Choose a Wavefront OBJ file to transfer\" *.obj");
 	gRenderDebug->sendRemoteCommand("FileTransferButton \" Select OFF File\" OFFFile \"Choose an OFF file to transfer\" *.off");
-	
+
 	gRenderDebug->sendRemoteCommand("CheckBox ShowSourceMesh true ShowSourceMesh");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowConvexDecomposition true ShowConvexDecomposition");
 	gRenderDebug->sendRemoteCommand("Slider ScaleInputMesh 1 0.01 100 ScaleInputMesh");
@@ -194,7 +194,7 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("Button Cancel \"cancel\"");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
-	
+
 	gRenderDebug->sendRemoteCommand("BeginGroup \"V-HACD Settings1\"");	// Mark the beginning of a group of controls.
 	gRenderDebug->sendRemoteCommand("SliderInt DecompositionDepth 10 1 20 DecompositionDepth");
 	gRenderDebug->sendRemoteCommand("SliderInt MaxHullVertices 32 8 512 MaxHullVertices");
@@ -213,7 +213,7 @@ void createMenus(void)
 }
 
 #define HOST_NAME "localhost"
-//#define HOST_NAME "192.168.1.2"
+//#define HOST_NAME "192.168.1.2"  // IP address of my local machine
 
 int main(int argc,const char **argv)
 {
