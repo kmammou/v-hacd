@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
         msg << "\t convex-hull down-sampling                   " << params.m_paramsVHACD.m_convexhullDownsampling << endl;
         msg << "\t alpha                                       " << params.m_paramsVHACD.m_alpha << endl;
         msg << "\t beta                                        " << params.m_paramsVHACD.m_beta << endl;
-        msg << "\t gamma                                       " << params.m_paramsVHACD.m_gamma << endl;
+        msg << "\t maxhulls                                    " << params.m_paramsVHACD.m_maxConvexHulls << endl;
         msg << "\t pca                                         " << params.m_paramsVHACD.m_pca << endl;
         msg << "\t mode                                        " << params.m_paramsVHACD.m_mode << endl;
         msg << "\t max. vertices per convex-hull               " << params.m_paramsVHACD.m_maxNumVerticesPerCH << endl;
@@ -381,9 +381,9 @@ void ParseParameters(int argc, char* argv[], Parameters& params)
             if (++i < argc)
                 params.m_paramsVHACD.m_beta = atof(argv[i]);
         }
-        else if (!strcmp(argv[i], "--gamma")) {
+        else if (!strcmp(argv[i], "--maxhulls")) {
             if (++i < argc)
-                params.m_paramsVHACD.m_gamma = atof(argv[i]);
+                params.m_paramsVHACD.m_maxConvexHulls = atoi(argv[i]);
         }
         else if (!strcmp(argv[i], "--pca")) {
             if (++i < argc)

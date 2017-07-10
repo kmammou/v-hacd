@@ -117,7 +117,7 @@ inline int FindMinimumElement(const float* const d, float* const m, const int be
 {
     int idx = -1;
     float min = (std::numeric_limits<float>::max)();
-    for (size_t i = begin; i < end; ++i) {
+    for (size_t i = begin; i < size_t(end); ++i) {
         if (d[i] < min) {
             idx = i;
             min = d[i];

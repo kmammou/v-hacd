@@ -90,7 +90,7 @@ double Mesh::ComputeVolume() const
 
     Vec3<double> ver0, ver1, ver2;
     double totalVolume = 0.0;
-    for (int t = 0; t < nT; t++) {
+    for (int t = 0; t < int(nT); t++) {
         const Vec3<int>& tri = GetTriangle(t);
         ver0 = GetPoint(tri[0]);
         ver1 = GetPoint(tri[1]);
@@ -158,7 +158,7 @@ bool Mesh::IsInside(const Vec3<double>& pt) const
     }
     Vec3<double> ver0, ver1, ver2;
     double volume;
-    for (int t = 0; t < nT; t++) {
+    for (int t = 0; t < int(nT); t++) {
         const Vec3<int>& tri = GetTriangle(t);
         ver0 = GetPoint(tri[0]);
         ver1 = GetPoint(tri[1]);
