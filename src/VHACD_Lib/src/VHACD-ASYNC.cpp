@@ -20,24 +20,6 @@ namespace VHACD
 class MyHACD_API : public VHACD::IVHACD, public VHACD::IVHACD::IUserCallback, VHACD::IVHACD::IUserLogger
 {
 public:
-	class Vec3
-	{
-	public:
-		Vec3(void)
-		{
-
-		}
-		Vec3(double _x,double _y,double _z)
-		{
-			x = _x;
-			y = _y;
-			z = _z;
-		}
-		double x;
-		double y;
-		double z;
-	};
-
 	MyHACD_API(void)
 	{
 		mVHACD = VHACD::CreateVHACD();
@@ -51,10 +33,10 @@ public:
 	}
 
 	
-	virtual bool Compute(const double* const points,
+	virtual bool Compute(const double* const _points,
 		const unsigned int stridePoints,
 		const unsigned int countPoints,
-		const int* const triangles,
+		const int* const _triangles,
 		const unsigned int strideTriangles,
 		const unsigned int countTriangles,
 		const Parameters& _desc) final
@@ -62,15 +44,38 @@ public:
 #if ENABLE_ASYNC
 		Cancel(); // if we previously had a solution running; cancel it.
 		releaseHACD();
-		mRunning = true;
-		mThread = new std::thread([this, points, stridePoints, countPoints, triangles, strideTriangles, countTriangles, _desc]()
+
+		// We need to copy the input vertices and triangles into our own buffers so we can operate
+		// on them safely from the background thread.
+		mVertices = (double *)HACD_ALLOC(sizeof(double)*countPoints * 3);
+		mIndices = (int *)HACD_ALLOC(sizeof(int)*countTriangles * 3);
+
+		uint32_t index = 0;
+		for (uint32_t i = 0; i < countPoints; i++)
 		{
-			ComputeNow(points, stridePoints, countPoints, triangles, strideTriangles, countTriangles, _desc);
+			mVertices[i * 3 + 0] = _points[index + 0];
+			mVertices[i * 3 + 1] = _points[index + 1];
+			mVertices[i * 3 + 2] = _points[index + 2];
+			index += stridePoints;
+		}
+		index = 0;
+		for (uint32_t i = 0; i < countTriangles; i++)
+		{
+			mIndices[i * 3 + 0] = _triangles[index + 0];
+			mIndices[i * 3 + 1] = _triangles[index + 1];
+			mIndices[i * 3 + 2] = _triangles[index + 2];
+			index += strideTriangles;
+		}
+
+		mRunning = true;
+		mThread = new std::thread([this, countPoints, countTriangles, _desc]()
+		{
+			ComputeNow(mVertices, 3, countPoints, mIndices, 3, countTriangles, _desc);
 			mRunning = false;
 		});
 #else
 		releaseHACD();
-		ComputeNow(points, stridePoints, countPoints, triangles, strideTriangles, countTriangles, _desc);
+		ComputeNow(_points, stridePoints, countPoints, _triangles, strideTriangles, countTriangles, _desc);
 #endif
 		return true;
 	}
@@ -88,7 +93,6 @@ public:
 		mHullCount	= 0;
 		mCallback	= _desc.m_callback;
 		mLogger		= _desc.m_logger;
-
 
 		IVHACD::Parameters desc = _desc;
 		// Set our intercepting callback interfaces if non-null
@@ -158,6 +162,8 @@ public:
 		mHullCount = 0;
 		HACD_FREE(mVertices);
 		mVertices = nullptr;
+		HACD_FREE(mIndices);
+		mIndices = nullptr;
 	}
 
 
@@ -196,8 +202,7 @@ public:
 		const Parameters& params) final
 	{
 
-		HACD_FREE(mVertices);
-		mVertices = (double *)HACD_ALLOC(sizeof(double)*countPoints * 3);
+		double *vertices = (double *)HACD_ALLOC(sizeof(double)*countPoints * 3);
 		const float *source = points;
 		double *dest = mVertices;
 		for (uint32_t i = 0; i < countPoints; i++)
@@ -209,8 +214,9 @@ public:
 			source += stridePoints;
 		}
 
-		return Compute(mVertices, 3, countPoints, triangles, strideTriangles, countTriangles, params);
-
+		bool ret =  Compute(vertices, 3, countPoints, triangles, strideTriangles, countTriangles, params);
+		HACD_FREE(vertices);
+		return ret;
 	}
 
 	virtual unsigned int GetNConvexHulls() const final
@@ -297,6 +303,7 @@ public:
 
 private:
 	double							*mVertices{ nullptr };
+	int32_t							*mIndices{ nullptr };
 	std::atomic< uint32_t>			mHullCount{ 0 };
 	VHACD::IVHACD::ConvexHull		*mHulls{ nullptr };
 	VHACD::IVHACD::IUserCallback	*mCallback{ nullptr };
