@@ -33,6 +33,10 @@ typedef unsigned int uint32_t;
 typedef unsigned long long int uint64_t;
 #endif
 
+#ifdef _MSC_VER
+#pragma warning(disable:4458)
+#endif
+
 //The definition of USE_X86_64_ASM is moved into the build system. You can enable it manually by commenting out the following lines
 //#if (defined(__GNUC__) && defined(__x86_64__) && !defined(__ICL))  // || (defined(__ICL) && defined(_M_X64))   bug in Intel compiler, disable inline assembly
 //	#define USE_X86_64_ASM

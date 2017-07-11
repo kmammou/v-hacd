@@ -68,6 +68,11 @@ public:
         ch.m_nTriangles = (unsigned int)mesh->GetNTriangles();
         ch.m_points = mesh->GetPoints();
         ch.m_triangles = mesh->GetTriangles();
+		ch.m_volume = mesh->ComputeVolume();
+		Vec3<double> &center = mesh->ComputeCenter();
+		ch.m_center[0] = center.X();
+		ch.m_center[1] = center.Y();
+		ch.m_center[2] = center.Z();
     }
     void Clean(void)
     {

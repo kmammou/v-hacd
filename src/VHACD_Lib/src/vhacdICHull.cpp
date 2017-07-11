@@ -14,6 +14,12 @@
  */
 #include "vhacdICHull.h"
 #include <limits>
+
+#ifdef _MSC_VER
+#pragma warning(disable:4456 4706)
+#endif
+
+
 namespace VHACD {
 const double ICHull::sc_eps = 1.0e-15;
 const int ICHull::sc_dummyIndex = std::numeric_limits<int>::max();
