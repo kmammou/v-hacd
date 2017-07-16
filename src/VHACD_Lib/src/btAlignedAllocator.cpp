@@ -15,6 +15,10 @@ subject to the following restrictions:
 
 #include "btAlignedAllocator.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable:4311 4302)
+#endif
+
 int gNumAlignedAllocs = 0;
 int gNumAlignedFree = 0;
 int gTotalBytesAlignedAllocs = 0; //detect memory leaks

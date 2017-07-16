@@ -17,7 +17,29 @@
 #define VHACD_H
 
 #define VHACD_VERSION_MAJOR 2
-#define VHACD_VERSION_MINOR 2
+#define VHACD_VERSION_MINOR 3
+
+// Changes for version 2.3
+//
+// m_gamma : Has been removed.  This used to control the error metric to merge convex hulls.  Now it uses the 'm_maxConvexHulls' value instead.
+// m_maxConvexHulls : This is the maximum number of convex hulls to produce from the merge operation; replaces 'm_gamma'.
+//
+// Note that the decomposition depth controls the maximum number of hulls which can be produced through 
+// recursive binary tree subdivision.
+// For example, if you only want no more than 4 convex hulls, you should set the convex decomposition depth
+// to 2.  For a max of 8 hulls, set it to 3, etc. etc.
+//
+// As a convenience to the user, each convex hull produced now includes the volume of the hull as well as it's center.
+//
+// This version supports a convenience method to automatically make V-HACD run asynchronously in a background thread.
+// To get a fully asynchronous version, call 'CreateVHACD_ASYNC' instead of 'CreateVHACD'.  You get the same interface however,
+// now when computing convex hulls, it is no longer a blocking operation.  All callback messages are still returned
+// in the application's thread so you don't need to worry about mutex locks or anything in that case.
+// To tell if the operation is complete, the application should call 'IsReady'.  This will return true if
+// the last approximation operation is complete and will dispatch any pending messages.
+// If you call 'Compute' while a previous operation was still running, it will automatically cancel the last request
+// and begin a new one.  To cancel a currently running approximation just call 'Cancel'.
+
 
 namespace VHACD {
 class IVHACD {
@@ -45,6 +67,8 @@ public:
         int* m_triangles;
         unsigned int m_nPoints;
         unsigned int m_nTriangles;
+		double		m_volume;
+		double		m_center[3];
     };
 
     class Parameters {
@@ -59,7 +83,6 @@ public:
             m_convexhullDownsampling = 4;
             m_alpha = 0.05;
             m_beta = 0.05;
-            m_gamma = 0.0005;
             m_pca = 0;
             m_mode = 0; // 0: voxel-based (recommended), 1: tetrahedron-based
             m_maxNumVerticesPerCH = 64;
@@ -68,11 +91,11 @@ public:
             m_logger = 0;
             m_convexhullApproximation = true;
             m_oclAcceleration = true;
+            m_maxConvexHulls = 1024;
         }
         double m_concavity;
         double m_alpha;
         double m_beta;
-        double m_gamma;
         double m_minVolumePerCH;
         IUserCallback* m_callback;
         IUserLogger* m_logger;
@@ -85,6 +108,7 @@ public:
         int m_mode;
         int m_convexhullApproximation;
         int m_oclAcceleration;
+        unsigned int	m_maxConvexHulls;
     };
 
     virtual void Cancel() = 0;
@@ -113,9 +137,19 @@ public:
         = 0;
     virtual bool OCLRelease(IUserLogger* const logger = 0) = 0;
 
+	// In synchronous mode (non-multi-threaded) the state is always 'ready'
+	// In asynchronous mode, this returns true if the background thread is not still actively computing
+	// a new solution.  In an asynchronous config the 'IsReady' call will report any update or log
+	// messages in the caller's current thread.
+	virtual bool IsReady(void) const
+	{
+		return true;
+	}
+
 protected:
     virtual ~IVHACD(void) {}
 };
 IVHACD* CreateVHACD(void);
+IVHACD* CreateVHACD_ASYNC(void);
 }
 #endif // VHACD_H

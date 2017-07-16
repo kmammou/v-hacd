@@ -1,6 +1,8 @@
 project(VHACD_LIB CXX C)
 include(${CMAKE_COMMON_INC})
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 if (NOT NO_OPENCL)
 	#include(FindOpenCL OPTIONAL)
 	find_package(OpenCL)
@@ -16,10 +18,11 @@ if(OPENMP_FOUND)
 endif()
 set(LIB_TYPE "STATIC" CACHE STRING "STATIC, SHARED or MODULE?")
 message("[VHACD] \t LIB_TYPE " ${LIB_TYPE})
-add_library(vhacd ${PROJECT_CPP_FILES} ${PROJECT_C_FILES} ${PROJECT_INC_FILES} ${PROJECT_INL_FILES} ${PROJECT_CL_FILES})
+add_library(vhacd ${LIB_TYPE} ${PROJECT_CPP_FILES} ${PROJECT_C_FILES} ${PROJECT_INC_FILES} ${PROJECT_INL_FILES} ${PROJECT_CL_FILES})
 
 if (OpenCL_FOUND)
-    target_include_directories(vhacd PRIVATE "${OpenCL_INCLUDE_DIRS}")
+    target_include_directories(vhacd PRIVATE "${OpenCL_INCLUDE_DIR}")
+    target_link_libraries(vhacd PRIVATE "${OpenCL_LIBRARY}")
     target_compile_definitions(vhacd PRIVATE -DOPENCL_FOUND=1 )
     target_compile_definitions(vhacd PRIVATE -DOPENCL_CL_FILES="${PROJECT_CL_FILES}" )
 endif()

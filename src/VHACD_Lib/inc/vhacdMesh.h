@@ -104,6 +104,7 @@ public:
         SArray<Vec3<double> >& negativePart) const;
     bool IsInside(const Vec3<double>& pt) const;
     double ComputeDiagBB();
+	Vec3<double> &ComputeCenter(void);
 
 #ifdef VHACD_DEBUG_MESH
     bool LoadOFF(const std::string& fileName, bool invert);
