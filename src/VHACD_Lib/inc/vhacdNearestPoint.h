@@ -3,6 +3,12 @@
 
 #include <stdint.h>
 
+// This is a helper class which can return the nearest point given a set of 
+// input vertices.  To avoid doing a brute force search, this implementation
+// builds a Kd-Tree for the input point data set.  Once this has been built
+// if can be rapidly queried to retrieve the 'nearest point' given an arbitrary
+// input.
+
 namespace VHACD
 {
 
