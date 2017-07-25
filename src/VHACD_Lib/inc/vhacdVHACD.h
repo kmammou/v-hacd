@@ -26,6 +26,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "vhacdMutex.h"
 #include "vhacdVolume.h"
+#include "vhacdNearestPoint.h"
 
 #define USE_THREAD 1
 #define OCL_MIN_NUM_PRIMITIVES 4096
@@ -52,7 +53,13 @@ public:
         Init();
     }
     //! Destructor.
-    ~VHACD(void) {}
+    ~VHACD(void) 
+	{
+		if (m_NearestPoints)
+		{
+			m_NearestPoints->release();
+		}
+	}
     unsigned int GetNConvexHulls() const
     {
         return (unsigned int)m_convexHulls.Size();
@@ -76,6 +83,11 @@ public:
     }
     void Clean(void)
     {
+		if (m_NearestPoints)
+		{
+			m_NearestPoints->release();
+			m_NearestPoints = nullptr;
+		}
         delete m_volume;
         delete m_pset;
         size_t nCH = m_convexHulls.Size();
@@ -306,8 +318,14 @@ private:
     {
         Init();
         if (params.m_oclAcceleration) {
-            // build kernals
+            // build kernels
         }
+		if (m_NearestPoints)
+		{
+			m_NearestPoints->release();
+			m_NearestPoints = nullptr;
+		}
+		m_NearestPoints = NearestPoint::createNearestPoint(nPoints, points, stridePoints);
         AlignMesh(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
         VoxelizeMesh(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
         ComputePrimitiveSet(params);
@@ -315,7 +333,7 @@ private:
         MergeConvexHulls(params);
         SimplifyConvexHulls(params);
         if (params.m_oclAcceleration) {
-            // Release kernals
+            // Release kernels
         }
         if (GetCancel()) {
             Clean();
@@ -325,6 +343,7 @@ private:
     }
 
 private:
+	NearestPoint	*m_NearestPoints{ nullptr };
     SArray<Mesh*> m_convexHulls;
     std::string m_stage;
     std::string m_operation;

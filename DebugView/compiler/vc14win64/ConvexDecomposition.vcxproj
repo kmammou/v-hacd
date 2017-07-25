@@ -151,6 +151,8 @@
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdMutex.h">
 		</ClInclude>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdNearestPoint.h">
+		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdSArray.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdTimer.h">
@@ -180,6 +182,8 @@
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdManifoldMesh.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdMesh.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdNearestPoint.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdVolume.cpp">
 		</ClCompile>
