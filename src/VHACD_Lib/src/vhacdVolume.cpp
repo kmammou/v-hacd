@@ -15,6 +15,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "btConvexHullComputer.h"
 #include "vhacdVolume.h"
+#include "vhacdNearestPoint.h"
 #include <algorithm>
 #include <float.h>
 #include <math.h>
@@ -36,7 +37,7 @@ namespace VHACD {
 /*   2001-03-05: released the code in its first version */
 /*   2001-06-18: changed the order of the tests, faster */
 /*                                                      */
-/* Acknowledgement: Many thanks to Pierre Terdiman for  */
+/* Acknowledgment: Many thanks to Pierre Terdiman for  */
 /* suggestions and discussions on how to optimize code. */
 /* Thanks to David Hunt for finding a ">="-bug!         */
 /********************************************************/
@@ -400,7 +401,7 @@ void VoxelSet::ComputeBB()
         m_barycenter[h] = (short)(bary[h] + 0.5);
     }
 }
-void VoxelSet::ComputeConvexHull(Mesh& meshCH, const size_t sampling) const
+void VoxelSet::ComputeConvexHull(Mesh& meshCH, const size_t sampling,NearestPoint *np) const
 {
     const size_t CLUSTER_SIZE = 65536;
     const size_t nVoxels = m_voxels.Size();
@@ -443,10 +444,24 @@ void VoxelSet::ComputeConvexHull(Mesh& meshCH, const size_t sampling) const
             }
             ++p;
         }
+		np->startFreshQuery();
         btConvexHullComputer ch;
         ch.compute((double*)points, 3 * sizeof(double), (int)q, -1.0, -1.0);
-        for (int v = 0; v < ch.vertices.size(); v++) {
-            cpoints.PushBack(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
+		// Note, we cannot create the convex hull out of the approximated data points.
+		// We can only create the convex hull from the actual exact input points provided by the application.
+		// The following step remaps the approximate vertices to the *exact* vertex position based on the original
+		// source input mesh provided by the user.
+        for (int v = 0; v < ch.vertices.size(); v++) 
+		{
+			double inputPoint[3];
+			inputPoint[0] = ch.vertices[v].getX();
+			inputPoint[1] = ch.vertices[v].getY();
+			inputPoint[2] = ch.vertices[v].getZ();
+			double outputPoint[3];
+			if (np->getNearestVert(inputPoint, outputPoint))// Only add this point if it is unique; no duplicate points should be in the input point cloud passed for convex hull generation.
+			{
+				cpoints.PushBack(Vec3<double>(outputPoint[0], outputPoint[1], outputPoint[2]));
+			}
         }
     }
     delete[] points;
@@ -1089,7 +1104,7 @@ void TetrahedronSet::ComputeBB()
     }
     m_barycenter /= (double)(4 * nTetrahedra);
 }
-void TetrahedronSet::ComputeConvexHull(Mesh& meshCH, const size_t sampling) const
+void TetrahedronSet::ComputeConvexHull(Mesh& meshCH, const size_t sampling,NearestPoint *np) const
 {
     const size_t CLUSTER_SIZE = 65536;
     const size_t nTetrahedra = m_tetrahedra.Size();
@@ -1121,8 +1136,22 @@ void TetrahedronSet::ComputeConvexHull(Mesh& meshCH, const size_t sampling) cons
         }
         btConvexHullComputer ch;
         ch.compute((double*)points, 3 * sizeof(double), (int)q, -1.0, -1.0);
-        for (int v = 0; v < ch.vertices.size(); v++) {
-            cpoints.PushBack(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
+		np->startFreshQuery();
+		// Note, we cannot create the convex hull out of the approximated data points.
+		// We can only create the convex hull from the actual exact input points provided by the application.
+		// The following step remaps the approximate vertices to the *exact* vertex position based on the original
+		// source input mesh provided by the user.
+        for (int v = 0; v < ch.vertices.size(); v++) 
+		{
+			double inputPoint[3];
+			inputPoint[0] = ch.vertices[v].getX();
+			inputPoint[1] = ch.vertices[v].getY();
+			inputPoint[2] = ch.vertices[v].getZ();
+			double outputPoint[3];
+			if (np->getNearestVert(inputPoint, outputPoint)) // Only add this point if it is unique; no duplicate points should be in the input point cloud passed for convex hull generation.
+			{
+				cpoints.PushBack(Vec3<double>(outputPoint[0], outputPoint[1], outputPoint[2]));
+			}
         }
     }
     delete[] points;

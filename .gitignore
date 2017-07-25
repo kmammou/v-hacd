@@ -56,3 +56,6 @@ build/
 /DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/wavefront.obj
 /DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/ConvexDecompositionDEBUG.Build.CppClean.log
 /DebugView/compiler/xpj/ConvexDecomposition.bak
+/DebugView/compiler/vc14win64
+/Win32/Debug/ZERO_CHECK
+/Win32/Release/ZERO_CHECK

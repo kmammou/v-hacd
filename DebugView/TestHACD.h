@@ -27,6 +27,8 @@ public:
 
 	virtual uint32_t getHullCount(void) const = 0;
 
+	virtual void saveConvexDecomposition(const char *fname,const char *sourceMeshName) = 0;
+
 	virtual void cancel(void) = 0;
 
 	virtual void release(void) = 0;
