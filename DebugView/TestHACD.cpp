@@ -27,8 +27,6 @@ public:
 
 	virtual void render(float explodeViewScale,const float center[3]) final
 	{
-
-
 		uint32_t hullCount = mHACD->GetNConvexHulls();
 		if (hullCount)
 		{
@@ -143,6 +141,56 @@ public:
 		if (mHACD)
 		{
 			mHACD->Cancel();
+		}
+	}
+
+	virtual void saveConvexDecomposition(const char *fname,const char *sourceMeshName)
+	{
+		FILE *fph = fopen(fname, "wb");
+		if (fph)
+		{
+			printf("Saving ConvexDecomposition to '%s\n", fname);
+			uint32_t hcount = mHACD->GetNConvexHulls();
+			printf("Saving %d convex hulls.\n", hcount);
+			fprintf(fph, "# ConvexDecomposition of %s contains %d convex hull parts.\n", sourceMeshName, hcount);
+			uint32_t vertIndex = 0;
+			uint32_t *offsets = new uint32_t[hcount];
+			for (uint32_t i = 0; i < hcount; i++)
+			{
+				VHACD::IVHACD::ConvexHull ch;
+				mHACD->GetConvexHull(i, ch);
+				printf("Hull %d contains %d vertices and %d triangles.\n", i + 1, ch.m_nPoints, ch.m_nTriangles);
+				fprintf(fph, "##########################################################################################\n");
+				fprintf(fph, "# Convex Hull %d contains %d vertices.\n", i + 1, ch.m_nPoints);
+				fprintf(fph, "##########################################################################################\n");
+				for (uint32_t j = 0; j < ch.m_nPoints; j++)
+				{
+					const double *pos = &ch.m_points[j * 3];
+					fprintf(fph, "v %0.9f %0.9f %0.9f\n", pos[0], pos[1], pos[2]);
+				}
+				offsets[i] = vertIndex;
+				vertIndex += ch.m_nPoints;
+			}
+			for (uint32_t i = 0; i < hcount; i++)
+			{
+				VHACD::IVHACD::ConvexHull ch;
+				mHACD->GetConvexHull(i, ch);
+				fprintf(fph, "##########################################################################################\n");
+				fprintf(fph, "# Convex Hull %d contains %d triangles.\n", i + 1, ch.m_nPoints);
+				fprintf(fph, "##########################################################################################\n");
+				vertIndex = offsets[i] + 1;
+				for (uint32_t j = 0; j < ch.m_nTriangles; j++)
+				{
+					const int *indices = &ch.m_triangles[j * 3];
+					fprintf(fph, "f %d %d %d\n", indices[0] + vertIndex, indices[1] + vertIndex, indices[2] + vertIndex);
+				}
+			}
+			fclose(fph);
+			delete[]offsets;
+		}
+		else
+		{
+			printf("Failed to open output file '%s for write access\n", fname);
 		}
 	}
 
