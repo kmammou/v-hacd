@@ -2,35 +2,6 @@
 #include <math.h>
 #include <assert.h>
 
-// This code snippet allows you to create an axis aligned bounding volume tree for a triangle mesh so that you can do
-// high-speed raycasting.
-//
-// There are much better implementations of this available on the internet.  In particular I recommend that you use 
-// OPCODE written by Pierre Terdiman.
-// @see: http://www.codercorner.com/Opcode.htm
-//
-// OPCODE does a whole lot more than just raycasting, and is a rather significant amount of source code.
-//
-// I am providing this code snippet for the use case where you *only* want to do quick and dirty optimized raycasting.
-// I have not done performance testing between this version and OPCODE; so I don't know how much slower it is.  However,
-// anytime you switch to using a spatial data structure for raycasting, you increase your performance by orders and orders 
-// of magnitude; so this implementation should work fine for simple tools and utilities.
-//
-// It also serves as a nice sample for people who are trying to learn the algorithm of how to implement AABB trees.
-// AABB = Axis Aligned Bounding Volume trees.
-//
-// http://www.cgal.org/Manual/3.5/doc_html/cgal_manual/AABB_tree/Chapter_main.html
-//
-//
-// This code snippet was written by John W. Ratcliff on August 18, 2011 and released under the MIT. license.
-//
-// mailto:jratcliffscarab@gmail.com
-//
-// The official source can be found at:  http://code.google.com/p/raycastmesh/
-//
-// 
-
-
 namespace RAYCAST_MESH
 {
 
@@ -97,12 +68,39 @@ class MyRaycastMesh : public RaycastMesh
 {
 public:
 
-	MyRaycastMesh(uint32_t vcount,const double *vertices,uint32_t tcount,const uint32_t *indices) : mVcount(vcount), mVertices(vertices), mTcount(tcount), mIndices(indices)
+    template <class T>
+	MyRaycastMesh(uint32_t vcount,
+                  uint32_t vertexStride,
+                  const T *vertices,
+                  uint32_t tcount,
+                  uint32_t triangleStride,
+                  const uint32_t *indices)
 	{
+        mVcount = vcount;
+        mVertices = new double[mVcount * 3];
+        for (uint32_t i = 0; i < mVcount; i++)
+        {
+            mVertices[i * 3 + 0] = vertices[0];
+            mVertices[i * 3 + 1] = vertices[1];
+            mVertices[i * 3 + 2] = vertices[2];
+            vertices += vertexStride;
+        }
+        mTcount = tcount;
+        mIndices = new uint32_t[mTcount * 3];
+        for (uint32_t i = 0; i < mTcount; i++)
+        {
+            mIndices[i * 3 + 0] = indices[0];
+            mIndices[i * 3 + 1] = indices[1];
+            mIndices[i * 3 + 2] = indices[2];
+            indices += triangleStride;
+        }
 	}
+
 
 	~MyRaycastMesh(void)
 	{
+        delete[]mVertices;
+        delete[]mIndices;
 	}
 
 	virtual void release(void)
@@ -176,9 +174,9 @@ public:
 	}
 
 	uint32_t		mVcount;
-	const double	*mVertices;
+	double	        *mVertices;
 	uint32_t		mTcount;
-	const uint32_t	*mIndices;
+	uint32_t	    *mIndices;
 };
 
 };
@@ -187,15 +185,26 @@ public:
 
 using namespace RAYCAST_MESH;
 
-
-RaycastMesh *	RaycastMesh::createRaycastMesh(uint32_t vcount,		// The number of vertices in the source triangle mesh
-								const double *vertices,		// The array of vertex positions in the format x1,y1,z1..x2,y2,z2.. etc.
-								uint32_t tcount,		// The number of triangles in the source triangle mesh
-								const uint32_t *indices) // The triangle indices in the format of i1,i2,i3 ... i4,i5,i6, ...
+RaycastMesh * RaycastMesh::createRaycastMesh(uint32_t vcount,		// The number of vertices in the source triangle mesh
+    uint32_t vertexStride,
+    const double *vertices,		// The array of vertex positions in the format x1,y1,z1..x2,y2,z2.. etc.
+    uint32_t tcount,		// The number of triangles in the source triangle mesh
+    uint32_t triangleStride,
+    const uint32_t *indices) // The triangle indices in the format of i1,i2,i3 ... i4,i5,i6, ...
 {
-	MyRaycastMesh *m = new MyRaycastMesh(vcount,vertices,tcount,indices);
+	MyRaycastMesh *m = new MyRaycastMesh(vcount,vertexStride,vertices,tcount,triangleStride,indices);
 	return static_cast< RaycastMesh * >(m);
 }
 
+RaycastMesh * RaycastMesh::createRaycastMesh(uint32_t vcount,		// The number of vertices in the source triangle mesh
+    uint32_t vertexStride,
+    const float *vertices,		// The array of vertex positions in the format x1,y1,z1..x2,y2,z2.. etc.
+    uint32_t tcount,		// The number of triangles in the source triangle mesh
+    uint32_t triangleStride,
+    const uint32_t *indices) // The triangle indices in the format of i1,i2,i3 ... i4,i5,i6, ...
+{
+    MyRaycastMesh *m = new MyRaycastMesh(vcount, vertexStride, vertices, tcount, triangleStride, indices);
+    return static_cast<RaycastMesh *>(m);
+}
 
 

@@ -1391,13 +1391,84 @@ void VHACD::MergeConvexHulls(const Parameters& params)
         params.m_logger->Log(msg.str().c_str());
     }
 }
-void SimplifyConvexHull(Mesh* const ch, const size_t nvertices, const double minVolume)
+void VHACD::SimplifyConvexHull(Mesh* const ch, const size_t nvertices, const double minVolume)
 {
     if (nvertices <= 4) {
         return;
     }
     ICHull icHull;
-    icHull.AddPoints(ch->GetPointsBuffer(), ch->GetNPoints());
+    if (mRaycastMesh)
+    {
+        // We project these points onto the original source mesh to increase precision
+        // The voxelization process drops floating point precision so returned data points are not exactly lying on the 
+        // surface of the original source mesh.
+        uint32_t nPoints = ch->GetNPoints();
+        Vec3<double> *inputPoints = ch->GetPointsBuffer();
+        Vec3<double> bmin(inputPoints[0]);
+        Vec3<double> bmax(inputPoints[1]);
+        for (uint32_t i = 1; i < nPoints; i++)
+        {
+            const Vec3<double> &p = inputPoints[i];
+            p.UpdateMinMax(bmin, bmax);
+        }
+        Vec3<double> center;
+        double diagonalLength = center.GetCenter(bmin, bmax);
+        // We do *not* want to produce convex hulls with thin slivers
+        // The threshold distance for combining two points is 1/100th the diagonal length of the bounding box
+        double pointDistanceThreshold = diagonalLength * 0.01;
+        double snapDistanceThreshold = diagonalLength * 0.05;
+        double snapDistanceThresholdSquared = snapDistanceThreshold*snapDistanceThreshold;
+        // Allocate buffer for projected vertices
+        Vec3<double> *outputPoints = new Vec3<double>[nPoints];
+        uint32_t outCount = 0;
+        for (uint32_t i = 0; i < nPoints; i++)
+        {
+            Vec3<double> &inputPoint = inputPoints[i];
+            Vec3<double> &outputPoint = outputPoints[outCount];
+            // Compute the direction vector from the center of this mesh to the vertex
+            Vec3<double> dir = inputPoint - center;
+            // Normalize the direction vector.
+            dir.Normalize();
+            // Multiply times the diagonal length of the mesh
+            dir *= diagonalLength;
+            // Add the center back in again to get the destination point
+            dir += center;
+            // By default the output point is equal to the input point
+            outputPoint = inputPoint;
+            double pointDistance;
+            if (mRaycastMesh->raycast(center.GetData(), dir.GetData(), inputPoint.GetData(), outputPoint.GetData(),&pointDistance) )
+            {
+                // If the nearest intersection point is too far away, we keep the original source data point.
+                // Not all points lie directly on the original mesh surface
+                if (pointDistance > pointDistanceThreshold)
+                {
+                    outputPoint = inputPoint;
+                }
+            }
+            // Ok, before we add this point, we do not want to create points which are extremely close to each other.
+            // This will result in tiny sliver triangles which are really bad for collision detection.
+            bool foundNearbyPoint = false;
+            for (uint32_t j = 0; j < outCount; j++)
+            {
+                // If this new point is extremely close to an existing point, we do not add it!
+                double squaredDistance = outputPoints[j].GetDistanceSquared(outputPoint);
+                if (squaredDistance < snapDistanceThresholdSquared )
+                {
+                    foundNearbyPoint = true;
+                    break;
+                }
+            }
+            if (!foundNearbyPoint)
+            {
+                outCount++;
+            }
+        }
+        icHull.AddPoints(outputPoints, outCount);
+    }
+    else
+    {
+        icHull.AddPoints(ch->GetPointsBuffer(), ch->GetNPoints());
+    }
     icHull.Process((unsigned int)nvertices, minVolume);
     TMMesh& mesh = icHull.GetMesh();
     const size_t nT = mesh.GetNTriangles();

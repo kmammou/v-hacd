@@ -189,6 +189,7 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("FileTransferButton \" Select Wavefront File\" WavefrontFile \"Choose a Wavefront OBJ file to transfer\" *.obj");
 	gRenderDebug->sendRemoteCommand("FileTransferButton \" Select OFF File\" OFFFile \"Choose an OFF file to transfer\" *.off");
 	gRenderDebug->sendRemoteCommand("Button SaveConvexDecomposition \"save\"");
+    gRenderDebug->sendRemoteCommand("Button TestRaycastMesh \"raycast\"");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
 	gRenderDebug->sendRemoteCommand("BeginGroup \"View\"");	// Mark the beginning of a group of controls.
@@ -197,7 +198,6 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("Slider ScaleInputMesh 1 0.01 100 ScaleInputMesh");
 	gRenderDebug->sendRemoteCommand("Slider ExplodeViewScale 1 1 4 ExplodeViewScale");
 	gRenderDebug->sendRemoteCommand("Button PerformConvexDecomposition \"decomp\"");
-	gRenderDebug->sendRemoteCommand("Button TestRaycastMesh \"raycast\"");
 	gRenderDebug->sendRemoteCommand("Button Cancel \"cancel\"");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
