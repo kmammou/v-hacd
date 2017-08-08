@@ -121,9 +121,13 @@
 		</ClCompile>
 		<ClCompile Include="..\..\TestHACD.cpp">
 		</ClCompile>
+		<ClCompile Include="..\..\TestRaycast.cpp">
+		</ClCompile>
 		<ClCompile Include="..\..\wavefront.cpp">
 		</ClCompile>
 		<ClInclude Include="..\..\TestHACD.h">
+		</ClInclude>
+		<ClInclude Include="..\..\TestRaycast.h">
 		</ClInclude>
 		<ClInclude Include="..\..\wavefront.h">
 		</ClInclude>
@@ -140,6 +144,8 @@
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\btScalar.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\btVector3.h">
+		</ClInclude>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\RaycastMesh.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdCircularList.h">
 		</ClInclude>
@@ -172,6 +178,8 @@
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\btAlignedAllocator.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\btConvexHullComputer.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\RaycastMesh.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD-ASYNC.cpp">
 		</ClCompile>

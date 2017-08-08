@@ -8,6 +8,7 @@
 #include "wavefront.h"
 #include "NvRenderDebug.h"
 #include "TestHACD.h"
+#include "TestRaycast.h"
 #include "VHACD.h"
 
 #pragma warning(disable:4456 4457)
@@ -26,7 +27,7 @@ static float		gCenter[3] { 0, 0, 0 };
 static uint32_t		gVertexCount = 0;
 static uint32_t		gTriangleCount = 0;
 static double		*gVertices = nullptr;
-static int			*gIndices = nullptr;
+static uint32_t		*gIndices = nullptr;
 static std::string	 gSourceMeshName;
 
 static VHACD::IVHACD::Parameters gDesc;
@@ -196,6 +197,7 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("Slider ScaleInputMesh 1 0.01 100 ScaleInputMesh");
 	gRenderDebug->sendRemoteCommand("Slider ExplodeViewScale 1 1 4 ExplodeViewScale");
 	gRenderDebug->sendRemoteCommand("Button PerformConvexDecomposition \"decomp\"");
+	gRenderDebug->sendRemoteCommand("Button TestRaycastMesh \"raycast\"");
 	gRenderDebug->sendRemoteCommand("Button Cancel \"cancel\"");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
@@ -275,7 +277,7 @@ int main(int argc,const char **argv)
 							delete[]meshVertices;
 							meshVertices = new double[w.mVertexCount * 3];
 							gVertices = meshVertices;
-							gIndices = (int *)w.mIndices;
+							gIndices = w.mIndices;
 
 							for (uint32_t i = 0; i < w.mVertexCount; i++)
 							{
@@ -364,7 +366,14 @@ int main(int argc,const char **argv)
 							else if (strcmp(cmd, "decomp") == 0 && thacd)
 							{
 								printf("Performing Convex Decomposition\n");
-								thacd->decompose(gVertices, gVertexCount, gIndices, gTriangleCount, gDesc);
+								thacd->decompose(gVertices, gVertexCount, (const int *)gIndices, gTriangleCount, gDesc);
+							}
+							else if (strcmp(cmd, "raycast") == 0 && thacd)
+							{
+								printf("Testing RaycastMesh\n");
+								TestRaycast *r = TestRaycast::create();
+								r->testRaycast(gVertexCount, gTriangleCount, gVertices, gIndices, gRenderDebug);
+								r->release();
 							}
 							else if (strcmp(cmd, "cancel") == 0 && thacd)
 							{

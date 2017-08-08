@@ -33,7 +33,6 @@
 #include "vhacdVHACD.h"
 #include "vhacdVector.h"
 #include "vhacdVolume.h"
-#include "vhacdNearestPoint.h"
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -878,8 +877,8 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
                 PrimitiveSet* const right = psets[threadID];
                 PrimitiveSet* const left = psets[threadID + m_ompNumProcessors];
                 onSurfacePSet->Clip(plane, right, left);
-                right->ComputeConvexHull(rightCH, convexhullDownsampling,m_NearestPoints);
-                left->ComputeConvexHull(leftCH, convexhullDownsampling,m_NearestPoints);
+                right->ComputeConvexHull(rightCH, convexhullDownsampling);
+                left->ComputeConvexHull(leftCH, convexhullDownsampling);
             }
             double volumeLeftCH = leftCH.ComputeVolume();
             double volumeRightCH = rightCH.ComputeVolume();
@@ -1023,7 +1022,7 @@ void VHACD::ComputeACD(const Parameters& params)
                 pset->AlignToPrincipalAxes();
             }
 
-            pset->ComputeConvexHull(pset->GetConvexHull(),1,m_NearestPoints);
+            pset->ComputeConvexHull(pset->GetConvexHull());
             double volumeCH = fabs(pset->GetConvexHull().ComputeVolume());
             if (firstIteration) {
                 m_volumeCH0 = volumeCH;
@@ -1184,7 +1183,7 @@ void VHACD::ComputeACD(const Parameters& params)
     for (size_t p = 0; p < nConvexHulls && !m_cancel; ++p) {
         Update(m_stageProgress, p * 100.0 / nConvexHulls, params);
         m_convexHulls.PushBack(new Mesh);
-        parts[p]->ComputeConvexHull(*m_convexHulls[p],1,m_NearestPoints);
+        parts[p]->ComputeConvexHull(*m_convexHulls[p]);
         size_t nv = m_convexHulls[p]->GetNPoints();
         double x, y, z;
         for (size_t i = 0; i < nv; ++i) {

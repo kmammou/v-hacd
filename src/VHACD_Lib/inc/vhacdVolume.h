@@ -26,8 +26,6 @@
 
 namespace VHACD {
 
-class NearestPoint;
-
 enum VOXEL_VALUE {
     PRIMITIVE_UNDEFINED = 0,
     PRIMITIVE_OUTSIDE_SURFACE = 1,
@@ -60,7 +58,7 @@ public:
     virtual void ComputeClippedVolumes(const Plane& plane, double& positiveVolume,
         double& negativeVolume) const = 0;
     virtual void SelectOnSurface(PrimitiveSet* const onSurfP) const = 0;
-    virtual void ComputeConvexHull(Mesh& meshCH, const size_t sampling,NearestPoint *np) const = 0;
+    virtual void ComputeConvexHull(Mesh& meshCH, const size_t sampling = 1) const = 0;
     virtual void ComputeBB() = 0;
     virtual void ComputePrincipalAxes() = 0;
     virtual void AlignToPrincipalAxes() = 0;
@@ -112,7 +110,7 @@ public:
             voxel[2] * m_scale + m_minBB[2]);
     }
     void GetPoints(const Voxel& voxel, Vec3<double>* const pts) const;
-    void ComputeConvexHull(Mesh& meshCH, const size_t sampling,NearestPoint *np) const;
+    void ComputeConvexHull(Mesh& meshCH, const size_t sampling = 1) const;
     void Clip(const Plane& plane, PrimitiveSet* const positivePart, PrimitiveSet* const negativePart) const;
     void Intersect(const Plane& plane, SArray<Vec3<double> >* const positivePts,
         SArray<Vec3<double> >* const negativePts, const size_t sampling) const;
@@ -175,7 +173,7 @@ public:
     const double GetSacle() const { return m_scale; }
     const double ComputeVolume() const;
     const double ComputeMaxVolumeError() const;
-    void ComputeConvexHull(Mesh& meshCH, const size_t sampling,NearestPoint *np) const;
+    void ComputeConvexHull(Mesh& meshCH, const size_t sampling = 1) const;
     void ComputePrincipalAxes();
     void AlignToPrincipalAxes();
     void RevertAlignToPrincipalAxes();
