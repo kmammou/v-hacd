@@ -26,7 +26,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "vhacdMutex.h"
 #include "vhacdVolume.h"
-#include "RaycastMesh.h"
+#include "vhacdRaycastMesh.h"
 
 #define USE_THREAD 1
 #define OCL_MIN_NUM_PRIMITIVES 4096

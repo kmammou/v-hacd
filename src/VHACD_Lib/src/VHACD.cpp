@@ -1402,6 +1402,8 @@ void VHACD::SimplifyConvexHull(Mesh* const ch, const size_t nvertices, const dou
         // We project these points onto the original source mesh to increase precision
         // The voxelization process drops floating point precision so returned data points are not exactly lying on the 
         // surface of the original source mesh.
+        // The first step is we need to compute the bounding box of the mesh we are trying to build a convex hull for.
+        // From this bounding box, we compute the length of the diagonal to get a relative size and center for point projection
         uint32_t nPoints = ch->GetNPoints();
         Vec3<double> *inputPoints = ch->GetPointsBuffer();
         Vec3<double> bmin(inputPoints[0]);
@@ -1412,12 +1414,14 @@ void VHACD::SimplifyConvexHull(Mesh* const ch, const size_t nvertices, const dou
             p.UpdateMinMax(bmin, bmax);
         }
         Vec3<double> center;
-        double diagonalLength = center.GetCenter(bmin, bmax);
-        // We do *not* want to produce convex hulls with thin slivers
-        // The threshold distance for combining two points is 1/100th the diagonal length of the bounding box
+        double diagonalLength = center.GetCenter(bmin, bmax);   // Get the center of the bounding box
+        // This is the error threshold for determining if we should use the raycast result data point vs. the voxelized result.
         double pointDistanceThreshold = diagonalLength * 0.01;
-        double snapDistanceThreshold = diagonalLength * 0.05;
+        // If a new point is within 1/100th the diagonal length of the bounding volume we do not add it.  To do so would create a
+        // thin sliver in the resulting convex hull
+        double snapDistanceThreshold = diagonalLength * 0.01;
         double snapDistanceThresholdSquared = snapDistanceThreshold*snapDistanceThreshold;
+
         // Allocate buffer for projected vertices
         Vec3<double> *outputPoints = new Vec3<double>[nPoints];
         uint32_t outCount = 0;
@@ -1464,6 +1468,7 @@ void VHACD::SimplifyConvexHull(Mesh* const ch, const size_t nvertices, const dou
             }
         }
         icHull.AddPoints(outputPoints, outCount);
+        delete[]outputPoints;
     }
     else
     {

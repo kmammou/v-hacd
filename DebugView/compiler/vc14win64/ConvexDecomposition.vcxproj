@@ -145,8 +145,6 @@
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\btVector3.h">
 		</ClInclude>
-		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\RaycastMesh.h">
-		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdCircularList.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdICHull.h">
@@ -157,7 +155,7 @@
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdMutex.h">
 		</ClInclude>
-		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdNearestPoint.h">
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdRaycastMesh.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdSArray.h">
 		</ClInclude>
@@ -179,8 +177,6 @@
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\btConvexHullComputer.cpp">
 		</ClCompile>
-		<ClCompile Include="..\..\..\src\VHACD_Lib\src\RaycastMesh.cpp">
-		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD-ASYNC.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD.cpp">
@@ -191,7 +187,7 @@
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdMesh.cpp">
 		</ClCompile>
-		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdNearestPoint.cpp">
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdRaycastMesh.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdVolume.cpp">
 		</ClCompile>

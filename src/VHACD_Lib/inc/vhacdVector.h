@@ -110,6 +110,11 @@ public:
         return dx*dx + dy*dy + dz*dz;
     }
 
+    T GetDistance(const Vec3 &p) const
+    {
+        return sqrt(GetDistanceSquared(p));
+    }
+
     // Returns the raw vector data as a pointer
     T* GetData(void) 
     {

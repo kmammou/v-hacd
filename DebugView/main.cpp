@@ -212,8 +212,8 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("BeginGroup \"V-HACD Settings2\"");	// Mark the beginning of a group of controls.
 	gRenderDebug->sendRemoteCommand("Slider Alpha 0.0005 0 0.1 Alpha");
 	gRenderDebug->sendRemoteCommand("Slider Beta 0.05 0 0.1 Beta");
-	//gRenderDebug->sendRemoteCommand("SliderInt Resolution 100000 10000 1000000 Resolution");
-	gRenderDebug->sendRemoteCommand("SliderInt Resolution 100000 10000 64000000 Resolution");
+    gRenderDebug->sendRemoteCommand("CheckBox ProjectHullVertices true ProjectHullVertices");
+	gRenderDebug->sendRemoteCommand("SliderInt Resolution 100000 10000 1000000 Resolution");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'HACD settings'
 
 
@@ -425,6 +425,12 @@ int main(int argc,const char **argv)
 								gDesc.m_beta = (float)atof(value);
 								printf("Beta=%0.5f\n", gDesc.m_beta);
 							}
+                            else if (strcmp(cmd, "ProjectHullVertices") == 0 && argc == 2)
+                            {
+                                const char *value = argv[1];
+                                gDesc.m_projectHullVertices = strcmp(value, "true") == 0;
+                                printf("ProjectHullVertices=%s\n", gDesc.m_projectHullVertices ? "true" : "false");
+                            }
 							else if (strcmp(cmd, "Resolution") == 0 && argc == 2)
 							{
 								const char *value = argv[1];
