@@ -1416,7 +1416,7 @@ void VHACD::SimplifyConvexHull(Mesh* const ch, const size_t nvertices, const dou
         Vec3<double> center;
         double diagonalLength = center.GetCenter(bmin, bmax);   // Get the center of the bounding box
         // This is the error threshold for determining if we should use the raycast result data point vs. the voxelized result.
-        double pointDistanceThreshold = diagonalLength * 0.01;
+        double pointDistanceThreshold = diagonalLength * 0.05;
         // If a new point is within 1/100th the diagonal length of the bounding volume we do not add it.  To do so would create a
         // thin sliver in the resulting convex hull
         double snapDistanceThreshold = diagonalLength * 0.01;

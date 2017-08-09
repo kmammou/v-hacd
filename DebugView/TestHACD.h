@@ -23,7 +23,7 @@ public:
 		const unsigned int countTriangles,
 		VHACD::IVHACD::Parameters &desc) = 0;
 
-	virtual void render(float explodeViewScale,const float center[3]) = 0;
+	virtual void render(float explodeViewScale,const float center[3],bool wireframe) = 0;
 
 	virtual uint32_t getHullCount(void) const = 0;
 

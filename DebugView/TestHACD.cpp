@@ -25,7 +25,7 @@ public:
 		dest[2] = float(source[2] + diff[2] + center[2]);
 	}
 
-	virtual void render(float explodeViewScale,const float center[3]) final
+	virtual void render(float explodeViewScale,const float center[3],bool wireframe) final
 	{
 		uint32_t hullCount = mHACD->GetNConvexHulls();
 		if (hullCount)
@@ -36,6 +36,16 @@ public:
 				mHACD->GetConvexHull(j, h);
 				{
 					mRenderDebug->pushRenderState();
+
+                    if (wireframe)
+                    {
+                        mRenderDebug->removeFromCurrentState(RENDER_DEBUG::DebugRenderState::SolidShaded);
+                        mRenderDebug->removeFromCurrentState(RENDER_DEBUG::DebugRenderState::SolidWireShaded);
+                    }
+                    else
+                    {
+                        mRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::SolidWireShaded);
+                    }
 
 					uint32_t cindex = (j % 20) + RENDER_DEBUG::DebugColors::Red;
 

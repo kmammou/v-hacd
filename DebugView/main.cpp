@@ -195,6 +195,7 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("BeginGroup \"View\"");	// Mark the beginning of a group of controls.
 	gRenderDebug->sendRemoteCommand("CheckBox ShowSourceMesh true ShowSourceMesh");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowConvexDecomposition true ShowConvexDecomposition");
+    gRenderDebug->sendRemoteCommand("CheckBox WireframeConvex false WireframeConvex");
 	gRenderDebug->sendRemoteCommand("Slider ScaleInputMesh 1 0.01 100 ScaleInputMesh");
 	gRenderDebug->sendRemoteCommand("Slider ExplodeViewScale 1 1 4 ExplodeViewScale");
 	gRenderDebug->sendRemoteCommand("Button PerformConvexDecomposition \"decomp\"");
@@ -262,6 +263,7 @@ int main(int argc,const char **argv)
 				{
 					uint32_t meshId = 0;
 					bool solid=true;
+                    bool wireframeConvex = true;
 					const char *meshName = argv[1];
 
 					// main pump loop...
@@ -345,7 +347,7 @@ int main(int argc,const char **argv)
 						}
 						if (thacd && gShowConvexDecomposition )
 						{
-							thacd->render(gExplodeViewScale,gCenter);
+							thacd->render(gExplodeViewScale,gCenter,wireframeConvex);
 						}
 
 						gRenderDebug->render(1.0f/60.0f,NULL);
@@ -430,6 +432,11 @@ int main(int argc,const char **argv)
                                 const char *value = argv[1];
                                 gDesc.m_projectHullVertices = strcmp(value, "true") == 0;
                                 printf("ProjectHullVertices=%s\n", gDesc.m_projectHullVertices ? "true" : "false");
+                            }
+                            else if (strcmp(cmd, "WireframeConvex") == 0 && argc == 2)
+                            {
+                                const char *value = argv[1];
+                                wireframeConvex = strcmp(value, "true") == 0;
                             }
 							else if (strcmp(cmd, "Resolution") == 0 && argc == 2)
 							{
