@@ -121,9 +121,13 @@
 		</ClCompile>
 		<ClCompile Include="..\..\TestHACD.cpp">
 		</ClCompile>
+		<ClCompile Include="..\..\TestRaycast.cpp">
+		</ClCompile>
 		<ClCompile Include="..\..\wavefront.cpp">
 		</ClCompile>
 		<ClInclude Include="..\..\TestHACD.h">
+		</ClInclude>
+		<ClInclude Include="..\..\TestRaycast.h">
 		</ClInclude>
 		<ClInclude Include="..\..\wavefront.h">
 		</ClInclude>
@@ -150,6 +154,8 @@
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdMesh.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdMutex.h">
+		</ClInclude>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdRaycastMesh.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdSArray.h">
 		</ClInclude>
@@ -180,6 +186,8 @@
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdManifoldMesh.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdMesh.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdRaycastMesh.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdVolume.cpp">
 		</ClCompile>

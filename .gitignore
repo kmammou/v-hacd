@@ -56,3 +56,10 @@ build/
 /DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/wavefront.obj
 /DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/ConvexDecompositionDEBUG.Build.CppClean.log
 /DebugView/compiler/xpj/ConvexDecomposition.bak
+/DebugView/compiler/vc14win64/ConvexDecomposition.obj
+/DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/vhacdNearestPoint.obj
+/DebugView/compiler/vc14win64/x64/ConvexDecomposition/release/vhacdNearestPoint.obj
+/DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/RaycastMesh.obj
+/DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/TestRaycast.obj
+/DebugView/compiler/vc14win64/x64/ConvexDecomposition/release/RaycastMesh.obj
+/DebugView/compiler/vc14win64/x64/ConvexDecomposition/release/TestRaycast.obj

@@ -3,10 +3,12 @@
 #include <string.h>
 #include <vector>
 #include <math.h>
+#include <string>
 
 #include "wavefront.h"
 #include "NvRenderDebug.h"
 #include "TestHACD.h"
+#include "TestRaycast.h"
 #include "VHACD.h"
 
 #pragma warning(disable:4456 4457)
@@ -25,7 +27,8 @@ static float		gCenter[3] { 0, 0, 0 };
 static uint32_t		gVertexCount = 0;
 static uint32_t		gTriangleCount = 0;
 static double		*gVertices = nullptr;
-static int			*gIndices = nullptr;
+static uint32_t		*gIndices = nullptr;
+static std::string	 gSourceMeshName;
 
 static VHACD::IVHACD::Parameters gDesc;
 
@@ -185,9 +188,14 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("BeginGroup \"Controls\"");	// Mark the beginning of a group of controls.
 	gRenderDebug->sendRemoteCommand("FileTransferButton \" Select Wavefront File\" WavefrontFile \"Choose a Wavefront OBJ file to transfer\" *.obj");
 	gRenderDebug->sendRemoteCommand("FileTransferButton \" Select OFF File\" OFFFile \"Choose an OFF file to transfer\" *.off");
+	gRenderDebug->sendRemoteCommand("Button SaveConvexDecomposition \"save\"");
+    gRenderDebug->sendRemoteCommand("Button TestRaycastMesh \"raycast\"");
+	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
+	gRenderDebug->sendRemoteCommand("BeginGroup \"View\"");	// Mark the beginning of a group of controls.
 	gRenderDebug->sendRemoteCommand("CheckBox ShowSourceMesh true ShowSourceMesh");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowConvexDecomposition true ShowConvexDecomposition");
+    gRenderDebug->sendRemoteCommand("CheckBox WireframeConvex false WireframeConvex");
 	gRenderDebug->sendRemoteCommand("Slider ScaleInputMesh 1 0.01 100 ScaleInputMesh");
 	gRenderDebug->sendRemoteCommand("Slider ExplodeViewScale 1 1 4 ExplodeViewScale");
 	gRenderDebug->sendRemoteCommand("Button PerformConvexDecomposition \"decomp\"");
@@ -205,6 +213,7 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("BeginGroup \"V-HACD Settings2\"");	// Mark the beginning of a group of controls.
 	gRenderDebug->sendRemoteCommand("Slider Alpha 0.0005 0 0.1 Alpha");
 	gRenderDebug->sendRemoteCommand("Slider Beta 0.05 0 0.1 Beta");
+    gRenderDebug->sendRemoteCommand("CheckBox ProjectHullVertices true ProjectHullVertices");
 	gRenderDebug->sendRemoteCommand("SliderInt Resolution 100000 10000 1000000 Resolution");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'HACD settings'
 
@@ -254,6 +263,7 @@ int main(int argc,const char **argv)
 				{
 					uint32_t meshId = 0;
 					bool solid=true;
+                    bool wireframeConvex = true;
 					const char *meshName = argv[1];
 
 					// main pump loop...
@@ -269,7 +279,7 @@ int main(int argc,const char **argv)
 							delete[]meshVertices;
 							meshVertices = new double[w.mVertexCount * 3];
 							gVertices = meshVertices;
-							gIndices = (int *)w.mIndices;
+							gIndices = w.mIndices;
 
 							for (uint32_t i = 0; i < w.mVertexCount; i++)
 							{
@@ -337,7 +347,7 @@ int main(int argc,const char **argv)
 						}
 						if (thacd && gShowConvexDecomposition )
 						{
-							thacd->render(gExplodeViewScale,gCenter);
+							thacd->render(gExplodeViewScale,gCenter,wireframeConvex);
 						}
 
 						gRenderDebug->render(1.0f/60.0f,NULL);
@@ -358,7 +368,14 @@ int main(int argc,const char **argv)
 							else if (strcmp(cmd, "decomp") == 0 && thacd)
 							{
 								printf("Performing Convex Decomposition\n");
-								thacd->decompose(gVertices, gVertexCount, gIndices, gTriangleCount, gDesc);
+								thacd->decompose(gVertices, gVertexCount, (const int *)gIndices, gTriangleCount, gDesc);
+							}
+							else if (strcmp(cmd, "raycast") == 0 && thacd)
+							{
+								printf("Testing RaycastMesh\n");
+								TestRaycast *r = TestRaycast::create();
+								r->testRaycast(gVertexCount, gTriangleCount, gVertices, gIndices, gRenderDebug);
+								r->release();
 							}
 							else if (strcmp(cmd, "cancel") == 0 && thacd)
 							{
@@ -410,6 +427,17 @@ int main(int argc,const char **argv)
 								gDesc.m_beta = (float)atof(value);
 								printf("Beta=%0.5f\n", gDesc.m_beta);
 							}
+                            else if (strcmp(cmd, "ProjectHullVertices") == 0 && argc == 2)
+                            {
+                                const char *value = argv[1];
+                                gDesc.m_projectHullVertices = strcmp(value, "true") == 0;
+                                printf("ProjectHullVertices=%s\n", gDesc.m_projectHullVertices ? "true" : "false");
+                            }
+                            else if (strcmp(cmd, "WireframeConvex") == 0 && argc == 2)
+                            {
+                                const char *value = argv[1];
+                                wireframeConvex = strcmp(value, "true") == 0;
+                            }
 							else if (strcmp(cmd, "Resolution") == 0 && argc == 2)
 							{
 								const char *value = argv[1];
@@ -435,6 +463,13 @@ int main(int argc,const char **argv)
 								gRenderDebug->releaseTriangleMesh(meshId);
 								meshId = 0;
 							}
+							else if (strcmp(cmd, "save") == 0 )
+							{
+								if (thacd)
+								{
+									thacd->saveConvexDecomposition("ConvexDecomposition.obj", gSourceMeshName.c_str() );
+								}
+							}
 						}
 
 						const char *nameSpace;
@@ -444,6 +479,7 @@ int main(int argc,const char **argv)
 						const void *data = gRenderDebug->getRemoteResource(nameSpace, resourceName, dlen, isBigEndianRemote);
 						while (data)
 						{
+							gSourceMeshName = std::string(resourceName);
 							printf("Received remote resource %s:%s %d bytes long and remote machine is %sbig endian\r\n",
 								nameSpace,
 								resourceName,

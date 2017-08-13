@@ -26,10 +26,16 @@
 		<ClCompile Include="..\..\TestHACD.cpp">
 			<Filter>ConvexDecomposition</Filter>
 		</ClCompile>
+		<ClCompile Include="..\..\TestRaycast.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
 		<ClCompile Include="..\..\wavefront.cpp">
 			<Filter>ConvexDecomposition</Filter>
 		</ClCompile>
 		<ClInclude Include="..\..\TestHACD.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\TestRaycast.h">
 			<Filter>ConvexDecomposition</Filter>
 		</ClInclude>
 		<ClInclude Include="..\..\wavefront.h">
@@ -76,6 +82,9 @@
 			<Filter>VHADC_lib\inc</Filter>
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdMutex.h">
+			<Filter>VHADC_lib\inc</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdRaycastMesh.h">
 			<Filter>VHADC_lib\inc</Filter>
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdSArray.h">
@@ -127,6 +136,9 @@
 			<Filter>VHADC_lib\src</Filter>
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdMesh.cpp">
+			<Filter>VHADC_lib\src</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdRaycastMesh.cpp">
 			<Filter>VHADC_lib\src</Filter>
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdVolume.cpp">

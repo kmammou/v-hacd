@@ -55,6 +55,71 @@ public:
     Vec3(const Vec3& rhs);
     /*virtual*/ ~Vec3(void);
 
+    // Compute the center of this bounding box and return the diagonal length
+    T GetCenter(const Vec3 &bmin, const Vec3 &bmax)
+    {
+        X() = (bmin.X() + bmax.X())*0.5;
+        Y() = (bmin.Y() + bmax.Y())*0.5;
+        Z() = (bmin.Z() + bmax.Z())*0.5;
+        T dx = bmax.X() - bmin.X();
+        T dy = bmax.Y() - bmin.Y();
+        T dz = bmax.Z() - bmin.Z();
+        T diagonal = T(sqrt(dx*dx + dy*dy + dz*dz));
+        return diagonal;
+    }
+
+    // Update the min/max values relative to this point
+    void UpdateMinMax(Vec3 &bmin,Vec3 &bmax) const
+    {
+        if (X() < bmin.X())
+        {
+            bmin.X() = X();
+        }
+        if (Y() < bmin.Y())
+        {
+            bmin.Y() = Y();
+        }
+        if (Z() < bmin.Z())
+        {
+            bmin.Z() = Z();
+        }
+        if (X() > bmax.X())
+        {
+            bmax.X() = X();
+        }
+        if (X() > bmax.X())
+        {
+            bmax.X() = X();
+        }
+        if (Y() > bmax.Y())
+        {
+            bmax.Y() = Y();
+        }
+        if (Z() > bmax.Z())
+        {
+            bmax.Z() = Z();
+        }
+    }
+
+    // Returns the squared distance between these two points
+    T GetDistanceSquared(const Vec3 &p) const
+    {
+        T dx = X() - p.X();
+        T dy = Y() - p.Y();
+        T dz = Z() - p.Z();
+        return dx*dx + dy*dy + dz*dz;
+    }
+
+    T GetDistance(const Vec3 &p) const
+    {
+        return sqrt(GetDistanceSquared(p));
+    }
+
+    // Returns the raw vector data as a pointer
+    T* GetData(void) 
+    {
+        return m_data;
+    }
 private:
     T m_data[3];
 };

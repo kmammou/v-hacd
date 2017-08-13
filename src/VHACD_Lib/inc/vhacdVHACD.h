@@ -26,6 +26,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "vhacdMutex.h"
 #include "vhacdVolume.h"
+#include "vhacdRaycastMesh.h"
 
 #define USE_THREAD 1
 #define OCL_MIN_NUM_PRIMITIVES 4096
@@ -52,7 +53,9 @@ public:
         Init();
     }
     //! Destructor.
-    ~VHACD(void) {}
+    ~VHACD(void) 
+    {
+    }
     unsigned int GetNConvexHulls() const
     {
         return (unsigned int)m_convexHulls.Size();
@@ -76,6 +79,11 @@ public:
     }
     void Clean(void)
     {
+        if (mRaycastMesh)
+        {
+            mRaycastMesh->release();
+            mRaycastMesh = nullptr;
+        }
         delete m_volume;
         delete m_pset;
         size_t nCH = m_convexHulls.Size();
@@ -138,6 +146,11 @@ private:
     }
     void Init()
     {
+		if (mRaycastMesh)
+		{
+			mRaycastMesh->release();
+			mRaycastMesh = nullptr;
+		}
         memset(m_rot, 0, sizeof(double) * 9);
         m_dim = 64;
         m_volume = 0;
@@ -155,6 +168,7 @@ private:
     void ComputePrimitiveSet(const Parameters& params);
     void ComputeACD(const Parameters& params);
     void MergeConvexHulls(const Parameters& params);
+    void SimplifyConvexHull(Mesh* const ch, const size_t nvertices, const double minVolume);
     void SimplifyConvexHulls(const Parameters& params);
     void ComputeBestClippingPlane(const PrimitiveSet* inputPSet,
         const double volume,
@@ -305,8 +319,12 @@ private:
         const Parameters& params)
     {
         Init();
+        if (params.m_projectHullVertices)
+        {
+            mRaycastMesh = RaycastMesh::createRaycastMesh(nPoints, stridePoints, points, nTriangles, strideTriangles, (const uint32_t *)triangles);
+        }
         if (params.m_oclAcceleration) {
-            // build kernals
+            // build kernels
         }
         AlignMesh(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
         VoxelizeMesh(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
@@ -315,7 +333,7 @@ private:
         MergeConvexHulls(params);
         SimplifyConvexHulls(params);
         if (params.m_oclAcceleration) {
-            // Release kernals
+            // Release kernels
         }
         if (GetCancel()) {
             Clean();
@@ -325,6 +343,7 @@ private:
     }
 
 private:
+	RaycastMesh		*mRaycastMesh{ nullptr };
     SArray<Mesh*> m_convexHulls;
     std::string m_stage;
     std::string m_operation;

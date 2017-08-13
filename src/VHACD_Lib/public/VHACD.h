@@ -92,6 +92,7 @@ public:
             m_convexhullApproximation = true;
             m_oclAcceleration = true;
             m_maxConvexHulls = 1024;
+			m_projectHullVertices = true; // This will project the output convex hull vertices onto the original source mesh to increase the floating point accuracy of the results
         }
         double m_concavity;
         double m_alpha;
@@ -109,6 +110,7 @@ public:
         int m_convexhullApproximation;
         int m_oclAcceleration;
         unsigned int	m_maxConvexHulls;
+		bool	m_projectHullVertices;
     };
 
     virtual void Cancel() = 0;
