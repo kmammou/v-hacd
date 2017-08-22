@@ -9,12 +9,18 @@ namespace RENDER_DEBUG
 	class RenderDebug;
 }
 
-
+namespace NV_PHYSX_FRAMEWORK
+{
+	class PhysXFramework;
+}
 
 class TestHACD
 {
 public:
-	static TestHACD *create(RENDER_DEBUG::RenderDebug *renderDebug);
+
+	static TestHACD *create(RENDER_DEBUG::RenderDebug *renderDebug,NV_PHYSX_FRAMEWORK::PhysXFramework *physxFramework);
+
+	virtual void setSimulation(bool state) = 0;
 
 	virtual void decompose(
 		const double* const points,

@@ -40,6 +40,36 @@ public:
 		virtual bool processDebugCommand(uint32_t argc, const char **argv) = 0;
 	};
 
+	// A convex mesh
+	class ConvexMesh
+	{
+	public:
+		virtual void release(void) = 0;
+	};
+
+	// A compound actor comprised of an array of convex meshes
+	class CompoundActor
+	{
+	public:
+		virtual void addConvexMesh(ConvexMesh *cmesh,
+			float meshPosition[3],
+			float meshScale[3]) = 0;
+
+		// Create a simulated actor based on the collection of convex meshes
+		virtual void createActor(void) = 0;
+
+		virtual void release(void) = 0;
+	};
+
+	// Create a convex mesh using the provided raw triangles describing a convex hull.
+	virtual ConvexMesh *createConvexMesh(uint32_t vcount,
+		const float *vertices,
+		uint32_t tcount,
+		const uint32_t *indices) = 0;
+
+	// Create a physically simulated compound actor comprised of a collection of convex meshes
+	virtual CompoundActor *createCompoundActor(void) = 0;
+
 	// Returns delta time since last simulation step
 	virtual float simulate(void) = 0;
 

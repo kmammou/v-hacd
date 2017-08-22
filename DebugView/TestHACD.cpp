@@ -1,14 +1,17 @@
 #include "TestHACD.h"
 #include "NvRenderDebug.h"
+#include "NvPhysXFramework.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <string>
 
+#pragma warning(disable:4100)
+
 class TestHACDImpl : public TestHACD, public VHACD::IVHACD::IUserCallback, public VHACD::IVHACD::IUserLogger
 {
 public:
-	TestHACDImpl(RENDER_DEBUG::RenderDebug *renderDebug) : mRenderDebug(renderDebug)
+	TestHACDImpl(RENDER_DEBUG::RenderDebug *renderDebug,NV_PHYSX_FRAMEWORK::PhysXFramework *pf) : mRenderDebug(renderDebug), mPhysXFramework(pf)
 	{
 		mHACD = VHACD::CreateVHACD_ASYNC();
 	}
@@ -16,6 +19,7 @@ public:
 	virtual ~TestHACDImpl(void)
 	{
 		mHACD->Release();
+		releaseSimulationObjects();
 	}
 
 	void getExplodePosition(const double source[3], float dest[3], const double diff[3],const float center[3])
@@ -204,19 +208,79 @@ public:
 		}
 	}
 
-	RENDER_DEBUG::RenderDebug	*mRenderDebug;
-	VHACD::IVHACD				*mHACD;
+	virtual void setSimulation(bool state)
+	{
+		releaseSimulationObjects();
+		if (state && mHACD && mHACD->IsReady() )
+		{
+			mConvexMeshCount = mHACD->GetNConvexHulls();
+			if (mConvexMeshCount)
+			{
+				mConvexMeshes = new NV_PHYSX_FRAMEWORK::PhysXFramework::ConvexMesh *[mConvexMeshCount];
+				mCompoundActor = mPhysXFramework->createCompoundActor();
+				for (uint32_t i = 0; i < mConvexMeshCount; i++)
+				{
+					VHACD::IVHACD::ConvexHull ch;
+					mHACD->GetConvexHull(i, ch);
+					float *vertices = new float[ch.m_nPoints * 3];
+					for (uint32_t j = 0; j < ch.m_nPoints; j++)
+					{
+						vertices[j * 3 + 0] = float(ch.m_points[j * 3 + 0]-ch.m_center[0]);
+						vertices[j * 3 + 1] = float(ch.m_points[j * 3 + 1]-ch.m_center[1]);
+						vertices[j * 3 + 2] = float(ch.m_points[j * 3 + 2]-ch.m_center[2]);
+					}
+					mConvexMeshes[i] = mPhysXFramework->createConvexMesh(ch.m_nPoints, vertices, ch.m_nTriangles, (const uint32_t *)ch.m_triangles);
+					delete[]vertices;
+					if (mCompoundActor)
+					{
+						float center[3];
+						center[0] = float(ch.m_center[0]);
+						center[1] = float(ch.m_center[1]);
+						center[2] = float(ch.m_center[2]);
+						float scale[3] = { 1,1,1 };
+						mCompoundActor->addConvexMesh(mConvexMeshes[i], center, scale);
+					}
+				}
+				mCompoundActor->createActor();
+			}
+		}
+	}
 
-	double				mOverallProgress{ 0 };
-	double				mStageProgress{ 0 };
-	double				mOperationProgress{ 0 };
-	std::string			mStage;
-	std::string			mOperation;
+	void releaseSimulationObjects(void)
+	{
+		if (mCompoundActor)
+		{
+			mCompoundActor->release();
+			mCompoundActor = nullptr;
+		}
+		for (uint32_t i = 0; i < mConvexMeshCount; i++)
+		{
+			NV_PHYSX_FRAMEWORK::PhysXFramework::ConvexMesh *cm = mConvexMeshes[i];
+			if (cm)
+			{
+				cm->release();
+			}
+		}
+		mConvexMeshCount = 0;
+		delete[]mConvexMeshes;
+	}
+
+	uint32_t											mConvexMeshCount{ 0 };
+	NV_PHYSX_FRAMEWORK::PhysXFramework::ConvexMesh		**mConvexMeshes{ nullptr };
+	NV_PHYSX_FRAMEWORK::PhysXFramework::CompoundActor	*mCompoundActor{ nullptr };
+	RENDER_DEBUG::RenderDebug			*mRenderDebug;
+	NV_PHYSX_FRAMEWORK::PhysXFramework	*mPhysXFramework;
+	VHACD::IVHACD						*mHACD;
+	double								mOverallProgress{ 0 };
+	double								mStageProgress{ 0 };
+	double								mOperationProgress{ 0 };
+	std::string							mStage;
+	std::string							mOperation;
 };
 
-TestHACD *TestHACD::create(RENDER_DEBUG::RenderDebug *renderDebug)
+TestHACD *TestHACD::create(RENDER_DEBUG::RenderDebug *renderDebug,NV_PHYSX_FRAMEWORK::PhysXFramework *pf)
 {
-	TestHACDImpl *t = new TestHACDImpl(renderDebug);
+	TestHACDImpl *t = new TestHACDImpl(renderDebug,pf);
 	return static_cast<TestHACD *>(t);
 }
 

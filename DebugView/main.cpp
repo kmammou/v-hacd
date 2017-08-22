@@ -193,6 +193,7 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("FileTransferButton \" Select OFF File\" OFFFile \"Choose an OFF file to transfer\" *.off");
 	gRenderDebug->sendRemoteCommand("Button SaveConvexDecomposition \"save\"");
     gRenderDebug->sendRemoteCommand("Button TestRaycastMesh \"raycast\"");
+	gRenderDebug->sendRemoteCommand("CheckBox Simulation \"simulation\"");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
 	gRenderDebug->sendRemoteCommand("BeginGroup \"View\"");	// Mark the beginning of a group of controls.
@@ -232,7 +233,7 @@ class ConvexDecomposition : public NV_PHYSX_FRAMEWORK::PhysXFramework::CommandCa
 public:
 	ConvexDecomposition(void)
 	{
-		mTestHACD = TestHACD::create(gRenderDebug);
+		mTestHACD = TestHACD::create(gRenderDebug,gPhysXFramework);
 		gRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::CenterText);
 		gPhysXFramework->setCommandCallback(this);
 	}
@@ -273,6 +274,12 @@ public:
 			{
 				printf("Performing Convex Decomposition\n");
 				mTestHACD->decompose(gVertices, gVertexCount, (const int *)gIndices, gTriangleCount, gDesc);
+			}
+			else if (strcmp(cmd, "simulation") == 0 && mTestHACD && argc == 2)
+			{
+				const char *value = argv[1];
+				bool simulation = strcmp(value, "true") == 0;
+				mTestHACD->setSimulation(simulation);
 			}
 			else if (strcmp(cmd, "raycast") == 0 && mTestHACD)
 			{
@@ -444,7 +451,7 @@ public:
 		}
 		if (mTestHACD == nullptr)
 		{
-			mTestHACD = TestHACD::create(gRenderDebug);
+			mTestHACD = TestHACD::create(gRenderDebug,gPhysXFramework);
 		}
 		if (mTestHACD && gShowConvexDecomposition)
 		{
@@ -509,6 +516,8 @@ public:
 	double		*mMeshVertices{ nullptr };
 	std::string	mMeshName;
 };
+
+#define USE_DEBUG 0
 
 int main(int /*argc*/,const char ** /*argv*/)
 {
