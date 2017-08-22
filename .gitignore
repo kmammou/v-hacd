@@ -63,3 +63,12 @@ build/
 /DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/TestRaycast.obj
 /DebugView/compiler/vc14win64/x64/ConvexDecomposition/release/RaycastMesh.obj
 /DebugView/compiler/vc14win64/x64/ConvexDecomposition/release/TestRaycast.obj
+/DebugView/compiler/vc14win32/.vs/ConvexDecomposition/v14/*.suo
+/DebugView/compiler/vc14win32/*.db
+/DebugView/compiler/vc14win32/Win32/ConvexDecomposition/release/ConvexDe.D0AF22C5.tlog/*.tlog
+/DebugView/compiler/vc14win32/Win32/ConvexDecomposition/release/ConvexDe.D0AF22C5.tlog/*.lastbuildstate
+/DebugView/compiler/vc14win32/Win32/ConvexDecomposition/release/*.log
+/DebugView/compiler/vc14win32/Win32/ConvexDecomposition/release/*.obj
+/DebugView/compiler/vc14win32/Win32/ConvexDecomposition/release/*.pdb
+/DebugView/compiler/vc14win64/x64/ConvexDecomposition/debug/*.obj
+/DebugView/compiler/vc14win64/x64/ConvexDecomposition/release/*.obj

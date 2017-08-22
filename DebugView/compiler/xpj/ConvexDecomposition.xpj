@@ -17,6 +17,8 @@
       	*.h
         NvRenderDebug/*.h
         NvRenderDebug/*.cpp
+        PhysXFramework/*.h
+        PhysXFramework/*.cpp
       </Files>
 
       <Files name="VHADC_lib" root="../../../src/VHACD_Lib" type="header">
@@ -40,6 +42,7 @@
         	"../../../src/VHACD_Lib/public"
         	"../../../src/VHACD_Lib/inc"
         	"../../NvRenderDebug"
+        	"../../PhysXFramework"
         </SearchPaths>
 
         <SearchPaths type="library">

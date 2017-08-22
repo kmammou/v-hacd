@@ -20,6 +20,18 @@
 		</ClCompile>
 	</ItemGroup>
 	<ItemGroup>
+		<Filter Include="ConvexDecomposition\PhysXFramework">
+		</Filter>
+	</ItemGroup>
+	<ItemGroup>
+		<ClInclude Include="..\..\PhysXFramework\NvPhysXFramework.h">
+			<Filter>ConvexDecomposition\PhysXFramework</Filter>
+		</ClInclude>
+		<ClCompile Include="..\..\PhysXFramework\NvPhysXFrameworkBinding.cpp">
+			<Filter>ConvexDecomposition\PhysXFramework</Filter>
+		</ClCompile>
+	</ItemGroup>
+	<ItemGroup>
 		<ClCompile Include="..\..\main.cpp">
 			<Filter>ConvexDecomposition</Filter>
 		</ClCompile>

@@ -47,7 +47,7 @@
 			<FloatingPointModel>Fast</FloatingPointModel>
 			<AdditionalOptions>/W4</AdditionalOptions>
 			<Optimization>Disabled</Optimization>
-			<AdditionalIncludeDirectories>./../../../src/VHACD_Lib/public;./../../../src/VHACD_Lib/inc;./../../NvRenderDebug;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>./../../../src/VHACD_Lib/public;./../../../src/VHACD_Lib/inc;./../../NvRenderDebug;./../../PhysXFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE=1;_CRT_SECURE_NO_DEPRECATE;OPEN_SOURCE=1;_DEBUG;_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<WarningLevel>Level3</WarningLevel>
 			<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -85,7 +85,7 @@
 			<FloatingPointModel>Fast</FloatingPointModel>
 			<AdditionalOptions>/W4</AdditionalOptions>
 			<Optimization>MaxSpeed</Optimization>
-			<AdditionalIncludeDirectories>./../../../src/VHACD_Lib/public;./../../../src/VHACD_Lib/inc;./../../NvRenderDebug;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>./../../../src/VHACD_Lib/public;./../../../src/VHACD_Lib/inc;./../../NvRenderDebug;./../../PhysXFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE=1;_CRT_SECURE_NO_DEPRECATE;OPEN_SOURCE=1;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<WarningLevel>Level3</WarningLevel>
 			<RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -114,6 +114,12 @@
 		<ClInclude Include="..\..\NvRenderDebug\NvRenderDebugTyped.h">
 		</ClInclude>
 		<ClCompile Include="..\..\NvRenderDebug\NvRenderDebugBinding.cpp">
+		</ClCompile>
+	</ItemGroup>
+	<ItemGroup>
+		<ClInclude Include="..\..\PhysXFramework\NvPhysXFramework.h">
+		</ClInclude>
+		<ClCompile Include="..\..\PhysXFramework\NvPhysXFrameworkBinding.cpp">
 		</ClCompile>
 	</ItemGroup>
 	<ItemGroup>
