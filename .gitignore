@@ -113,3 +113,5 @@ build/
 /DebugView/compiler/vc14win32/Win32/ConvexDecomposition/debug/vhacdRaycastMesh.obj
 /DebugView/compiler/vc14win32/Win32/ConvexDecomposition/debug/vhacdVolume.obj
 /DebugView/compiler/vc14win32/Win32/ConvexDecomposition/debug/wavefront.obj
+/DebugView/compiler/xpj/*.bak
+/DebugView/*.bak
