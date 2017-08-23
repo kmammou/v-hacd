@@ -241,7 +241,10 @@ public:
 						mCompoundActor->addConvexMesh(mConvexMeshes[i], center, scale);
 					}
 				}
-				mCompoundActor->createActor();
+				if (mCompoundActor)
+				{
+					mCompoundActor->createActor();
+				}
 			}
 		}
 	}
@@ -263,6 +266,7 @@ public:
 		}
 		mConvexMeshCount = 0;
 		delete[]mConvexMeshes;
+		mConvexMeshes = nullptr;
 	}
 
 	uint32_t											mConvexMeshCount{ 0 };
