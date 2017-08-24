@@ -8,7 +8,7 @@
 #include "wavefront.h"
 #include "NvRenderDebug.h"
 #include "NvPhysXFramework.h"
-
+#include "FloatMath.h"
 #include "TestHACD.h"
 #include "TestRaycast.h"
 #include "VHACD.h"
@@ -21,6 +21,7 @@ NV_PHYSX_FRAMEWORK::PhysXFramework	*gPhysXFramework = nullptr;
 RENDER_DEBUG::RenderDebugTyped *gRenderDebugTyped=nullptr;
 RENDER_DEBUG::RenderDebug *gRenderDebug=nullptr;
 
+static bool			gCenterMesh = false;
 static bool			gShowSourceMesh = true;
 static bool			gShowConvexDecomposition = true;
 static bool			gUseHACD = true;
@@ -32,7 +33,6 @@ static uint32_t		gTriangleCount = 0;
 static double		*gVertices = nullptr;
 static uint32_t		*gIndices = nullptr;
 static std::string	 gSourceMeshName;
-
 static VHACD::IVHACD::Parameters gDesc;
 
 
@@ -193,16 +193,18 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("FileTransferButton \" Select OFF File\" OFFFile \"Choose an OFF file to transfer\" *.off");
 	gRenderDebug->sendRemoteCommand("Button SaveConvexDecomposition \"save\"");
     gRenderDebug->sendRemoteCommand("Button TestRaycastMesh \"raycast\"");
-	gRenderDebug->sendRemoteCommand("CheckBox Simulation \"simulation\"");
+	gRenderDebug->sendRemoteCommand("Button CenterMesh CenterMesh");
+	gRenderDebug->sendRemoteCommand("Button SaveObj SaveObj");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
 	gRenderDebug->sendRemoteCommand("BeginGroup \"View\"");	// Mark the beginning of a group of controls.
 	gRenderDebug->sendRemoteCommand("CheckBox ShowSourceMesh true ShowSourceMesh");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowConvexDecomposition true ShowConvexDecomposition");
     gRenderDebug->sendRemoteCommand("CheckBox WireframeConvex false WireframeConvex");
+	gRenderDebug->sendRemoteCommand("CheckBox ShowPhysics true ShowPhysics");
 	gRenderDebug->sendRemoteCommand("Slider ScaleInputMesh 1 0.01 100 ScaleInputMesh");
 	gRenderDebug->sendRemoteCommand("Slider ExplodeViewScale 1 1 4 ExplodeViewScale");
-	gRenderDebug->sendRemoteCommand("Button PerformConvexDecomposition \"decomp\"");
+	gRenderDebug->sendRemoteCommand("Button PerformConvexDecomposition decomp");
 	gRenderDebug->sendRemoteCommand("Button Cancel \"cancel\"");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
@@ -220,6 +222,13 @@ void createMenus(void)
     gRenderDebug->sendRemoteCommand("CheckBox ProjectHullVertices true ProjectHullVertices");
 	gRenderDebug->sendRemoteCommand("SliderInt Resolution 100000 10000 1000000 Resolution");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'HACD settings'
+
+	gRenderDebug->sendRemoteCommand("BeginGroup \"Simulation\"");	// Mark the beginning of a group of controls.
+	gRenderDebug->sendRemoteCommand("Button ToggleSimulation ToggleSimulation");
+	gRenderDebug->sendRemoteCommand("Button ComputeConstraints ComputeConstraints");
+	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
+
+
 
 
 	gRenderDebug->sendRemoteCommand("EndTab"); // End the tab called 'Test RenderDebug'
@@ -273,13 +282,37 @@ public:
 			else if (strcmp(cmd, "decomp") == 0 && mTestHACD)
 			{
 				printf("Performing Convex Decomposition\n");
-				mTestHACD->decompose(gVertices, gVertexCount, (const int *)gIndices, gTriangleCount, gDesc);
+				mTestHACD->decompose(gVertices, gVertexCount, (const int32_t *)gIndices, gTriangleCount, gDesc);
 			}
-			else if (strcmp(cmd, "simulation") == 0 && mTestHACD && argc == 2)
+			else if (strcmp(cmd, "ShowPhysics") == 0 && argc == 2)
 			{
 				const char *value = argv[1];
-				bool simulation = strcmp(value, "true") == 0;
-				mTestHACD->setSimulation(simulation);
+				mShowPhysics = strcmp(value, "true") == 0;
+			}
+			else if (strcmp(cmd, "SaveObj") == 0)
+			{
+				mWavefront.saveObj("wavefront.obj");
+				printf("Saving mesh at current scale to 'wavefront.obj'\n");
+			}
+			else if (strcmp(cmd, "CenterMesh") == 0)
+			{
+				if (mTestHACD)
+				{
+					mTestHACD->release();
+					mTestHACD = nullptr;
+				}
+				gRenderDebug->releaseTriangleMesh(mMeshID);
+				mMeshID = 0;
+				gCenterMesh = true;
+				printf("Centering mesh.\n");
+			}
+			else if (strcmp(cmd, "ToggleSimulation") == 0 && mTestHACD )
+			{
+				mTestHACD->toggleSimulation();
+			}
+			else if (strcmp(cmd, "ComputeConstraints") == 0 && mTestHACD)
+			{
+				mTestHACD->computeConstraints();
 			}
 			else if (strcmp(cmd, "raycast") == 0 && mTestHACD)
 			{
@@ -390,7 +423,8 @@ public:
 	{
 		if (mMeshID == 0 && mSourceMesh.mVertexCount)
 		{
-			mSourceMesh.deepCopyScale(mWavefront, gScaleInputMesh);
+			mSourceMesh.deepCopyScale(mWavefront, gScaleInputMesh,gCenterMesh);
+			gCenterMesh = false; // clear the center mesh semaphore
 			gVertexCount = mWavefront.mVertexCount;
 			gTriangleCount = mWavefront.mTriCount;
 			delete[]mMeshVertices;
@@ -428,15 +462,47 @@ public:
 		gRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::SolidWireShaded);
 		gRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::CameraFacing);
 		gRenderDebug->setCurrentColor(0xFFFF00);
+
+
+
 		if (gShowSourceMesh)
 		{
 			if (mSolid)
 			{
 				RENDER_DEBUG::RenderDebugInstance instance;
+				float xform[16];
+				FLOAT_MATH::fm_identity(xform);
+				if (mTestHACD)
+				{
+					mTestHACD->getTransform(xform);
+					instance.mTransform[0] = xform[12];
+					instance.mTransform[1] = xform[13];
+					instance.mTransform[2] = xform[14];
+
+					instance.mTransform[3] = xform[0];
+					instance.mTransform[4] = xform[1];
+					instance.mTransform[5] = xform[2];
+
+					instance.mTransform[6] = xform[4];
+					instance.mTransform[7] = xform[5];
+					instance.mTransform[8] = xform[6];
+
+					instance.mTransform[9] = xform[8];
+					instance.mTransform[10] = xform[9];
+					instance.mTransform[11] = xform[10];
+				}
 				gRenderDebug->renderTriangleMeshInstances(mMeshID, 1, &instance);
 			}
 			else
 			{
+				gRenderDebug->pushRenderState();
+				float xform[16];
+				FLOAT_MATH::fm_identity(xform);
+				if (mTestHACD)
+				{
+					mTestHACD->getTransform(xform);
+				}
+				gRenderDebug->setPose(xform);
 				for (uint32_t i = 0; i < mWavefront.mTriCount; i++)
 				{
 					uint32_t i1 = mWavefront.mIndices[i * 3 + 0];
@@ -447,6 +513,7 @@ public:
 					const float *p3 = &mWavefront.mVertices[i3 * 3];
 					gRenderDebug->debugTri(p3, p2, p1);
 				}
+				gRenderDebug->popRenderState();
 			}
 		}
 		if (mTestHACD == nullptr)
@@ -458,7 +525,7 @@ public:
 			mTestHACD->render(gExplodeViewScale, gCenter, mWireframeConvex);
 		}
 
-		gPhysXFramework->simulate();
+		gPhysXFramework->simulate(mShowPhysics);
 
 		const char *nameSpace;
 		const char *resourceName;
@@ -507,6 +574,7 @@ public:
 	}
 
 	uint32_t	mMeshID{ 0 };
+	bool		mShowPhysics{ true };
 	bool		mSolid{ true };
 	bool		mWireframeConvex{ false };
 	TestHACD	*mTestHACD{ nullptr };
@@ -519,7 +587,7 @@ public:
 
 #define USE_DEBUG 0
 
-int main(int /*argc*/,const char ** /*argv*/)
+int32_t main(int32_t /*argc*/,const char ** /*argv*/)
 {
 	{
 
@@ -546,7 +614,6 @@ int main(int /*argc*/,const char ** /*argv*/)
 		{
 			ConvexDecomposition cd;
 			while (cd.process());
-			gPhysXFramework->release();
 		}
 		else
 		{
@@ -554,6 +621,11 @@ int main(int /*argc*/,const char ** /*argv*/)
 			printf("Go to: https://github.com/jratcliff63367/debugview\n");
 			printf("Clone the depot and then run the provided DebugView.exe application first\n");
 		}
+		if (gPhysXFramework)
+		{
+			gPhysXFramework->release();
+		}
+
 	}
 	return 0;
 }

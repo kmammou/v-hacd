@@ -27,6 +27,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "vhacdMutex.h"
 #include "vhacdVolume.h"
 #include "vhacdRaycastMesh.h"
+#include <vector>
+
+typedef std::vector< VHACD::IVHACD::Constraint > ConstraintVector;
 
 #define USE_THREAD 1
 #define OCL_MIN_NUM_PRIMITIVES 4096
@@ -56,19 +59,19 @@ public:
     ~VHACD(void) 
     {
     }
-    unsigned int GetNConvexHulls() const
+    uint32_t GetNConvexHulls() const
     {
-        return (unsigned int)m_convexHulls.Size();
+        return (uint32_t)m_convexHulls.Size();
     }
     void Cancel()
     {
         SetCancel(true);
     }
-    void GetConvexHull(const unsigned int index, ConvexHull& ch) const
+    void GetConvexHull(const uint32_t index, ConvexHull& ch) const
     {
         Mesh* mesh = m_convexHulls[index];
-        ch.m_nPoints = (unsigned int)mesh->GetNPoints();
-        ch.m_nTriangles = (unsigned int)mesh->GetNTriangles();
+        ch.m_nPoints = (uint32_t)mesh->GetNPoints();
+        ch.m_nTriangles = (uint32_t)mesh->GetNTriangles();
         ch.m_points = mesh->GetPoints();
         ch.m_triangles = mesh->GetTriangles();
 		ch.m_volume = mesh->ComputeVolume();
@@ -98,22 +101,33 @@ public:
         delete this;
     }
     bool Compute(const float* const points,
-        const unsigned int stridePoints,
-        const unsigned int nPoints,
-        const int* const triangles,
-        const unsigned int strideTriangles,
-        const unsigned int nTriangles,
+        const uint32_t stridePoints,
+        const uint32_t nPoints,
+        const int32_t* const triangles,
+        const uint32_t strideTriangles,
+        const uint32_t nTriangles,
         const Parameters& params);
     bool Compute(const double* const points,
-        const unsigned int stridePoints,
-        const unsigned int nPoints,
-        const int* const triangles,
-        const unsigned int strideTriangles,
-        const unsigned int nTriangles,
+        const uint32_t stridePoints,
+        const uint32_t nPoints,
+        const int32_t* const triangles,
+        const uint32_t strideTriangles,
+        const uint32_t nTriangles,
         const Parameters& params);
     bool OCLInit(void* const oclDevice,
         IUserLogger* const logger = 0);
     bool OCLRelease(IUserLogger* const logger = 0);
+
+	virtual bool ComputeCenterOfMass(double centerOfMass[3]) const;
+
+	// Will analyze the HACD results and compute the constraints solutions.
+	// It will analyze the point at which any two convex hulls touch each other and 
+	// return the total number of constraint pairs found
+	virtual uint32_t ComputeConstraints(void);
+
+	// Returns a pointer to the constraint index; null if the index is not valid or
+	// the user did not previously call 'ComputeConstraints' 
+	virtual const Constraint *GetConstraint(uint32_t index) const;
 
 private:
     void SetCancel(bool cancel)
@@ -177,7 +191,7 @@ private:
         const double w,
         const double alpha,
         const double beta,
-        const int convexhullDownsampling,
+        const int32_t convexhullDownsampling,
         const double progress0,
         const double progress1,
         Plane& bestPlane,
@@ -185,11 +199,11 @@ private:
         const Parameters& params);
     template <class T>
     void AlignMesh(const T* const points,
-        const unsigned int stridePoints,
-        const unsigned int nPoints,
-        const int* const triangles,
-        const unsigned int strideTriangles,
-        const unsigned int nTriangles,
+        const uint32_t stridePoints,
+        const uint32_t nPoints,
+        const int32_t* const triangles,
+        const uint32_t strideTriangles,
+        const uint32_t nTriangles,
         const Parameters& params)
     {
         if (GetCancel() || !params.m_pca) {
@@ -241,11 +255,11 @@ private:
     }
     template <class T>
     void VoxelizeMesh(const T* const points,
-        const unsigned int stridePoints,
-        const unsigned int nPoints,
-        const int* const triangles,
-        const unsigned int strideTriangles,
-        const unsigned int nTriangles,
+        const uint32_t stridePoints,
+        const uint32_t nPoints,
+        const int32_t* const triangles,
+        const uint32_t strideTriangles,
+        const uint32_t nTriangles,
         const Parameters& params)
     {
         if (GetCancel()) {
@@ -263,8 +277,8 @@ private:
 
         delete m_volume;
         m_volume = 0;
-        int iteration = 0;
-        const int maxIteration = 5;
+        int32_t iteration = 0;
+        const int32_t maxIteration = 5;
         double progress = 0.0;
         while (iteration++ < maxIteration && !m_cancel) {
             msg.str("");
@@ -311,11 +325,11 @@ private:
     }
     template <class T>
     bool ComputeACD(const T* const points,
-        const unsigned int stridePoints,
-        const unsigned int nPoints,
-        const int* const triangles,
-        const unsigned int strideTriangles,
-        const unsigned int nTriangles,
+        const uint32_t stridePoints,
+        const uint32_t nPoints,
+        const int32_t* const triangles,
+        const uint32_t strideTriangles,
+        const uint32_t nTriangles,
         const Parameters& params)
     {
         Init();
@@ -359,7 +373,7 @@ private:
     PrimitiveSet* m_pset;
     Mutex m_cancelMutex;
     bool m_cancel;
-    int m_ompNumProcessors;
+    int32_t m_ompNumProcessors;
 #ifdef CL_VERSION_1_1
     cl_device_id* m_oclDevice;
     cl_context m_oclContext;
@@ -369,6 +383,7 @@ private:
     cl_kernel* m_oclKernelComputeSum;
     size_t m_oclWorkGroupSize;
 #endif //CL_VERSION_1_1
+	ConstraintVector		mConstraints;
 };
 }
 #endif // VHACD_VHACD_H

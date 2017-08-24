@@ -33,7 +33,7 @@ public:
 
 private:
     Vec3<double> m_pos;
-    int m_name;
+    int32_t m_name;
     size_t m_id;
     CircularListElement<TMMEdge>* m_duplicate; // pointer to incident cone edge (or NULL)
     bool m_onHull;
@@ -113,7 +113,7 @@ public:
     //! Print mesh information
     void Print();
     //!
-    void GetIFS(Vec3<double>* const points, Vec3<int>* const triangles);
+    void GetIFS(Vec3<double>* const points, Vec3<int32_t>* const triangles);
     //!
     void Clear();
     //!

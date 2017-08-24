@@ -81,6 +81,9 @@
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\btVector3.h">
 			<Filter>VHADC_lib\inc</Filter>
 		</ClInclude>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\FloatMath.h">
+			<Filter>VHADC_lib\inc</Filter>
+		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdCircularList.h">
 			<Filter>VHADC_lib\inc</Filter>
 		</ClInclude>
@@ -133,6 +136,9 @@
 			<Filter>VHADC_lib\src</Filter>
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\btConvexHullComputer.cpp">
+			<Filter>VHADC_lib\src</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\FloatMath.cpp">
 			<Filter>VHADC_lib\src</Filter>
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD-ASYNC.cpp">

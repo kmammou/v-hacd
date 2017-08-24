@@ -20,22 +20,27 @@ public:
 
 	static TestHACD *create(RENDER_DEBUG::RenderDebug *renderDebug,NV_PHYSX_FRAMEWORK::PhysXFramework *physxFramework);
 
-	virtual void setSimulation(bool state) = 0;
+	virtual void toggleSimulation(void) = 0;
 
 	virtual void decompose(
 		const double* const points,
-		const unsigned int countPoints,
-		const int* const triangles,
-		const unsigned int countTriangles,
+		const uint32_t countPoints,
+		const int32_t* const triangles,
+		const uint32_t countTriangles,
 		VHACD::IVHACD::Parameters &desc) = 0;
 
 	virtual void render(float explodeViewScale,const float center[3],bool wireframe) = 0;
+
+	virtual void getTransform(float xform[16]) = 0;
 
 	virtual uint32_t getHullCount(void) const = 0;
 
 	virtual void saveConvexDecomposition(const char *fname,const char *sourceMeshName) = 0;
 
+	virtual void computeConstraints(void) = 0;
+
 	virtual void cancel(void) = 0;
+
 
 	virtual void release(void) = 0;
 protected:

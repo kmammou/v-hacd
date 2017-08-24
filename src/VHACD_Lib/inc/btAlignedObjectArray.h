@@ -45,8 +45,8 @@ template <typename T>
 class btAlignedObjectArray {
     btAlignedAllocator<T, 16> m_allocator;
 
-    int m_size;
-    int m_capacity;
+    int32_t m_size;
+    int32_t m_capacity;
     T* m_data;
     //PCK: added this line
     bool m_ownsMemory;
@@ -64,13 +64,13 @@ private:
 #endif //BT_ALLOW_ARRAY_COPY_OPERATOR
 
 protected:
-    SIMD_FORCE_INLINE int allocSize(int size)
+    SIMD_FORCE_INLINE int32_t allocSize(int32_t size)
     {
         return (size ? size * 2 : 1);
     }
-    SIMD_FORCE_INLINE void copy(int start, int end, T* dest) const
+    SIMD_FORCE_INLINE void copy(int32_t start, int32_t end, T* dest) const
     {
-        int i;
+        int32_t i;
         for (i = start; i < end; ++i)
 #ifdef BT_USE_PLACEMENT_NEW
             new (&dest[i]) T(m_data[i]);
@@ -87,15 +87,15 @@ protected:
         m_size = 0;
         m_capacity = 0;
     }
-    SIMD_FORCE_INLINE void destroy(int first, int last)
+    SIMD_FORCE_INLINE void destroy(int32_t first, int32_t last)
     {
-        int i;
+        int32_t i;
         for (i = first; i < last; i++) {
             m_data[i].~T();
         }
     }
 
-    SIMD_FORCE_INLINE void* allocate(int size)
+    SIMD_FORCE_INLINE void* allocate(int32_t size)
     {
         if (size)
             return m_allocator.allocate(size);
@@ -129,39 +129,39 @@ public:
     {
         init();
 
-        int otherSize = otherArray.size();
+        int32_t otherSize = otherArray.size();
         resize(otherSize);
         otherArray.copy(0, otherSize, m_data);
     }
 
     /// return the number of elements in the array
-    SIMD_FORCE_INLINE int size() const
+    SIMD_FORCE_INLINE int32_t size() const
     {
         return m_size;
     }
 
-    SIMD_FORCE_INLINE const T& at(int n) const
+    SIMD_FORCE_INLINE const T& at(int32_t n) const
     {
         btAssert(n >= 0);
         btAssert(n < size());
         return m_data[n];
     }
 
-    SIMD_FORCE_INLINE T& at(int n)
+    SIMD_FORCE_INLINE T& at(int32_t n)
     {
         btAssert(n >= 0);
         btAssert(n < size());
         return m_data[n];
     }
 
-    SIMD_FORCE_INLINE const T& operator[](int n) const
+    SIMD_FORCE_INLINE const T& operator[](int32_t n) const
     {
         btAssert(n >= 0);
         btAssert(n < size());
         return m_data[n];
     }
 
-    SIMD_FORCE_INLINE T& operator[](int n)
+    SIMD_FORCE_INLINE T& operator[](int32_t n)
     {
         btAssert(n >= 0);
         btAssert(n < size());
@@ -187,12 +187,12 @@ public:
 
     ///resize changes the number of elements in the array. If the new size is larger, the new elements will be constructed using the optional second argument.
     ///when the new number of elements is smaller, the destructor will be called, but memory will not be freed, to reduce performance overhead of run-time memory (de)allocations.
-    SIMD_FORCE_INLINE void resize(int newsize, const T& fillData = T())
+    SIMD_FORCE_INLINE void resize(int32_t newsize, const T& fillData = T())
     {
-        int curSize = size();
+        int32_t curSize = size();
 
         if (newsize < curSize) {
-            for (int i = newsize; i < curSize; i++) {
+            for (int32_t i = newsize; i < curSize; i++) {
                 m_data[i].~T();
             }
         }
@@ -201,7 +201,7 @@ public:
                 reserve(newsize);
             }
 #ifdef BT_USE_PLACEMENT_NEW
-            for (int i = curSize; i < newsize; i++) {
+            for (int32_t i = curSize; i < newsize; i++) {
                 new (&m_data[i]) T(fillData);
             }
 #endif //BT_USE_PLACEMENT_NEW
@@ -212,7 +212,7 @@ public:
 
     SIMD_FORCE_INLINE T& expandNonInitializing()
     {
-        int sz = size();
+        int32_t sz = size();
         if (sz == capacity()) {
             reserve(allocSize(size()));
         }
@@ -223,7 +223,7 @@ public:
 
     SIMD_FORCE_INLINE T& expand(const T& fillValue = T())
     {
-        int sz = size();
+        int32_t sz = size();
         if (sz == capacity()) {
             reserve(allocSize(size()));
         }
@@ -237,7 +237,7 @@ public:
 
     SIMD_FORCE_INLINE void push_back(const T& _Val)
     {
-        int sz = size();
+        int32_t sz = size();
         if (sz == capacity()) {
             reserve(allocSize(size()));
         }
@@ -252,12 +252,12 @@ public:
     }
 
     /// return the pre-allocated (reserved) elements, this is at least as large as the total number of elements,see size() and reserve()
-    SIMD_FORCE_INLINE int capacity() const
+    SIMD_FORCE_INLINE int32_t capacity() const
     {
         return m_capacity;
     }
 
-    SIMD_FORCE_INLINE void reserve(int _Count)
+    SIMD_FORCE_INLINE void reserve(int32_t _Count)
     { // determine new minimum length of allocated storage
         if (capacity() < _Count) { // not enough room, reallocate
             T* s = (T*)allocate(_Count);
@@ -286,11 +286,11 @@ public:
     };
 
     template <typename L>
-    void quickSortInternal(const L& CompareFunc, int lo, int hi)
+    void quickSortInternal(const L& CompareFunc, int32_t lo, int32_t hi)
     {
         //  lo is the lower index, hi is the upper index
         //  of the region of array a that is to be sorted
-        int i = lo, j = hi;
+        int32_t i = lo, j = hi;
         T x = m_data[(lo + hi) / 2];
 
         //  partition
@@ -324,7 +324,7 @@ public:
 
     ///heap sort from http://www.csse.monash.edu.au/~lloyd/tildeAlgDS/Sort/Heap/
     template <typename L>
-    void downHeap(T* pArr, int k, int n, const L& CompareFunc)
+    void downHeap(T* pArr, int32_t k, int32_t n, const L& CompareFunc)
     {
         /*  PRE: a[k+1..N] is a heap */
         /* POST:  a[k..N]  is a heap */
@@ -332,7 +332,7 @@ public:
         T temp = pArr[k - 1];
         /* k has child(s) */
         while (k <= n / 2) {
-            int child = 2 * k;
+            int32_t child = 2 * k;
 
             if ((child < n) && CompareFunc(pArr[child - 1], pArr[child])) {
                 child++;
@@ -350,7 +350,7 @@ public:
         pArr[k - 1] = temp;
     } /*downHeap*/
 
-    void swap(int index0, int index1)
+    void swap(int32_t index0, int32_t index1)
     {
 #ifdef BT_USE_MEMCPY
         char temp[sizeof(T)];
@@ -368,8 +368,8 @@ public:
     void heapSort(const L& CompareFunc)
     {
         /* sort a[0..N-1],  N.B. 0 to N-1 */
-        int k;
-        int n = m_size;
+        int32_t k;
+        int32_t n = m_size;
         for (k = n / 2; k > 0; k--) {
             downHeap(m_data, k, n, CompareFunc);
         }
@@ -385,14 +385,14 @@ public:
     }
 
     ///non-recursive binary search, assumes sorted array
-    int findBinarySearch(const T& key) const
+    int32_t findBinarySearch(const T& key) const
     {
-        int first = 0;
-        int last = size() - 1;
+        int32_t first = 0;
+        int32_t last = size() - 1;
 
         //assume sorted array
         while (first <= last) {
-            int mid = (first + last) / 2; // compute mid point.
+            int32_t mid = (first + last) / 2; // compute mid point.
             if (key > m_data[mid])
                 first = mid + 1; // repeat search in top half.
             else if (key < m_data[mid])
@@ -403,10 +403,10 @@ public:
         return size(); // failed to find key
     }
 
-    int findLinearSearch(const T& key) const
+    int32_t findLinearSearch(const T& key) const
     {
-        int index = size();
-        int i;
+        int32_t index = size();
+        int32_t i;
 
         for (i = 0; i < size(); i++) {
             if (m_data[i] == key) {
@@ -420,7 +420,7 @@ public:
     void remove(const T& key)
     {
 
-        int findIndex = findLinearSearch(key);
+        int32_t findIndex = findLinearSearch(key);
         if (findIndex < size()) {
             swap(findIndex, size() - 1);
             pop_back();
@@ -428,7 +428,7 @@ public:
     }
 
     //PCK: whole function
-    void initializeFromBuffer(void* buffer, int size, int capacity)
+    void initializeFromBuffer(void* buffer, int32_t size, int32_t capacity)
     {
         clear();
         m_ownsMemory = false;
@@ -439,7 +439,7 @@ public:
 
     void copyFromArray(const btAlignedObjectArray& otherArray)
     {
-        int otherSize = otherArray.size();
+        int32_t otherSize = otherArray.size();
         resize(otherSize);
         otherArray.copy(0, otherSize, m_data);
     }

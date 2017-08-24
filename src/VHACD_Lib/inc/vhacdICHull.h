@@ -37,13 +37,13 @@ public:
     //!    Add one point to the convex-hull
     bool AddPoint(const Vec3<double>& point) { return AddPoints(&point, 1); }
     //!    Add one point to the convex-hull
-    bool AddPoint(const Vec3<double>& point, int id);
+    bool AddPoint(const Vec3<double>& point, int32_t id);
     //!    Add points to the convex-hull
     bool AddPoints(const Vec3<double>* points, size_t nPoints);
     //!
     ICHullError Process();
     //!
-    ICHullError Process(const unsigned int nPointsCH, const double minVolume = 0.0);
+    ICHullError Process(const uint32_t nPointsCH, const double minVolume = 0.0);
     //!
     bool IsInside(const Vec3<double>& pt0, const double eps = 0.0);
     //!
@@ -73,11 +73,11 @@ private:
     //!
     bool CleanEdges();
     //!
-    bool CleanVertices(unsigned int& addedPoints);
+    bool CleanVertices(uint32_t& addedPoints);
     //!
     bool CleanTriangles();
     //!
-    bool CleanUp(unsigned int& addedPoints);
+    bool CleanUp(uint32_t& addedPoints);
     //!
     bool MakeCCW(CircularListElement<TMMTriangle>* f,
         CircularListElement<TMMEdge>* e,
@@ -85,7 +85,7 @@ private:
     void Clear();
 
 private:
-    static const int sc_dummyIndex;
+    static const int32_t sc_dummyIndex;
     TMMesh m_mesh;
     SArray<CircularListElement<TMMEdge>*> m_edgesToDelete;
     SArray<CircularListElement<TMMEdge>*> m_edgesToUpdate;

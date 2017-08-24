@@ -23,11 +23,12 @@ subject to the following restrictions:
 #include <float.h>
 #include <math.h>
 #include <stdlib.h> //size_t for MSVC 6.0
+#include <stdint.h>
 
 /* SVN $Revision$ on $Date$ from http://bullet.googlecode.com*/
 #define BT_BULLET_VERSION 279
 
-inline int btGetVersion()
+inline int32_t btGetVersion()
 {
     return BT_BULLET_VERSION;
 }
@@ -348,7 +349,7 @@ SIMD_FORCE_INLINE bool btGreaterEqual(btScalar a, btScalar eps)
     return (!((a) <= eps));
 }
 
-SIMD_FORCE_INLINE int btIsNegative(btScalar x)
+SIMD_FORCE_INLINE int32_t btIsNegative(btScalar x)
 {
     return x < btScalar(0.0) ? 1 : 0;
 }
@@ -358,7 +359,7 @@ SIMD_FORCE_INLINE btScalar btDegrees(btScalar x) { return x * SIMD_DEGS_PER_RAD;
 
 #define BT_DECLARE_HANDLE(name) \
     typedef struct name##__ {   \
-        int unused;             \
+        int32_t unused;             \
     } * name
 
 #ifndef btFsel
@@ -387,15 +388,15 @@ SIMD_FORCE_INLINE unsigned btSelect(unsigned condition, unsigned valueIfConditio
     // Rely on positive value or'ed with its negative having sign bit on
     // and zero value or'ed with its negative (which is still zero) having sign bit off
     // Use arithmetic shift right, shifting the sign bit through all 32 bits
-    unsigned testNz = (unsigned)(((int)condition | -(int)condition) >> 31);
+    unsigned testNz = (unsigned)(((int32_t)condition | -(int32_t)condition) >> 31);
     unsigned testEqz = ~testNz;
     return ((valueIfConditionNonZero & testNz) | (valueIfConditionZero & testEqz));
 }
-SIMD_FORCE_INLINE int btSelect(unsigned condition, int valueIfConditionNonZero, int valueIfConditionZero)
+SIMD_FORCE_INLINE int32_t btSelect(unsigned condition, int32_t valueIfConditionNonZero, int32_t valueIfConditionZero)
 {
-    unsigned testNz = (unsigned)(((int)condition | -(int)condition) >> 31);
+    unsigned testNz = (unsigned)(((int32_t)condition | -(int32_t)condition) >> 31);
     unsigned testEqz = ~testNz;
-    return static_cast<int>((valueIfConditionNonZero & testNz) | (valueIfConditionZero & testEqz));
+    return static_cast<int32_t>((valueIfConditionNonZero & testNz) | (valueIfConditionZero & testEqz));
 }
 SIMD_FORCE_INLINE float btSelect(unsigned condition, float valueIfConditionNonZero, float valueIfConditionZero)
 {
@@ -425,7 +426,7 @@ SIMD_FORCE_INLINE unsigned short btSwapEndian(unsigned short val)
     return static_cast<unsigned short>(((val & 0xff00) >> 8) | ((val & 0x00ff) << 8));
 }
 
-SIMD_FORCE_INLINE unsigned btSwapEndian(int val)
+SIMD_FORCE_INLINE unsigned btSwapEndian(int32_t val)
 {
     return btSwapEndian((unsigned)val);
 }
@@ -441,9 +442,9 @@ SIMD_FORCE_INLINE unsigned short btSwapEndian(short val)
 ///When a floating point unit is faced with an invalid value, it may actually change the value, or worse, throw an exception.
 ///In most systems, running user mode code, you wouldn't get an exception, but instead the hardware/os/runtime will 'fix' the number for you.
 ///so instead of returning a float/double, we return integer/long long integer
-SIMD_FORCE_INLINE unsigned int btSwapEndianFloat(float d)
+SIMD_FORCE_INLINE uint32_t btSwapEndianFloat(float d)
 {
-    unsigned int a = 0;
+    uint32_t a = 0;
     unsigned char* dst = (unsigned char*)&a;
     unsigned char* src = (unsigned char*)&d;
 
@@ -455,7 +456,7 @@ SIMD_FORCE_INLINE unsigned int btSwapEndianFloat(float d)
 }
 
 // unswap using char pointers
-SIMD_FORCE_INLINE float btUnswapEndianFloat(unsigned int a)
+SIMD_FORCE_INLINE float btUnswapEndianFloat(uint32_t a)
 {
     float d = 0.0f;
     unsigned char* src = (unsigned char*)&a;
@@ -519,12 +520,12 @@ SIMD_FORCE_INLINE btScalar btNormalizeAngle(btScalar angleInRadians)
 
 ///rudimentary class to provide type info
 struct btTypedObject {
-    btTypedObject(int objectType)
+    btTypedObject(int32_t objectType)
         : m_objectType(objectType)
     {
     }
-    int m_objectType;
-    inline int getObjectType() const
+    int32_t m_objectType;
+    inline int32_t getObjectType() const
     {
         return m_objectType;
     }

@@ -30,21 +30,21 @@ subject to the following restrictions:
 #define btAlignedFree(ptr) \
     btAlignedFreeInternal(ptr, __LINE__, __FILE__)
 
-void* btAlignedAllocInternal(size_t size, int alignment, int line, char* filename);
+void* btAlignedAllocInternal(size_t size, int32_t alignment, int32_t line, char* filename);
 
-void btAlignedFreeInternal(void* ptr, int line, char* filename);
+void btAlignedFreeInternal(void* ptr, int32_t line, char* filename);
 
 #else
-void* btAlignedAllocInternal(size_t size, int alignment);
+void* btAlignedAllocInternal(size_t size, int32_t alignment);
 void btAlignedFreeInternal(void* ptr);
 
 #define btAlignedAlloc(size, alignment) btAlignedAllocInternal(size, alignment)
 #define btAlignedFree(ptr) btAlignedFreeInternal(ptr)
 
 #endif
-typedef int size_type;
+typedef int32_t size_type;
 
-typedef void*(btAlignedAllocFunc)(size_t size, int alignment);
+typedef void*(btAlignedAllocFunc)(size_t size, int32_t alignment);
 typedef void(btAlignedFreeFunc)(void* memblock);
 typedef void*(btAllocFunc)(size_t size);
 typedef void(btFreeFunc)(void* memblock);

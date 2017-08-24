@@ -893,6 +893,11 @@ uint32_t WavefrontObj::loadOFF(const char *fname) // load a wavefront obj return
 	return ret;
 }
 
+bool WavefrontObj::saveObj(const char *fname)
+{
+	return saveObj(fname, mVertexCount, mVertices, mTriCount, mIndices);
+}
+
 bool WavefrontObj::saveObj(const char *fname,uint32_t vcount,const float *vertices,uint32_t tcount,const uint32_t *indices)
 {
 	bool ret = false;
@@ -907,7 +912,7 @@ bool WavefrontObj::saveObj(const char *fname,uint32_t vcount,const float *vertic
 		}
 		for (uint32_t i=0; i<tcount; i++)
 		{
-			fprintf(fph,"f %d %d %d\r\n", indices[0]+1, indices[1]+1, indices[2]+1 );
+			fprintf(fph,"f %d %d %d\r\n", indices[2]+1, indices[1]+1, indices[0]+1 );
 			indices+=3;
 		}
 		fclose(fph);
@@ -916,7 +921,7 @@ bool WavefrontObj::saveObj(const char *fname,uint32_t vcount,const float *vertic
 	return ret;
 }
 
-void WavefrontObj::deepCopyScale(WavefrontObj &dest, float scaleFactor)
+void WavefrontObj::deepCopyScale(WavefrontObj &dest, float scaleFactor,bool centerMesh)
 {
 	dest.releaseMesh();
 	dest.mVertexCount = mVertexCount;
@@ -928,12 +933,59 @@ void WavefrontObj::deepCopyScale(WavefrontObj &dest, float scaleFactor)
 	}
 	if (mVertexCount)
 	{
+		float adjustX = 0;
+		float adjustY = 0;
+		float adjustZ = 0;
+
+		if (centerMesh)
+		{
+			float bmin[3];
+			float bmax[3];
+
+			bmax[0] = bmin[0] = mVertices[0];
+			bmax[1] = bmin[1] = mVertices[1];
+			bmax[2] = bmin[2] = mVertices[2];
+
+			for (uint32_t i = 1; i < mVertexCount; i++)
+			{
+				const float *p = &mVertices[i * 3];
+				if (p[0] < bmin[0])
+				{
+					bmin[0] = p[0];
+				}
+				if (p[1] < bmin[1])
+				{
+					bmin[1] = p[1];
+				}
+				if (p[2] < bmin[2])
+				{
+					bmin[2] = p[2];
+				}
+				if (p[0] > bmax[0])
+				{
+					bmax[0] = p[0];
+				}
+				if (p[1] > bmax[1])
+				{
+					bmax[1] = p[1];
+				}
+				if (p[2] > bmax[2])
+				{
+					bmax[2] = p[2];
+				}
+			}
+			adjustX = (bmin[0] + bmax[0])*0.5f;
+			adjustY = bmin[1]; // (bmin[1] + bmax[1])*0.5f;
+			adjustZ = (bmin[2] + bmax[2])*0.5f;
+		}
+
+
 		dest.mVertices = new float[mVertexCount * 3];
 		for (uint32_t i = 0; i < mVertexCount; i++)
 		{
-			dest.mVertices[i * 3 + 0] = mVertices[i * 3 + 0] * scaleFactor;
-			dest.mVertices[i * 3 + 1] = mVertices[i * 3 + 1] * scaleFactor;
-			dest.mVertices[i * 3 + 2] = mVertices[i * 3 + 2] * scaleFactor;
+			dest.mVertices[i * 3 + 0] = (mVertices[i * 3 + 0]-adjustX) * scaleFactor;
+			dest.mVertices[i * 3 + 1] = (mVertices[i * 3 + 1]-adjustY) * scaleFactor;
+			dest.mVertices[i * 3 + 2] = (mVertices[i * 3 + 2]-adjustZ) * scaleFactor;
 		}
 	}
 }

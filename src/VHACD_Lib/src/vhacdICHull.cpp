@@ -22,7 +22,7 @@
 
 namespace VHACD {
 const double ICHull::sc_eps = 1.0e-15;
-const int ICHull::sc_dummyIndex = std::numeric_limits<int>::max();
+const int32_t ICHull::sc_dummyIndex = std::numeric_limits<int32_t>::max();
 ICHull::ICHull()
 {
     m_isFlat = false;
@@ -38,11 +38,11 @@ bool ICHull::AddPoints(const Vec3<double>* points, size_t nPoints)
         vertex->GetData().m_pos.X() = points[i].X();
         vertex->GetData().m_pos.Y() = points[i].Y();
         vertex->GetData().m_pos.Z() = points[i].Z();
-        vertex->GetData().m_name = static_cast<int>(i);
+        vertex->GetData().m_name = static_cast<int32_t>(i);
     }
     return true;
 }
-bool ICHull::AddPoint(const Vec3<double>& point, int id)
+bool ICHull::AddPoint(const Vec3<double>& point, int32_t id)
 {
     if (AddPoints(&point, 1)) {
         m_mesh.m_vertices.GetData().m_name = id;
@@ -53,7 +53,7 @@ bool ICHull::AddPoint(const Vec3<double>& point, int id)
 
 ICHullError ICHull::Process()
 {
-    unsigned int addedPoints = 0;
+    uint32_t addedPoints = 0;
     if (m_mesh.GetNVertices() < 3) {
         return ICHullErrorNotEnoughPoints;
     }
@@ -126,8 +126,8 @@ ICHullError ICHull::Process()
             TMMTriangle& currentTriangle = m_mesh.m_triangles.GetHead()->GetData();
             if (currentTriangle.m_vertices[0]->GetData().m_name == sc_dummyIndex || currentTriangle.m_vertices[1]->GetData().m_name == sc_dummyIndex || currentTriangle.m_vertices[2]->GetData().m_name == sc_dummyIndex) {
                 m_trianglesToDelete.PushBack(m_mesh.m_triangles.GetHead());
-                for (int k = 0; k < 3; k++) {
-                    for (int h = 0; h < 2; h++) {
+                for (int32_t k = 0; k < 3; k++) {
+                    for (int32_t h = 0; h < 2; h++) {
                         if (currentTriangle.m_edges[k]->GetData().m_triangles[h] == m_mesh.m_triangles.GetHead()) {
                             currentTriangle.m_edges[k]->GetData().m_triangles[h] = 0;
                             break;
@@ -171,10 +171,10 @@ ICHullError ICHull::Process()
     }
     return ICHullErrorOK;
 }
-ICHullError ICHull::Process(const unsigned int nPointsCH,
+ICHullError ICHull::Process(const uint32_t nPointsCH,
     const double minVolume)
 {
-    unsigned int addedPoints = 0;
+    uint32_t addedPoints = 0;
     if (nPointsCH < 3 || m_mesh.GetNVertices() < 3) {
         return ICHullErrorNotEnoughPoints;
     }
@@ -252,8 +252,8 @@ ICHullError ICHull::Process(const unsigned int nPointsCH,
             TMMTriangle& currentTriangle = m_mesh.m_triangles.GetHead()->GetData();
             if (currentTriangle.m_vertices[0]->GetData().m_name == sc_dummyIndex || currentTriangle.m_vertices[1]->GetData().m_name == sc_dummyIndex || currentTriangle.m_vertices[2]->GetData().m_name == sc_dummyIndex) {
                 m_trianglesToDelete.PushBack(m_mesh.m_triangles.GetHead());
-                for (int k = 0; k < 3; k++) {
-                    for (int h = 0; h < 2; h++) {
+                for (int32_t k = 0; k < 3; k++) {
+                    for (int32_t h = 0; h < 2; h++) {
                         if (currentTriangle.m_edges[k]->GetData().m_triangles[h] == m_mesh.m_triangles.GetHead()) {
                             currentTriangle.m_edges[k]->GetData().m_triangles[h] = 0;
                             break;
@@ -322,7 +322,7 @@ bool ICHull::FindMaxVolumePoint(const double minVolume)
     }
     if (vMaxVolume != vHead) {
         Vec3<double> pos = vHead->GetData().m_pos;
-        int id = vHead->GetData().m_name;
+        int32_t id = vHead->GetData().m_name;
         vHead->GetData().m_pos = vMaxVolume->GetData().m_pos;
         vHead->GetData().m_name = vMaxVolume->GetData().m_name;
         vMaxVolume->GetData().m_pos = pos;
@@ -402,7 +402,7 @@ CircularListElement<TMMTriangle>* ICHull::MakeFace(CircularListElement<TMMVertex
     CircularListElement<TMMEdge>* e0;
     CircularListElement<TMMEdge>* e1;
     CircularListElement<TMMEdge>* e2;
-    int index = 0;
+    int32_t index = 0;
     if (!fold) // if first face to be created
     {
         e0 = m_mesh.AddEdge(); // create the three edges
@@ -438,7 +438,7 @@ CircularListElement<TMMTriangle>* ICHull::MakeConeFace(CircularListElement<TMMEd
 {
     // create two new edges if they don't already exist
     CircularListElement<TMMEdge>* newEdges[2];
-    for (int i = 0; i < 2; ++i) {
+    for (int32_t i = 0; i < 2; ++i) {
         if (!(newEdges[i] = e->GetData().m_vertices[i]->GetData().m_duplicate)) { // if the edge doesn't exits add it and mark the vertex as duplicated
             newEdges[i] = m_mesh.AddEdge();
             newEdges[i]->GetData().m_vertices[0] = e->GetData().m_vertices[i];
@@ -452,8 +452,8 @@ CircularListElement<TMMTriangle>* ICHull::MakeConeFace(CircularListElement<TMMEd
     newFace->GetData().m_edges[1] = newEdges[0];
     newFace->GetData().m_edges[2] = newEdges[1];
     MakeCCW(newFace, e, p);
-    for (int i = 0; i < 2; ++i) {
-        for (int j = 0; j < 2; ++j) {
+    for (int32_t i = 0; i < 2; ++i) {
+        for (int32_t j = 0; j < 2; ++j) {
             if (!newEdges[i]->GetData().m_triangles[j]) {
                 newEdges[i]->GetData().m_triangles[j] = newFace;
                 break;
@@ -525,13 +525,13 @@ bool ICHull::ProcessPoint()
     CircularListElement<TMMEdge>* eHead = m_mesh.GetEdges().GetHead();
     CircularListElement<TMMEdge>* e = eHead;
     CircularListElement<TMMEdge>* tmp = 0;
-    int nvisible = 0;
+    int32_t nvisible = 0;
     m_edgesToDelete.Resize(0);
     m_edgesToUpdate.Resize(0);
     do {
         tmp = e->GetNext();
         nvisible = 0;
-        for (int k = 0; k < 2; k++) {
+        for (int32_t k = 0; k < 2; k++) {
             if (e->GetData().m_triangles[k]->GetData().m_visible) {
                 nvisible++;
             }
@@ -561,7 +561,7 @@ bool ICHull::MakeCCW(CircularListElement<TMMTriangle>* f,
     }
 
     //  set vertex[0] and vertex[1] to have the same orientation as the corresponding vertices of fv.
-    int i; // index of e->m_vertices[0] in fv
+    int32_t i; // index of e->m_vertices[0] in fv
     CircularListElement<TMMVertex>* v0 = e->GetData().m_vertices[0];
     CircularListElement<TMMVertex>* v1 = e->GetData().m_vertices[1];
     for (i = 0; fv->GetData().m_vertices[i] != v0; i++)
@@ -582,7 +582,7 @@ bool ICHull::MakeCCW(CircularListElement<TMMTriangle>* f,
     f->GetData().m_vertices[2] = v;
     return true;
 }
-bool ICHull::CleanUp(unsigned int& addedPoints)
+bool ICHull::CleanUp(uint32_t& addedPoints)
 {
     bool r0 = CleanEdges();
     bool r1 = CleanTriangles();
@@ -626,7 +626,7 @@ bool ICHull::CleanTriangles()
     m_trianglesToDelete.Resize(0);
     return true;
 }
-bool ICHull::CleanVertices(unsigned int& addedPoints)
+bool ICHull::CleanVertices(uint32_t& addedPoints)
 {
     // mark all vertices incident to some undeleted edge as on the hull
     CircularList<TMMEdge>& edges = m_mesh.GetEdges();

@@ -56,7 +56,9 @@ public:
 			float meshScale[3]) = 0;
 
 		// Create a simulated actor based on the collection of convex meshes
-		virtual void createActor(void) = 0;
+		virtual void createActor(const float centerOfMass[3],float mass) = 0;
+
+		virtual void getXform(float xform[16]) = 0;
 
 		virtual void release(void) = 0;
 	};
@@ -71,7 +73,7 @@ public:
 	virtual CompoundActor *createCompoundActor(void) = 0;
 
 	// Returns delta time since last simulation step
-	virtual float simulate(void) = 0;
+	virtual float simulate(bool showPhysics) = 0;
 
 	// Create a default series of stacked boxes for testing purposes
 	virtual void createDefaultStacks(void) = 0;

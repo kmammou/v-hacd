@@ -55,7 +55,9 @@ public:
 	void releaseMesh(void);
 
 
-	void deepCopyScale(WavefrontObj &dest, float scaleFactor);
+	void deepCopyScale(WavefrontObj &dest, float scaleFactor,bool centerMesh);
+
+	bool saveObj(const char *fname);
 
 	static bool saveObj(const char *fname,uint32_t vcount,const float *vertices,uint32_t tcount,const uint32_t *indices);
 

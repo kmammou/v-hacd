@@ -39,7 +39,7 @@
 // the last approximation operation is complete and will dispatch any pending messages.
 // If you call 'Compute' while a previous operation was still running, it will automatically cancel the last request
 // and begin a new one.  To cancel a currently running approximation just call 'Cancel'.
-
+#include <stdint.h>
 
 namespace VHACD {
 class IVHACD {
@@ -64,9 +64,9 @@ public:
     class ConvexHull {
     public:
         double* m_points;
-        int* m_triangles;
-        unsigned int m_nPoints;
-        unsigned int m_nTriangles;
+        int32_t* m_triangles;
+        uint32_t m_nPoints;
+        uint32_t m_nTriangles;
 		double		m_volume;
 		double		m_center[3];
     };
@@ -100,44 +100,65 @@ public:
         double m_minVolumePerCH;
         IUserCallback* m_callback;
         IUserLogger* m_logger;
-        unsigned int m_resolution;
-        unsigned int m_maxNumVerticesPerCH;
-        int m_depth;
-        int m_planeDownsampling;
-        int m_convexhullDownsampling;
-        int m_pca;
-        int m_mode;
-        int m_convexhullApproximation;
-        int m_oclAcceleration;
-        unsigned int	m_maxConvexHulls;
+        uint32_t m_resolution;
+        uint32_t m_maxNumVerticesPerCH;
+        int32_t m_depth;
+        int32_t m_planeDownsampling;
+        int32_t m_convexhullDownsampling;
+        int32_t m_pca;
+        int32_t m_mode;
+        int32_t m_convexhullApproximation;
+        int32_t m_oclAcceleration;
+        uint32_t	m_maxConvexHulls;
 		bool	m_projectHullVertices;
     };
 
+	class Constraint
+	{
+	public:
+		uint32_t	mHullA;					// Convex Hull A index
+		uint32_t	mHullB;					// Convex Hull B index
+		double		mConstraintPoint[3];	// The point of intersection between the two convex hulls
+	};
+
     virtual void Cancel() = 0;
     virtual bool Compute(const float* const points,
-        const unsigned int stridePoints,
-        const unsigned int countPoints,
-        const int* const triangles,
-        const unsigned int strideTriangles,
-        const unsigned int countTriangles,
+        const uint32_t stridePoints,
+        const uint32_t countPoints,
+        const int32_t* const triangles,
+        const uint32_t strideTriangles,
+        const uint32_t countTriangles,
         const Parameters& params)
         = 0;
     virtual bool Compute(const double* const points,
-        const unsigned int stridePoints,
-        const unsigned int countPoints,
-        const int* const triangles,
-        const unsigned int strideTriangles,
-        const unsigned int countTriangles,
+        const uint32_t stridePoints,
+        const uint32_t countPoints,
+        const int32_t* const triangles,
+        const uint32_t strideTriangles,
+        const uint32_t countTriangles,
         const Parameters& params)
         = 0;
-    virtual unsigned int GetNConvexHulls() const = 0;
-    virtual void GetConvexHull(const unsigned int index, ConvexHull& ch) const = 0;
+    virtual uint32_t GetNConvexHulls() const = 0;
+    virtual void GetConvexHull(const uint32_t index, ConvexHull& ch) const = 0;
     virtual void Clean(void) = 0; // release internally allocated memory
     virtual void Release(void) = 0; // release IVHACD
     virtual bool OCLInit(void* const oclDevice,
         IUserLogger* const logger = 0)
         = 0;
     virtual bool OCLRelease(IUserLogger* const logger = 0) = 0;
+
+	// Will compute the center of mass of the convex hull decomposition results and return it
+	// in 'centerOfMass'.  Returns false if the center of mass could not be computed.
+	virtual bool ComputeCenterOfMass(double centerOfMass[3]) const = 0;
+
+	// Will analyze the HACD results and compute the constraints solutions.
+	// It will analyze the point at which any two convex hulls touch each other and 
+	// return the total number of constraint pairs found
+	virtual uint32_t ComputeConstraints(void) = 0;
+
+	// Returns a pointer to the constraint index; null if the index is not valid or
+	// the user did not previously call 'ComputeConstraints' 
+	virtual const Constraint *GetConstraint(uint32_t index) const = 0;
 
 	// In synchronous mode (non-multi-threaded) the state is always 'ready'
 	// In asynchronous mode, this returns true if the background thread is not still actively computing
