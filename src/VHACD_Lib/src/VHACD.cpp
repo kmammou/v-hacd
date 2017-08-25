@@ -34,7 +34,6 @@
 #include "vhacdVector.h"
 #include "vhacdVolume.h"
 #include "FloatMath.h"
-#include <unordered_map>
 
 #define DEBUG_VISUALIZE_CONSTRAINTS 1
 
@@ -58,7 +57,7 @@ extern RENDER_DEBUG::RenderDebug *gRenderDebug;
 #include <immintrin.h>
 
 const int32_t SIMD_WIDTH = 4;
-inline int32_t FindMinimumElement(const float* const d, float* const m, const int32_t n)
+inline int32_t FindMinimumElement(const float* const d, float* const _, const int32_t n)
 {
     // Min within vectors
     __m128 min_i = _mm_set1_ps(-1.0f);
@@ -1604,7 +1603,8 @@ uint32_t VHACD::ComputeConstraints(void)
 		void computeResolution(void)
 		{
 			mDiagonalDistance = FLOAT_MATH::fm_distance(mBmin, mBmax);
-			mTessellateDistance = mDiagonalDistance / 10;
+			mTessellateDistance = mDiagonalDistance / 20;
+			mNearestPointDistance = mDiagonalDistance / 20.0f;
 			mPointResolution = mDiagonalDistance / 100;
 			mVertexIndex = FLOAT_MATH::fm_createVertexIndex(mPointResolution, false);
 			mTesselate = FLOAT_MATH::fm_createTesselate();
@@ -1613,14 +1613,50 @@ uint32_t VHACD::ComputeConstraints(void)
 		void computeTesselation(void)
 		{
 			mTesselationIndices = mTesselate->tesselate(mVertexIndex, mSourceTriangleCount, mIndices, mTessellateDistance, 6, mTessellateTriangleCount);
+			uint32_t vcount = mVertexIndex->getVcount();
+		}
 
+		bool getNearestVert(const double sourcePoint[3],
+							double nearest[3],
+							const HullData &other,
+							double nearestThreshold)
+		{
+			bool ret = false;
+
+			double nt2 = nearestThreshold*nearestThreshold;
+			uint32_t vcount = other.mVertexIndex->getVcount();
+			for (uint32_t i = 0; i < vcount; i++)
+			{
+				const double *p = other.mVertexIndex->getVertexDouble(i);
+				double d2 = FLOAT_MATH::fm_distanceSquared(sourcePoint, p);
+				if (d2 < nt2)
+				{
+					nearest[0] = p[0];
+					nearest[1] = p[1];
+					nearest[2] = p[2];
+					nt2 = d2;
+					ret = true;
+				}
+			}
+
+			return ret;
+		}
+
+		void findMatchingPoints(const HullData &other)
+		{
 			uint32_t vcount = mVertexIndex->getVcount();
 			for (uint32_t i = 0; i < vcount; i++)
 			{
-				const double *p = mVertexIndex->getVertexDouble(i);
-				float fp[3];
-				FLOAT_MATH::fm_doubleToFloat3(p, fp);
-				gRenderDebug->debugPoint(fp, 0.05f);
+				const double *sourcePoint = mVertexIndex->getVertexDouble(i);
+				double nearestPoint[3];
+				if (getNearestVert(sourcePoint, nearestPoint, other, mNearestPointDistance))
+				{
+					float fp1[3];
+					float fp2[3];
+					FLOAT_MATH::fm_doubleToFloat3(sourcePoint, fp1);
+					FLOAT_MATH::fm_doubleToFloat3(nearestPoint, fp2);
+					gRenderDebug->debugRay(fp1, fp2);
+				}
 			}
 
 		}
@@ -1630,6 +1666,7 @@ uint32_t VHACD::ComputeConstraints(void)
 		double						mDiagonalDistance;
 		double						mTessellateDistance;
 		double						mPointResolution;
+		double						mNearestPointDistance;
 		uint32_t					mSourceTriangleCount{ 0 };
 		uint32_t					mTessellateTriangleCount{ 0 };
 		uint32_t					*mIndices{ nullptr };
@@ -1687,6 +1724,9 @@ uint32_t VHACD::ComputeConstraints(void)
 			HullData &hd2 = hullData[j];
 			if (FLOAT_MATH::fm_intersectAABB(hd1.mBmin, hd1.mBmax, hd2.mBmin, hd2.mBmax))
 			{
+				// ok. if two convex hulls intersect, we are going to find the <n> number of nearest
+				// matching points between them.
+				hd1.findMatchingPoints(hd2);
 			}
 		}
 	}
