@@ -3851,11 +3851,24 @@ void  fm_initMinMax(REAL bmin[3],REAL bmax[3])
   bmin[0] = FLT_MAX;
   bmin[1] = FLT_MAX;
   bmin[2] = FLT_MAX;
-  bmax[0] = FLT_MIN;
-  bmax[1] = FLT_MIN;
-  bmax[2] = FLT_MIN;
+
+  bmax[0] = -FLT_MAX;
+  bmax[1] = -FLT_MAX;
+  bmax[2] = -FLT_MAX;
 }
 
+void fm_inflateMinMax(REAL bmin[3], REAL bmax[3], REAL ratio)
+{
+	REAL inflate = fm_distance(bmin, bmax)*0.5f*ratio;
+
+	bmin[0] -= inflate;
+	bmin[1] -= inflate;
+	bmin[2] -= inflate;
+
+	bmax[0] += inflate;
+	bmax[1] += inflate;
+	bmax[2] += inflate;
+}
 
 #ifndef TESSELATE_H
 

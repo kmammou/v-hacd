@@ -34,12 +34,14 @@
 #include "vhacdVector.h"
 #include "vhacdVolume.h"
 #include "FloatMath.h"
+#include <unordered_map>
 
 #define DEBUG_VISUALIZE_CONSTRAINTS 1
 
 #if DEBUG_VISUALIZE_CONSTRAINTS
 #include "NvRenderDebug.h"
 extern RENDER_DEBUG::RenderDebug *gRenderDebug;
+#pragma warning(disable:4702)
 #endif
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -1567,6 +1569,8 @@ bool VHACD::ComputeCenterOfMass(double centerOfMass[3]) const
 	return ret;
 }
 
+#pragma warning(disable:4189 4101)
+
 // Will analyze the HACD results and compute the constraints solutions.
 // It will analyze the point at which any two convex hulls touch each other and 
 // return the total number of constraint pairs found
@@ -1578,102 +1582,60 @@ uint32_t VHACD::ComputeConstraints(void)
 		return 0;
 #if DEBUG_VISUALIZE_CONSTRAINTS
 	gRenderDebug->pushRenderState();
-	gRenderDebug->setCurrentDisplayTime(5.0f);
+	gRenderDebug->setCurrentDisplayTime(10);
 #endif
 
-	typedef std::vector<uint32_t>	TriangleIndexVector;
-
-	class PlaneTriangles
-	{
-	public:
-		PlaneTriangles(void)
-		{
-			mBmin[0] = FLT_MAX;
-			mBmin[1] = FLT_MAX;
-			mBmin[2] = FLT_MAX;
-			mBmax[0] = -FLT_MAX;
-			mBmax[1] = -FLT_MAX;
-			mBmax[2] = -FLT_MAX;
-		}
-
-		bool planeMatch(const double *planeEquation, double distanceEpsilon) const
-		{
-			bool ret = false;
-
-			// Compute the absolute value difference of the D plane co-efficient
-			double diff = fabs(planeEquation[3] - mPlaneEquation[3]);
-			if (diff < distanceEpsilon) // if it's close enough... continue and test the vector normal
-			{
-				// Compute the squared distance between the two vector normals of the plane
-				// equations
-				// The valid epsilon distance for two normals to be considered co-planar is 0.01
-				double normalDiff = FLOAT_MATH::fm_distanceSquared(planeEquation, mPlaneEquation);
-				if (normalDiff < (0.01*0.01))
-				{
-					ret = true;
-				}
-			}
-
-			return ret;
-		}
-
-		void addTriangle(uint32_t index, const double *p1, const double *p2, const double *p3)
-		{
-			// Add the triangle index; base index in the triangle mesh of this convex hull
-			mTriangles.push_back(index);
-			// Adjust the bounding box for the triangles which match this plane equation..
-			FLOAT_MATH::fm_minmax(p1, mBmin, mBmax);
-			FLOAT_MATH::fm_minmax(p2, mBmin, mBmax);
-			FLOAT_MATH::fm_minmax(p3, mBmin, mBmax);
-		}
-
-		void setPlaneEquation(const double *p)
-		{
-			mPlaneEquation[0] = p[0];
-			mPlaneEquation[1] = p[1];
-			mPlaneEquation[2] = p[2];
-			mPlaneEquation[3] = p[3];
-		}
-
-		double					mPlaneEquation[4];	// the plane equation 
-		double					mBmin[3];			// The AABB for the triangles at this plane equation	
-		double					mBmax[3];
-		TriangleIndexVector		mTriangles;			// the triangles associated with this plane equation
-	};
-
-	typedef std::vector< PlaneTriangles > PlaneTrianglesVector;
-
-	// Ok, the algorithm to compute constraints is kind of involved.
-	// What we are looking for is wherever two convex hulls 'touch'.  However, 'touching' is
-	// an inexact thing; so what we really mean is 'pretty close to touching'.
+	// We voxelize the convex hull
 	class HullData
 	{
 	public:
 		HullData(void)
 		{
-			mBmin[0] = FLT_MAX;
-			mBmin[1] = FLT_MAX;
-			mBmin[2] = FLT_MAX;
-			mBmax[0] = -FLT_MAX;
-			mBmax[1] = -FLT_MAX;
-			mBmax[2] = -FLT_MAX;
+			FLOAT_MATH::fm_initMinMax(mBmin, mBmax);
 		}
 
-		void computeEpsilon(void)
+		~HullData(void)
 		{
-			// Compute the diagonal distance of the bounding box of this convex hull.
-			mLongEdge = FLOAT_MATH::fm_distance(mBmin, mBmax);
-			// Compute the distance epsilon as 1/100th the diagonal length.
-			// The purpose here is to keep epsilon computations somewhat unitless.
-			mDistanceEpsilon = mLongEdge / 100.0;
+			FLOAT_MATH::fm_releaseVertexIndex(mVertexIndex);
+			FLOAT_MATH::fm_releaseTesselate(mTesselate);
+			delete[]mIndices;
 		}
 
-		double	mBmin[3];
-		double	mBmax[3];
-		double	mLongEdge;
-		double	mDistanceEpsilon;
-		// Plane equations of this convex hull and the triangles which intersect it...
-		PlaneTrianglesVector	mPlaneTriangles;
+		void computeResolution(void)
+		{
+			mDiagonalDistance = FLOAT_MATH::fm_distance(mBmin, mBmax);
+			mTessellateDistance = mDiagonalDistance / 10;
+			mPointResolution = mDiagonalDistance / 100;
+			mVertexIndex = FLOAT_MATH::fm_createVertexIndex(mPointResolution, false);
+			mTesselate = FLOAT_MATH::fm_createTesselate();
+		}
+
+		void computeTesselation(void)
+		{
+			mTesselationIndices = mTesselate->tesselate(mVertexIndex, mSourceTriangleCount, mIndices, mTessellateDistance, 6, mTessellateTriangleCount);
+
+			uint32_t vcount = mVertexIndex->getVcount();
+			for (uint32_t i = 0; i < vcount; i++)
+			{
+				const double *p = mVertexIndex->getVertexDouble(i);
+				float fp[3];
+				FLOAT_MATH::fm_doubleToFloat3(p, fp);
+				gRenderDebug->debugPoint(fp, 0.05f);
+			}
+
+		}
+
+		double						mBmin[3];
+		double						mBmax[3];
+		double						mDiagonalDistance;
+		double						mTessellateDistance;
+		double						mPointResolution;
+		uint32_t					mSourceTriangleCount{ 0 };
+		uint32_t					mTessellateTriangleCount{ 0 };
+		uint32_t					*mIndices{ nullptr };
+		FLOAT_MATH::fm_VertexIndex	*mVertexIndex{ nullptr };
+		FLOAT_MATH::fm_Tesselate	*mTesselate{ nullptr };
+		const uint32_t				*mTesselationIndices{ nullptr };
 	};
 
 	HullData *hullData = new HullData[hullCount];
@@ -1688,51 +1650,47 @@ uint32_t VHACD::ComputeConstraints(void)
 			const double *p = &ch.m_points[j * 3];
 			FLOAT_MATH::fm_minmax(p, hd.mBmin, hd.mBmax);
 		}
-	
-		// Compute the epsilon distance threshold for this convex hull based on the diagonal distance of the bounding box
-		hd.computeEpsilon();
-
-		// Now compute plane equations and triangle statistics...
-		for (uint32_t j = 0; j < ch.m_nTriangles; j++)
+		hd.computeResolution();	// Compute the tessellation resolution
+		uint32_t tcount = ch.m_nTriangles;
+		hd.mSourceTriangleCount = tcount;
+		hd.mIndices = new uint32_t[tcount * 3];
+		for (uint32_t j = 0; j < tcount; j++)
 		{
-			const uint32_t *tri = (const uint32_t *)&ch.m_triangles[j * 3];
-			uint32_t i1 = tri[0];
-			uint32_t i2 = tri[1];
-			uint32_t i3 = tri[2];
+			uint32_t i1 = ch.m_triangles[j * 3 + 0];
+			uint32_t i2 = ch.m_triangles[j * 3 + 1];
+			uint32_t i3 = ch.m_triangles[j * 3 + 2];
 			const double *p1 = &ch.m_points[i1 * 3];
 			const double *p2 = &ch.m_points[i2 * 3];
 			const double *p3 = &ch.m_points[i3 * 3];
-
-			double planeEquation[4];
-			planeEquation[3] = FLOAT_MATH::fm_computePlane(p1, p2, p3, planeEquation);
-
-			// ok... we now need to see if this plane equation matches any existing plane
-			bool foundPlane = false;
-			for (size_t k = 0; k < hd.mPlaneTriangles.size(); k++)
-			{
-				PlaneTriangles &pt = hd.mPlaneTriangles[k];
-				if (pt.planeMatch(planeEquation, hd.mDistanceEpsilon))
-				{
-					pt.addTriangle(j,p1, p2, p3);
-					foundPlane = true;
-					break;
-				}
-			}
-			if (!foundPlane)
-			{
-				PlaneTriangles pt;
-				pt.setPlaneEquation(planeEquation);
-				pt.addTriangle(j, p1, p2, p3);
-				hd.mPlaneTriangles.push_back(pt);
-			}
+			bool newPos;
+			hd.mIndices[j * 3 + 0] = hd.mVertexIndex->getIndex(p1, newPos);
+			hd.mIndices[j * 3 + 1] = hd.mVertexIndex->getIndex(p2, newPos);
+			hd.mIndices[j * 3 + 2] = hd.mVertexIndex->getIndex(p3, newPos);
 		}
-#if DEBUG_VISUALIZE_CONSTRAINTS
-		if ( gRenderDebug )
-		{
-			
-		}
-#endif
+		hd.computeTesselation();
 	}
+
+	for (uint32_t i = 0; i < hullCount; i++)
+	{
+		HullData &hd = hullData[i];
+		// Slightly inflate the bounding box around each convex hull for intersection tests
+		// during the constraint building phase
+		FLOAT_MATH::fm_inflateMinMax(hd.mBmin, hd.mBmax, 0.05f);
+	}
+
+	// Look for every possible pair of convex hulls as possible constraints
+	for (uint32_t i = 0; i < hullCount; i++)
+	{
+		HullData &hd1 = hullData[i];
+		for (uint32_t j = i + 1; j < hullCount; j++)
+		{
+			HullData &hd2 = hullData[j];
+			if (FLOAT_MATH::fm_intersectAABB(hd1.mBmin, hd1.mBmax, hd2.mBmin, hd2.mBmax))
+			{
+			}
+		}
+	}
+
 
 #if DEBUG_VISUALIZE_CONSTRAINTS
 	gRenderDebug->popRenderState();

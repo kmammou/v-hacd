@@ -4,6 +4,7 @@
 #include <vector>
 #include <math.h>
 #include <string>
+#include <unordered_map>
 
 #include "wavefront.h"
 #include "NvRenderDebug.h"
@@ -587,8 +588,21 @@ public:
 
 #define USE_DEBUG 0
 
+void testList(void)
+{
+	uint32_t count = 5;
+	for (uint32_t i = 0; i < count; i++)
+	{
+		for (uint32_t j = i + 1; j < count; j++)
+		{
+			printf("[%d][%d]\n", i, j);
+		}
+	}
+}
+
 int32_t main(int32_t /*argc*/,const char ** /*argv*/)
 {
+	testList();
 	{
 
 		const char *dllName = nullptr;

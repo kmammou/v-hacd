@@ -211,9 +211,13 @@ void  fm_initMinMax(const double p[3],double bmin[3],double bmax[3]);
 void  fm_initMinMax(float bmin[3],float bmax[3]);
 void  fm_initMinMax(double bmin[3],double bmax[3]);
 
-void  fm_minmax(const float p[3],float bmin[3],float bmax[3]); // accmulate to a min-max value
-void  fm_minmax(const double p[3],double bmin[3],double bmax[3]); // accmulate to a min-max value
+void  fm_minmax(const float p[3],float bmin[3],float bmax[3]); // accumulate to a min-max value
+void  fm_minmax(const double p[3],double bmin[3],double bmax[3]); // accumulate to a min-max value
 
+// Computes the diagonal length of the bounding box and then inflates the bounding box on all sides
+// by the ratio provided.
+void fm_inflateMinMax(float bmin[3], float bmax[3], float ratio);
+void fm_inflateMinMax(double bmin[3], double bmax[3], double ratio);
 
 float fm_solveX(const float plane[4],float y,float z); // solve for X given this plane equation and the other two components.
 double fm_solveX(const double plane[4],double y,double z); // solve for X given this plane equation and the other two components.
@@ -468,7 +472,7 @@ bool    fm_samePlane(const double p1[4],const double p2[4],double normalEpsilon=
 
 void    fm_OBBtoAABB(const float obmin[3],const float obmax[3],const float matrix[16],float abmin[3],float abmax[3]);
 
-// a utility class that will tesseleate a mesh.
+// a utility class that will tessellate a mesh.
 class fm_Tesselate
 {
 public:

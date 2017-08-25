@@ -80,6 +80,9 @@ public:
 
 	virtual void setCommandCallback(CommandCallback *cc) = 0;
 
+	// create a box in the simulated scene
+	virtual void createBox(const float boxSize[3], const float boxPosition[3]) = 0;
+
 	// Return the render debug interface if available
 	virtual RENDER_DEBUG::RenderDebug *getRenderDebug(void) = 0;
 
