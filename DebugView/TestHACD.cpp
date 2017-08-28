@@ -115,7 +115,7 @@ public:
 	virtual void decompose(
 		const double* const points,
 		const uint32_t countPoints,
-		const int32_t* const triangles,
+		const uint32_t* const triangles,
 		const uint32_t countTriangles,
 		VHACD::IVHACD::Parameters &desc)
 	{
@@ -204,7 +204,7 @@ public:
 				vertIndex = offsets[i] + 1;
 				for (uint32_t j = 0; j < ch.m_nTriangles; j++)
 				{
-					const int32_t *indices = &ch.m_triangles[j * 3];
+					const uint32_t *indices = &ch.m_triangles[j * 3];
 					fprintf(fph, "f %d %d %d\n", indices[0] + vertIndex, indices[1] + vertIndex, indices[2] + vertIndex);
 				}
 			}

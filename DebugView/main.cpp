@@ -282,7 +282,7 @@ public:
 			else if (strcmp(cmd, "decomp") == 0 && mTestHACD)
 			{
 				printf("Performing Convex Decomposition\n");
-				mTestHACD->decompose(gVertices, gVertexCount, (const int32_t *)gIndices, gTriangleCount, gDesc);
+				mTestHACD->decompose(gVertices, gVertexCount, gIndices, gTriangleCount, gDesc);
 			}
 			else if (strcmp(cmd, "ShowPhysics") == 0 && argc == 2)
 			{

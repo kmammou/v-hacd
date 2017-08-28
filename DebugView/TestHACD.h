@@ -25,7 +25,7 @@ public:
 	virtual void decompose(
 		const double* const points,
 		const uint32_t countPoints,
-		const int32_t* const triangles,
+		const uint32_t* const triangles,
 		const uint32_t countTriangles,
 		VHACD::IVHACD::Parameters &desc) = 0;
 

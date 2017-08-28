@@ -62,7 +62,7 @@ public:
     class ConvexHull {
     public:
         double* m_points;
-        int32_t* m_triangles;
+        uint32_t* m_triangles;
         uint32_t m_nPoints;
         uint32_t m_nTriangles;
 		double		m_volume;
@@ -99,12 +99,12 @@ public:
         IUserLogger* m_logger;
         uint32_t m_resolution;
         uint32_t m_maxNumVerticesPerCH;
-        int32_t m_planeDownsampling;
-        int32_t m_convexhullDownsampling;
-        int32_t m_pca;
-        int32_t m_mode;
-        int32_t m_convexhullApproximation;
-        int32_t m_oclAcceleration;
+        uint32_t m_planeDownsampling;
+        uint32_t m_convexhullDownsampling;
+        uint32_t m_pca;
+        uint32_t m_mode;
+        uint32_t m_convexhullApproximation;
+        uint32_t m_oclAcceleration;
         uint32_t	m_maxConvexHulls;
 		bool	m_projectHullVertices;
     };
@@ -120,13 +120,13 @@ public:
     virtual void Cancel() = 0;
     virtual bool Compute(const float* const points,
         const uint32_t countPoints,
-        const int32_t* const triangles,
+        const uint32_t* const triangles,
         const uint32_t countTriangles,
         const Parameters& params)
         = 0;
     virtual bool Compute(const double* const points,
         const uint32_t countPoints,
-        const int32_t* const triangles,
+        const uint32_t* const triangles,
         const uint32_t countTriangles,
         const Parameters& params)
         = 0;

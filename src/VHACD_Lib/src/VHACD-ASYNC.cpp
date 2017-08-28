@@ -35,7 +35,7 @@ public:
 	
 	virtual bool Compute(const double* const _points,
 		const uint32_t countPoints,
-		const int32_t* const _triangles,
+		const uint32_t* const _triangles,
 		const uint32_t countTriangles,
 		const Parameters& _desc) final
 	{
@@ -46,9 +46,9 @@ public:
 		// We need to copy the input vertices and triangles into our own buffers so we can operate
 		// on them safely from the background thread.
 		mVertices = (double *)HACD_ALLOC(sizeof(double)*countPoints * 3);
-		mIndices = (int32_t *)HACD_ALLOC(sizeof(int32_t)*countTriangles * 3);
+		mIndices = (uint32_t *)HACD_ALLOC(sizeof(uint32_t)*countTriangles * 3);
 		memcpy(mVertices, _points, sizeof(double)*countPoints * 3);
-		memcpy(mIndices, _triangles, sizeof(int32_t)*countTriangles * 3);
+		memcpy(mIndices, _triangles, sizeof(uint32_t)*countTriangles * 3);
 		mRunning = true;
 		mThread = new std::thread([this, countPoints, countTriangles, _desc]()
 		{
@@ -64,7 +64,7 @@ public:
 
 	bool ComputeNow(const double* const points,
 		const uint32_t countPoints,
-		const int32_t* const triangles,
+		const uint32_t* const triangles,
 		const uint32_t countTriangles,
 		const Parameters& _desc) 
 	{
@@ -95,8 +95,8 @@ public:
 					h.m_points = (double *)HACD_ALLOC(sizeof(double) * 3 * h.m_nPoints);
 					memcpy(h.m_points, vhull.m_points, sizeof(double) * 3 * h.m_nPoints);
 					h.m_nTriangles = vhull.m_nTriangles;
-					h.m_triangles = (int32_t *)HACD_ALLOC(sizeof(int32_t) * 3 * h.m_nTriangles);
-					memcpy(h.m_triangles, vhull.m_triangles, sizeof(int32_t) * 3 * h.m_nTriangles);
+					h.m_triangles = (uint32_t *)HACD_ALLOC(sizeof(uint32_t) * 3 * h.m_nTriangles);
+					memcpy(h.m_triangles, vhull.m_triangles, sizeof(uint32_t) * 3 * h.m_nTriangles);
 					h.m_volume = vhull.m_volume;
 					h.m_center[0] = vhull.m_center[0];
 					h.m_center[1] = vhull.m_center[1];
@@ -175,7 +175,7 @@ public:
 
 	virtual bool Compute(const float* const points,
 		const uint32_t countPoints,
-		const int32_t* const triangles,
+		const uint32_t* const triangles,
 		const uint32_t countTriangles,
 		const Parameters& params) final
 	{
@@ -324,7 +324,7 @@ public:
 
 private:
 	double							*mVertices{ nullptr };
-	int32_t							*mIndices{ nullptr };
+	uint32_t						*mIndices{ nullptr };
 	std::atomic< uint32_t>			mHullCount{ 0 };
 	VHACD::IVHACD::ConvexHull		*mHulls{ nullptr };
 	VHACD::IVHACD::IUserCallback	*mCallback{ nullptr };

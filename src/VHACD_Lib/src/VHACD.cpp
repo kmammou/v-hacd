@@ -35,7 +35,8 @@
 #include "vhacdVolume.h"
 #include "FloatMath.h"
 
-#define DEBUG_VISUALIZE_CONSTRAINTS 1
+// Internal debugging feature only
+#define DEBUG_VISUALIZE_CONSTRAINTS 0
 
 #if DEBUG_VISUALIZE_CONSTRAINTS
 #include "NvRenderDebug.h"
@@ -447,12 +448,12 @@ void VHACD::ComputePrimitiveSet(const Parameters& params)
     }
 }
 bool VHACD::Compute(const double* const points, const uint32_t nPoints,
-    const int32_t* const triangles,const uint32_t nTriangles, const Parameters& params)
+    const uint32_t* const triangles,const uint32_t nTriangles, const Parameters& params)
 {
     return ComputeACD(points, nPoints, triangles, nTriangles, params);
 }
 bool VHACD::Compute(const float* const points,const uint32_t nPoints,
-    const int32_t* const triangles,const uint32_t nTriangles, const Parameters& params)
+    const uint32_t* const triangles,const uint32_t nTriangles, const Parameters& params)
 {
     return ComputeACD(points, nPoints, triangles, nTriangles, params);
 }
@@ -1675,11 +1676,13 @@ uint32_t VHACD::ComputeConstraints(void)
 				double nearestPoint[3];
 				if (getNearestVert(sourcePoint, nearestPoint, other, mNearestPointDistance))
 				{
+#if DEBUG_VISUALIZE_CONSTRAINTS
 					float fp1[3];
 					float fp2[3];
 					FLOAT_MATH::fm_doubleToFloat3(sourcePoint, fp1);
 					FLOAT_MATH::fm_doubleToFloat3(nearestPoint, fp2);
 					gRenderDebug->debugRay(fp1, fp2);
+#endif
 				}
 			}
 

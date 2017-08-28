@@ -73,7 +73,7 @@ public:
         ch.m_nPoints = (uint32_t)mesh->GetNPoints();
         ch.m_nTriangles = (uint32_t)mesh->GetNTriangles();
         ch.m_points = mesh->GetPoints();
-        ch.m_triangles = mesh->GetTriangles();
+        ch.m_triangles = (uint32_t *)mesh->GetTriangles();
 		ch.m_volume = mesh->ComputeVolume();
 		Vec3<double> &center = mesh->ComputeCenter();
 		ch.m_center[0] = center.X();
@@ -102,12 +102,12 @@ public:
     }
     bool Compute(const float* const points,
         const uint32_t nPoints,
-        const int32_t* const triangles,
+        const uint32_t* const triangles,
         const uint32_t nTriangles,
         const Parameters& params);
     bool Compute(const double* const points,
         const uint32_t nPoints,
-        const int32_t* const triangles,
+        const uint32_t* const triangles,
         const uint32_t nTriangles,
         const Parameters& params);
     bool OCLInit(void* const oclDevice,
@@ -322,7 +322,7 @@ private:
     template <class T>
     bool ComputeACD(const T* const points,
         const uint32_t nPoints,
-        const int32_t* const triangles,
+        const uint32_t* const triangles,
         const uint32_t nTriangles,
         const Parameters& params)
     {
@@ -334,8 +334,8 @@ private:
         if (params.m_oclAcceleration) {
             // build kernels
         }
-        AlignMesh(points, 3, nPoints, triangles, 3, nTriangles, params);
-        VoxelizeMesh(points, 3, nPoints, triangles, 3, nTriangles, params);
+        AlignMesh(points, 3, nPoints, (int32_t *)triangles, 3, nTriangles, params);
+        VoxelizeMesh(points, 3, nPoints, (int32_t *)triangles, 3, nTriangles, params);
         ComputePrimitiveSet(params);
         ComputeACD(params);
         MergeConvexHulls(params);
