@@ -101,17 +101,13 @@ public:
         delete this;
     }
     bool Compute(const float* const points,
-        const uint32_t stridePoints,
         const uint32_t nPoints,
         const int32_t* const triangles,
-        const uint32_t strideTriangles,
         const uint32_t nTriangles,
         const Parameters& params);
     bool Compute(const double* const points,
-        const uint32_t stridePoints,
         const uint32_t nPoints,
         const int32_t* const triangles,
-        const uint32_t strideTriangles,
         const uint32_t nTriangles,
         const Parameters& params);
     bool OCLInit(void* const oclDevice,
@@ -325,23 +321,21 @@ private:
     }
     template <class T>
     bool ComputeACD(const T* const points,
-        const uint32_t stridePoints,
         const uint32_t nPoints,
         const int32_t* const triangles,
-        const uint32_t strideTriangles,
         const uint32_t nTriangles,
         const Parameters& params)
     {
         Init();
         if (params.m_projectHullVertices)
         {
-            mRaycastMesh = RaycastMesh::createRaycastMesh(nPoints, stridePoints, points, nTriangles, strideTriangles, (const uint32_t *)triangles);
+            mRaycastMesh = RaycastMesh::createRaycastMesh(nPoints, points, nTriangles, (const uint32_t *)triangles);
         }
         if (params.m_oclAcceleration) {
             // build kernels
         }
-        AlignMesh(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
-        VoxelizeMesh(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
+        AlignMesh(points, 3, nPoints, triangles, 3, nTriangles, params);
+        VoxelizeMesh(points, 3, nPoints, triangles, 3, nTriangles, params);
         ComputePrimitiveSet(params);
         ComputeACD(params);
         MergeConvexHulls(params);

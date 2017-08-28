@@ -121,7 +121,7 @@ public:
 	{
 		desc.m_callback = this;
 		desc.m_logger = this;
-		mHACD->Compute(points, 3, countPoints, triangles, 3, countTriangles, desc);
+		mHACD->Compute(points, countPoints, triangles, countTriangles, desc);
 	}
 
 	virtual void release(void)

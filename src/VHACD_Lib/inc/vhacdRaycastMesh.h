@@ -13,17 +13,13 @@ namespace VHACD
     {
     public:
         static RaycastMesh * createRaycastMesh(uint32_t vcount,		// The number of vertices in the source triangle mesh
-            uint32_t vertexStride,
             const double *vertices,		// The array of vertex positions in the format x1,y1,z1..x2,y2,z2.. etc.
             uint32_t tcount,		// The number of triangles in the source triangle mesh
-            uint32_t triangleStride,
             const uint32_t *indices); // The triangle indices in the format of i1,i2,i3 ... i4,i5,i6, ...
 
         static RaycastMesh * createRaycastMesh(uint32_t vcount,		// The number of vertices in the source triangle mesh
-            uint32_t vertexStride,
             const float *vertices,		// The array of vertex positions in the format x1,y1,z1..x2,y2,z2.. etc.
             uint32_t tcount,		// The number of triangles in the source triangle mesh
-            uint32_t triangleStride,
             const uint32_t *indices); // The triangle indices in the format of i1,i2,i3 ... i4,i5,i6, ...
 
 

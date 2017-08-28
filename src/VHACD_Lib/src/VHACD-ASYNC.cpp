@@ -34,10 +34,8 @@ public:
 
 	
 	virtual bool Compute(const double* const _points,
-		const uint32_t stridePoints,
 		const uint32_t countPoints,
 		const int32_t* const _triangles,
-		const uint32_t strideTriangles,
 		const uint32_t countTriangles,
 		const Parameters& _desc) final
 	{
@@ -49,42 +47,24 @@ public:
 		// on them safely from the background thread.
 		mVertices = (double *)HACD_ALLOC(sizeof(double)*countPoints * 3);
 		mIndices = (int32_t *)HACD_ALLOC(sizeof(int32_t)*countTriangles * 3);
-
-		uint32_t index = 0;
-		for (uint32_t i = 0; i < countPoints; i++)
-		{
-			mVertices[i * 3 + 0] = _points[index + 0];
-			mVertices[i * 3 + 1] = _points[index + 1];
-			mVertices[i * 3 + 2] = _points[index + 2];
-			index += stridePoints;
-		}
-		index = 0;
-		for (uint32_t i = 0; i < countTriangles; i++)
-		{
-			mIndices[i * 3 + 0] = _triangles[index + 0];
-			mIndices[i * 3 + 1] = _triangles[index + 1];
-			mIndices[i * 3 + 2] = _triangles[index + 2];
-			index += strideTriangles;
-		}
-
+		memcpy(mVertices, _points, sizeof(double)*countPoints * 3);
+		memcpy(mIndices, _triangles, sizeof(int32_t)*countTriangles * 3);
 		mRunning = true;
 		mThread = new std::thread([this, countPoints, countTriangles, _desc]()
 		{
-			ComputeNow(mVertices, 3, countPoints, mIndices, 3, countTriangles, _desc);
+			ComputeNow(mVertices, countPoints, mIndices, countTriangles, _desc);
 			mRunning = false;
 		});
 #else
 		releaseHACD();
-		ComputeNow(_points, stridePoints, countPoints, _triangles, strideTriangles, countTriangles, _desc);
+		ComputeNow(_points, countPoints, _triangles, countTriangles, _desc);
 #endif
 		return true;
 	}
 
 	bool ComputeNow(const double* const points,
-		const uint32_t stridePoints,
 		const uint32_t countPoints,
 		const int32_t* const triangles,
-		const uint32_t strideTriangles,
 		const uint32_t countTriangles,
 		const Parameters& _desc) 
 	{
@@ -101,7 +81,7 @@ public:
 
 		if ( countPoints )
 		{
-			bool ok = mVHACD->Compute(points, stridePoints, countPoints, triangles, strideTriangles, countTriangles, desc);
+			bool ok = mVHACD->Compute(points, countPoints, triangles, countTriangles, desc);
 			if (ok)
 			{
 				ret = mVHACD->GetNConvexHulls();
@@ -194,10 +174,8 @@ public:
 	}
 
 	virtual bool Compute(const float* const points,
-		const uint32_t stridePoints,
 		const uint32_t countPoints,
 		const int32_t* const triangles,
-		const uint32_t strideTriangles,
 		const uint32_t countTriangles,
 		const Parameters& params) final
 	{
@@ -211,10 +189,10 @@ public:
 			dest[1] = source[1];
 			dest[2] = source[2];
 			dest += 3;
-			source += stridePoints;
+			source += 3;
 		}
 
-		bool ret =  Compute(vertices, 3, countPoints, triangles, strideTriangles, countTriangles, params);
+		bool ret =  Compute(vertices, countPoints, triangles, countTriangles, params);
 		HACD_FREE(vertices);
 		return ret;
 	}

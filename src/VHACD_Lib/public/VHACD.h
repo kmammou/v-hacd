@@ -119,18 +119,14 @@ public:
 
     virtual void Cancel() = 0;
     virtual bool Compute(const float* const points,
-        const uint32_t stridePoints,
         const uint32_t countPoints,
         const int32_t* const triangles,
-        const uint32_t strideTriangles,
         const uint32_t countTriangles,
         const Parameters& params)
         = 0;
     virtual bool Compute(const double* const points,
-        const uint32_t stridePoints,
         const uint32_t countPoints,
         const int32_t* const triangles,
-        const uint32_t strideTriangles,
         const uint32_t countTriangles,
         const Parameters& params)
         = 0;

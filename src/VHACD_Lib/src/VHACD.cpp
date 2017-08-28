@@ -446,15 +446,15 @@ void VHACD::ComputePrimitiveSet(const Parameters& params)
         params.m_logger->Log(msg.str().c_str());
     }
 }
-bool VHACD::Compute(const double* const points, const uint32_t stridePoints, const uint32_t nPoints,
-    const int32_t* const triangles, const uint32_t strideTriangles, const uint32_t nTriangles, const Parameters& params)
+bool VHACD::Compute(const double* const points, const uint32_t nPoints,
+    const int32_t* const triangles,const uint32_t nTriangles, const Parameters& params)
 {
-    return ComputeACD(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
+    return ComputeACD(points, nPoints, triangles, nTriangles, params);
 }
-bool VHACD::Compute(const float* const points, const uint32_t stridePoints, const uint32_t nPoints,
-    const int32_t* const triangles, const uint32_t strideTriangles, const uint32_t nTriangles, const Parameters& params)
+bool VHACD::Compute(const float* const points,const uint32_t nPoints,
+    const int32_t* const triangles,const uint32_t nTriangles, const Parameters& params)
 {
-    return ComputeACD(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
+    return ComputeACD(points, nPoints, triangles, nTriangles, params);
 }
 double ComputePreferredCuttingDirection(const PrimitiveSet* const tset, Vec3<double>& dir)
 {
