@@ -998,10 +998,34 @@ void VHACD::ComputeACD(const Parameters& params)
     m_pset = 0;
     SArray<Plane> planes;
     SArray<Plane> planesRef;
-    int32_t sub = 0;
+    uint32_t sub = 0;
     bool firstIteration = true;
     m_volumeCH0 = 1.0;
-    while (sub++ < params.m_depth && inputParts.Size() > 0 && !m_cancel) {
+
+	// Compute the decomposition depth based on the number of convex hulls being requested..
+	uint32_t hullCount = 2;
+	uint32_t depth = 1;
+	while (params.m_maxConvexHulls > hullCount)
+	{
+		depth++;
+		hullCount *= 2;
+	}
+	// We must always increment the decomposition depth one higher than the maximum number of hulls requested.
+	// The reason for this is as follows.
+	// Say, for example, the user requests 32 convex hulls exactly.  This would be a decomposition depth of 5.
+	// However, when we do that, we do *not* necessarily get 32 hulls as a result.  This is because, during
+	// the recursive descent of the binary tree, one or more of the leaf nodes may have no concavity and
+	// will not be split.  So, in this way, even with a decomposition depth of 5, you can produce fewer than
+	// 32 hulls.  So, in this case, we would set the decomposition depth to 6 (producing up to as high as 64 convex hulls).
+	// Then, the merge step which combines over-described hulls down to the user requested amount, we will end up
+	// getting exactly 32 convex hulls as a result.
+	// We could just allow the artist to directly control the decomposition depth directly, but this would be a bit
+	// too complex and the preference is simply to let them specify how many hulls they want and derive the solution
+	// from that.
+	depth++;
+
+
+    while (sub++ < depth && inputParts.Size() > 0 && !m_cancel) {
         msg.str("");
         msg << "Subdivision level " << sub;
         m_operation = msg.str();

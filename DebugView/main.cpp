@@ -211,7 +211,6 @@ void createMenus(void)
 
 
 	gRenderDebug->sendRemoteCommand("BeginGroup \"V-HACD Settings1\"");	// Mark the beginning of a group of controls.
-	gRenderDebug->sendRemoteCommand("SliderInt DecompositionDepth 10 1 20 DecompositionDepth");
 	gRenderDebug->sendRemoteCommand("SliderInt MaxHullVertices 32 8 512 MaxHullVertices");
 	gRenderDebug->sendRemoteCommand("SliderInt MaxConvexHulls 32 1 512 MaxConvexHulls");
 	gRenderDebug->sendRemoteCommand("Slider Concavity 0.001 0 0.1 Concavity");
@@ -326,11 +325,6 @@ public:
 			{
 				printf("Canceling Convex Decomposition\n");
 				mTestHACD->cancel();
-			}
-			else if (strcmp(cmd, "DecompositionDepth") == 0 && argc == 2)
-			{
-				gDesc.m_depth = atoi(argv[1]);
-				printf("DecompositionDepth=%d\n", gDesc.m_depth);
 			}
 			else if (strcmp(cmd, "MaxHullVertices") == 0 && argc == 2)
 			{
