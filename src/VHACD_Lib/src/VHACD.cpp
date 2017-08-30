@@ -36,7 +36,7 @@
 #include "FloatMath.h"
 
 // Internal debugging feature only
-#define DEBUG_VISUALIZE_CONSTRAINTS 0
+#define DEBUG_VISUALIZE_CONSTRAINTS 1
 
 #if DEBUG_VISUALIZE_CONSTRAINTS
 #include "NvRenderDebug.h"
@@ -1669,6 +1669,20 @@ uint32_t VHACD::ComputeConstraints(void)
 
 		void findMatchingPoints(const HullData &other)
 		{
+			class Vec3
+			{
+			public:
+				Vec3(const double *p)
+				{
+					mPos[0] = p[0];
+					mPos[1] = p[1];
+					mPos[2] = p[2];
+				}
+				double	mPos[3];
+			};
+			std::vector< Vec3 > points;
+			std::vector< double > weights;
+
 			uint32_t vcount = mVertexIndex->getVcount();
 			for (uint32_t i = 0; i < vcount; i++)
 			{
@@ -1676,6 +1690,15 @@ uint32_t VHACD::ComputeConstraints(void)
 				double nearestPoint[3];
 				if (getNearestVert(sourcePoint, nearestPoint, other, mNearestPointDistance))
 				{
+					Vec3 p1(sourcePoint);
+					Vec3 p2(nearestPoint);
+					double distance = FLOAT_MATH::fm_distance(sourcePoint, nearestPoint);
+
+					points.push_back(p1);
+					points.push_back(p2);
+					weights.push_back(distance);
+					weights.push_back(distance);
+
 #if DEBUG_VISUALIZE_CONSTRAINTS
 					float fp1[3];
 					float fp2[3];
@@ -1685,7 +1708,24 @@ uint32_t VHACD::ComputeConstraints(void)
 #endif
 				}
 			}
-
+			uint32_t count = uint32_t(points.size());
+			if (count)
+			{
+				double plane[4];
+				double center[3];
+				bool found = FLOAT_MATH::fm_computeBestFitPlane(count, points[0].mPos, sizeof(Vec3), &weights[0], sizeof(double), plane, center);
+				if (found)
+				{
+					float from[3];
+					float to[3];
+					FLOAT_MATH::fm_doubleToFloat3(center, from);
+					FLOAT_MATH::fm_doubleToFloat3(plane, to);
+					to[0] += from[0];
+					to[1] += from[1];
+					to[2] += from[2];
+					gRenderDebug->debugThickRay(from, to);
+				}
+			}
 		}
 
 		double						mBmin[3];
