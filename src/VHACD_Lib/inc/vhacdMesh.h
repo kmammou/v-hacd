@@ -73,15 +73,15 @@ public:
     const double* const GetPoints() const { return (double*)m_points.Data(); } // ugly
     const Vec3<double>* const GetPointsBuffer() const { return m_points.Data(); } //
     Vec3<double>* const GetPointsBuffer() { return m_points.Data(); } //
-    void AddTriangle(const Vec3<int>& tri) { m_triangles.PushBack(tri); };
-    void SetTriangle(size_t index, const Vec3<int>& tri) { m_triangles[index] = tri; };
-    const Vec3<int>& GetTriangle(size_t index) const { return m_triangles[index]; };
-    Vec3<int>& GetTriangle(size_t index) { return m_triangles[index]; };
+    void AddTriangle(const Vec3<int32_t>& tri) { m_triangles.PushBack(tri); };
+    void SetTriangle(size_t index, const Vec3<int32_t>& tri) { m_triangles[index] = tri; };
+    const Vec3<int32_t>& GetTriangle(size_t index) const { return m_triangles[index]; };
+    Vec3<int32_t>& GetTriangle(size_t index) { return m_triangles[index]; };
     size_t GetNTriangles() const { return m_triangles.Size(); };
-    int* GetTriangles() { return (int*)m_triangles.Data(); } // ugly
-    const int* const GetTriangles() const { return (int*)m_triangles.Data(); } // ugly
-    const Vec3<int>* const GetTrianglesBuffer() const { return m_triangles.Data(); }
-    Vec3<int>* const GetTrianglesBuffer() { return m_triangles.Data(); }
+    int32_t* GetTriangles() { return (int32_t*)m_triangles.Data(); } // ugly
+    const int32_t* const GetTriangles() const { return (int32_t*)m_triangles.Data(); } // ugly
+    const Vec3<int32_t>* const GetTrianglesBuffer() const { return m_triangles.Data(); }
+    Vec3<int32_t>* const GetTrianglesBuffer() { return m_triangles.Data(); }
     const Vec3<double>& GetCenter() const { return m_center; }
     const Vec3<double>& GetMinBB() const { return m_minBB; }
     const Vec3<double>& GetMaxBB() const { return m_maxBB; }
@@ -120,7 +120,7 @@ public:
 
 private:
     SArray<Vec3<double> > m_points;
-    SArray<Vec3<int> > m_triangles;
+    SArray<Vec3<int32_t> > m_triangles;
     Vec3<double> m_minBB;
     Vec3<double> m_maxBB;
     Vec3<double> m_center;

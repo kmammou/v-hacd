@@ -171,7 +171,6 @@ int main(int argc, char* argv[])
         msg << "+ Parameters" << std::endl;
         msg << "\t input                                       " << params.m_fileNameIn << endl;
         msg << "\t resolution                                  " << params.m_paramsVHACD.m_resolution << endl;
-        msg << "\t max. depth                                  " << params.m_paramsVHACD.m_depth << endl;
         msg << "\t max. concavity                              " << params.m_paramsVHACD.m_concavity << endl;
         msg << "\t plane down-sampling                         " << params.m_paramsVHACD.m_planeDownsampling << endl;
         msg << "\t convex-hull down-sampling                   " << params.m_paramsVHACD.m_convexhullDownsampling << endl;
@@ -224,8 +223,8 @@ int main(int argc, char* argv[])
             }
         }
 #endif //CL_VERSION_1_1
-        bool res = interfaceVHACD->Compute(&points[0], 3, (unsigned int)points.size() / 3,
-            &triangles[0], 3, (unsigned int)triangles.size() / 3, params.m_paramsVHACD);
+        bool res = interfaceVHACD->Compute(&points[0], (unsigned int)points.size() / 3,
+            (const uint32_t *)&triangles[0], (unsigned int)triangles.size() / 3, params.m_paramsVHACD);
 
 
 
@@ -249,7 +248,7 @@ int main(int argc, char* argv[])
                     for (unsigned int p = 0; p < nConvexHulls; ++p) {
                         interfaceVHACD->GetConvexHull(p, ch);
                         ComputeRandomColor(mat);
-                        SaveVRML2(foutCH, ch.m_points, ch.m_triangles, ch.m_nPoints, ch.m_nTriangles, mat, myLogger);
+                        SaveVRML2(foutCH, ch.m_points, (const int *)ch.m_triangles, ch.m_nPoints, ch.m_nTriangles, mat, myLogger);
                         msg.str("");
                         msg << "\t CH[" << setfill('0') << setw(5) << p << "] " << ch.m_nPoints << " V, " << ch.m_nTriangles << " T" << endl;
                         myLogger.Log(msg.str().c_str());
@@ -269,7 +268,7 @@ int main(int argc, char* argv[])
                     int vertexOffset = 1;//obj wavefront starts counting at 1...
                     for (unsigned int p = 0; p < nConvexHulls; ++p) {
                         interfaceVHACD->GetConvexHull(p, ch);
-                        SaveOBJ(foutCH, ch.m_points, ch.m_triangles, ch.m_nPoints, ch.m_nTriangles, mat, myLogger, p, vertexOffset);
+                        SaveOBJ(foutCH, ch.m_points, (const int *)ch.m_triangles, ch.m_nPoints, ch.m_nTriangles, mat, myLogger, p, vertexOffset);
                         vertexOffset+=ch.m_nPoints;
                         msg.str("");
                         msg << "\t CH[" << setfill('0') << setw(5) << p << "] " << ch.m_nPoints << " V, " << ch.m_nTriangles << " T" << endl;
@@ -312,7 +311,7 @@ void Usage(const Parameters& params)
     msg << "       --output                    VRML 2.0 output file name" << endl;
     msg << "       --log                       Log file name" << endl;
     msg << "       --resolution                Maximum number of voxels generated during the voxelization stage (default=100,000, range=10,000-16,000,000)" << endl;
-    msg << "       --depth                     Maximum number of clipping stages. During each split stage, parts with a concavity higher than the user defined threshold are clipped according the \"best\" clipping plane (default=20, range=1-32)" << endl;
+    msg << "       --maxhulls                  Maximum number of convex hulls to produce." << endl;
     msg << "       --concavity                 Maximum allowed concavity (default=0.0025, range=0.0-1.0)" << endl;
     msg << "       --planeDownsampling         Controls the granularity of the search for the \"best\" clipping plane (default=4, range=1-16)" << endl;
     msg << "       --convexhullDownsampling    Controls the precision of the convex-hull generation process during the clipping plane selection stage (default=4, range=1-16)" << endl;
@@ -356,10 +355,6 @@ void ParseParameters(int argc, char* argv[], Parameters& params)
         else if (!strcmp(argv[i], "--resolution")) {
             if (++i < argc)
                 params.m_paramsVHACD.m_resolution = atoi(argv[i]);
-        }
-        else if (!strcmp(argv[i], "--depth")) {
-            if (++i < argc)
-                params.m_paramsVHACD.m_depth = atoi(argv[i]);
         }
         else if (!strcmp(argv[i], "--concavity")) {
             if (++i < argc)

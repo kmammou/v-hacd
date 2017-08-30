@@ -34,11 +34,9 @@ public:
 
 	
 	virtual bool Compute(const double* const _points,
-		const unsigned int stridePoints,
-		const unsigned int countPoints,
-		const int* const _triangles,
-		const unsigned int strideTriangles,
-		const unsigned int countTriangles,
+		const uint32_t countPoints,
+		const uint32_t* const _triangles,
+		const uint32_t countTriangles,
 		const Parameters& _desc) final
 	{
 #if ENABLE_ASYNC
@@ -48,44 +46,26 @@ public:
 		// We need to copy the input vertices and triangles into our own buffers so we can operate
 		// on them safely from the background thread.
 		mVertices = (double *)HACD_ALLOC(sizeof(double)*countPoints * 3);
-		mIndices = (int *)HACD_ALLOC(sizeof(int)*countTriangles * 3);
-
-		uint32_t index = 0;
-		for (uint32_t i = 0; i < countPoints; i++)
-		{
-			mVertices[i * 3 + 0] = _points[index + 0];
-			mVertices[i * 3 + 1] = _points[index + 1];
-			mVertices[i * 3 + 2] = _points[index + 2];
-			index += stridePoints;
-		}
-		index = 0;
-		for (uint32_t i = 0; i < countTriangles; i++)
-		{
-			mIndices[i * 3 + 0] = _triangles[index + 0];
-			mIndices[i * 3 + 1] = _triangles[index + 1];
-			mIndices[i * 3 + 2] = _triangles[index + 2];
-			index += strideTriangles;
-		}
-
+		mIndices = (uint32_t *)HACD_ALLOC(sizeof(uint32_t)*countTriangles * 3);
+		memcpy(mVertices, _points, sizeof(double)*countPoints * 3);
+		memcpy(mIndices, _triangles, sizeof(uint32_t)*countTriangles * 3);
 		mRunning = true;
 		mThread = new std::thread([this, countPoints, countTriangles, _desc]()
 		{
-			ComputeNow(mVertices, 3, countPoints, mIndices, 3, countTriangles, _desc);
+			ComputeNow(mVertices, countPoints, mIndices, countTriangles, _desc);
 			mRunning = false;
 		});
 #else
 		releaseHACD();
-		ComputeNow(_points, stridePoints, countPoints, _triangles, strideTriangles, countTriangles, _desc);
+		ComputeNow(_points, countPoints, _triangles, countTriangles, _desc);
 #endif
 		return true;
 	}
 
 	bool ComputeNow(const double* const points,
-		const unsigned int stridePoints,
-		const unsigned int countPoints,
-		const int* const triangles,
-		const unsigned int strideTriangles,
-		const unsigned int countTriangles,
+		const uint32_t countPoints,
+		const uint32_t* const triangles,
+		const uint32_t countTriangles,
 		const Parameters& _desc) 
 	{
 		uint32_t ret = 0;
@@ -101,12 +81,12 @@ public:
 
 		if ( countPoints )
 		{
-			bool ok = mVHACD->Compute(points, stridePoints, countPoints, triangles, strideTriangles, countTriangles, desc);
+			bool ok = mVHACD->Compute(points, countPoints, triangles, countTriangles, desc);
 			if (ok)
 			{
 				ret = mVHACD->GetNConvexHulls();
 				mHulls = new IVHACD::ConvexHull[ret];
-				for (unsigned int i = 0; i < ret; i++)
+				for (uint32_t i = 0; i < ret; i++)
 				{
 					VHACD::IVHACD::ConvexHull vhull;
 					mVHACD->GetConvexHull(i, vhull);
@@ -115,8 +95,8 @@ public:
 					h.m_points = (double *)HACD_ALLOC(sizeof(double) * 3 * h.m_nPoints);
 					memcpy(h.m_points, vhull.m_points, sizeof(double) * 3 * h.m_nPoints);
 					h.m_nTriangles = vhull.m_nTriangles;
-					h.m_triangles = (int *)HACD_ALLOC(sizeof(int) * 3 * h.m_nTriangles);
-					memcpy(h.m_triangles, vhull.m_triangles, sizeof(int) * 3 * h.m_nTriangles);
+					h.m_triangles = (uint32_t *)HACD_ALLOC(sizeof(uint32_t) * 3 * h.m_nTriangles);
+					memcpy(h.m_triangles, vhull.m_triangles, sizeof(uint32_t) * 3 * h.m_nTriangles);
 					h.m_volume = vhull.m_volume;
 					h.m_center[0] = vhull.m_center[0];
 					h.m_center[1] = vhull.m_center[1];
@@ -143,7 +123,7 @@ public:
 		h.m_points = nullptr;
 	}
 
-	virtual void GetConvexHull(const unsigned int index, VHACD::IVHACD::ConvexHull& ch) const final
+	virtual void GetConvexHull(const uint32_t index, VHACD::IVHACD::ConvexHull& ch) const final
 	{
 		if ( index < mHullCount )
 		{
@@ -194,11 +174,9 @@ public:
 	}
 
 	virtual bool Compute(const float* const points,
-		const unsigned int stridePoints,
-		const unsigned int countPoints,
-		const int* const triangles,
-		const unsigned int strideTriangles,
-		const unsigned int countTriangles,
+		const uint32_t countPoints,
+		const uint32_t* const triangles,
+		const uint32_t countTriangles,
 		const Parameters& params) final
 	{
 
@@ -211,15 +189,15 @@ public:
 			dest[1] = source[1];
 			dest[2] = source[2];
 			dest += 3;
-			source += stridePoints;
+			source += 3;
 		}
 
-		bool ret =  Compute(vertices, 3, countPoints, triangles, strideTriangles, countTriangles, params);
+		bool ret =  Compute(vertices, countPoints, triangles, countTriangles, params);
 		HACD_FREE(vertices);
 		return ret;
 	}
 
-	virtual unsigned int GetNConvexHulls() const final
+	virtual uint32_t GetNConvexHulls() const final
 	{
 		processPendingMessages();
 		return mHullCount;
@@ -301,9 +279,52 @@ public:
 		}
 	}
 
+	// Will compute the center of mass of the convex hull decomposition results and return it
+	// in 'centerOfMass'.  Returns false if the center of mass could not be computed.
+	virtual bool ComputeCenterOfMass(double centerOfMass[3]) const
+	{
+		bool ret = false;
+
+		centerOfMass[0] = 0;
+		centerOfMass[1] = 0;
+		centerOfMass[2] = 0;
+
+		if (mVHACD && IsReady() )
+		{
+			ret = mVHACD->ComputeCenterOfMass(centerOfMass);
+		}
+		return ret;
+	}
+
+	// Will analyze the HACD results and compute the constraints solutions.
+	// It will analyze the point at which any two convex hulls touch each other and 
+	// return the total number of constraint pairs found
+	virtual uint32_t ComputeConstraints(void) final
+	{
+		uint32_t ret = 0;
+		if (mVHACD && IsReady())
+		{
+			ret = mVHACD->ComputeConstraints();
+		}
+		return ret;
+	}
+
+	virtual const Constraint *GetConstraint(uint32_t index) const final
+	{
+		const Constraint * ret = nullptr;
+		if (mVHACD && IsReady())
+		{
+			ret = mVHACD->GetConstraint(index);
+		}
+		return ret;
+
+	}
+
+
+
 private:
 	double							*mVertices{ nullptr };
-	int32_t							*mIndices{ nullptr };
+	uint32_t						*mIndices{ nullptr };
 	std::atomic< uint32_t>			mHullCount{ 0 };
 	VHACD::IVHACD::ConvexHull		*mHulls{ nullptr };
 	VHACD::IVHACD::IUserCallback	*mCallback{ nullptr };

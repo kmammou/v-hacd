@@ -148,7 +148,7 @@ public:
     SIMD_FORCE_INLINE btVector3& safeNormalize()
     {
         btVector3 absVec = this->absolute();
-        int maxIndex = absVec.maxAxis();
+        int32_t maxIndex = absVec.maxAxis();
         if (absVec[maxIndex] > 0) {
             *this /= absVec[maxIndex];
             return * this /= length();
@@ -205,24 +205,24 @@ public:
 
     /**@brief Return the axis with the smallest value 
    * Note return values are 0,1,2 for x, y, or z */
-    SIMD_FORCE_INLINE int minAxis() const
+    SIMD_FORCE_INLINE int32_t minAxis() const
     {
         return m_floats[0] < m_floats[1] ? (m_floats[0] < m_floats[2] ? 0 : 2) : (m_floats[1] < m_floats[2] ? 1 : 2);
     }
 
     /**@brief Return the axis with the largest value 
    * Note return values are 0,1,2 for x, y, or z */
-    SIMD_FORCE_INLINE int maxAxis() const
+    SIMD_FORCE_INLINE int32_t maxAxis() const
     {
         return m_floats[0] < m_floats[1] ? (m_floats[1] < m_floats[2] ? 2 : 1) : (m_floats[0] < m_floats[2] ? 2 : 0);
     }
 
-    SIMD_FORCE_INLINE int furthestAxis() const
+    SIMD_FORCE_INLINE int32_t furthestAxis() const
     {
         return absolute().minAxis();
     }
 
-    SIMD_FORCE_INLINE int closestAxis() const
+    SIMD_FORCE_INLINE int32_t closestAxis() const
     {
         return absolute().maxAxis();
     }
@@ -280,8 +280,8 @@ public:
     /**@brief Return the w value */
     SIMD_FORCE_INLINE const btScalar& w() const { return m_floats[3]; }
 
-    //SIMD_FORCE_INLINE btScalar&       operator[](int i)       { return (&m_floats[0])[i];	}
-    //SIMD_FORCE_INLINE const btScalar& operator[](int i) const { return (&m_floats[0])[i]; }
+    //SIMD_FORCE_INLINE btScalar&       operator[](int32_t i)       { return (&m_floats[0])[i];	}
+    //SIMD_FORCE_INLINE const btScalar& operator[](int32_t i) const { return (&m_floats[0])[i]; }
     ///operator btScalar*() replaces operator[], using implicit conversion. We added operator != and operator == to avoid pointer comparisons.
     SIMD_FORCE_INLINE operator btScalar*() { return &m_floats[0]; }
     SIMD_FORCE_INLINE operator const btScalar*() const { return &m_floats[0]; }
@@ -516,9 +516,9 @@ public:
 
     btScalar getW() const { return m_floats[3]; }
 
-    SIMD_FORCE_INLINE int maxAxis4() const
+    SIMD_FORCE_INLINE int32_t maxAxis4() const
     {
-        int maxIndex = -1;
+        int32_t maxIndex = -1;
         btScalar maxVal = btScalar(-BT_LARGE_FLOAT);
         if (m_floats[0] > maxVal) {
             maxIndex = 0;
@@ -538,9 +538,9 @@ public:
         return maxIndex;
     }
 
-    SIMD_FORCE_INLINE int minAxis4() const
+    SIMD_FORCE_INLINE int32_t minAxis4() const
     {
-        int minIndex = -1;
+        int32_t minIndex = -1;
         btScalar minVal = btScalar(BT_LARGE_FLOAT);
         if (m_floats[0] < minVal) {
             minIndex = 0;
@@ -561,7 +561,7 @@ public:
         return minIndex;
     }
 
-    SIMD_FORCE_INLINE int closestAxis4() const
+    SIMD_FORCE_INLINE int32_t closestAxis4() const
     {
         return absolute4().maxAxis4();
     }
@@ -620,7 +620,7 @@ SIMD_FORCE_INLINE void btSwapScalarEndian(const btScalar& sourceVal, btScalar& d
 ///btSwapVector3Endian swaps vector endianness, useful for network and cross-platform serialization
 SIMD_FORCE_INLINE void btSwapVector3Endian(const btVector3& sourceVec, btVector3& destVec)
 {
-    for (int i = 0; i < 4; i++) {
+    for (int32_t i = 0; i < 4; i++) {
         btSwapScalarEndian(sourceVec[i], destVec[i]);
     }
 }
@@ -630,7 +630,7 @@ SIMD_FORCE_INLINE void btUnSwapVector3Endian(btVector3& vector)
 {
 
     btVector3 swappedVec;
-    for (int i = 0; i < 4; i++) {
+    for (int32_t i = 0; i < 4; i++) {
         btSwapScalarEndian(vector[i], swappedVec[i]);
     }
     vector = swappedVec;
@@ -676,39 +676,39 @@ struct btVector3DoubleData {
 SIMD_FORCE_INLINE void btVector3::serializeFloat(struct btVector3FloatData& dataOut) const
 {
     ///could also do a memcpy, check if it is worth it
-    for (int i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
         dataOut.m_floats[i] = float(m_floats[i]);
 }
 
 SIMD_FORCE_INLINE void btVector3::deSerializeFloat(const struct btVector3FloatData& dataIn)
 {
-    for (int i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
         m_floats[i] = btScalar(dataIn.m_floats[i]);
 }
 
 SIMD_FORCE_INLINE void btVector3::serializeDouble(struct btVector3DoubleData& dataOut) const
 {
     ///could also do a memcpy, check if it is worth it
-    for (int i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
         dataOut.m_floats[i] = double(m_floats[i]);
 }
 
 SIMD_FORCE_INLINE void btVector3::deSerializeDouble(const struct btVector3DoubleData& dataIn)
 {
-    for (int i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
         m_floats[i] = btScalar(dataIn.m_floats[i]);
 }
 
 SIMD_FORCE_INLINE void btVector3::serialize(struct btVector3Data& dataOut) const
 {
     ///could also do a memcpy, check if it is worth it
-    for (int i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
         dataOut.m_floats[i] = m_floats[i];
 }
 
 SIMD_FORCE_INLINE void btVector3::deSerialize(const struct btVector3Data& dataIn)
 {
-    for (int i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
         m_floats[i] = dataIn.m_floats[i];
 }
 

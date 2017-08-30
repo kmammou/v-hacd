@@ -46,7 +46,7 @@ TMMEdge::~TMMEdge(void)
 void TMMTriangle::Initialize()
 {
     m_id = 0;
-    for (int i = 0; i < 3; i++) {
+    for (int32_t i = 0; i < 3; i++) {
         m_edges[i] = 0;
         m_vertices[0] = 0;
     }
@@ -65,7 +65,7 @@ TMMesh::TMMesh()
 TMMesh::~TMMesh(void)
 {
 }
-void TMMesh::GetIFS(Vec3<double>* const points, Vec3<int>* const triangles)
+void TMMesh::GetIFS(Vec3<double>* const points, Vec3<int32_t>* const triangles)
 {
     size_t nV = m_vertices.GetSize();
     size_t nT = m_triangles.GetSize();
@@ -77,9 +77,9 @@ void TMMesh::GetIFS(Vec3<double>* const points, Vec3<int>* const triangles)
     }
     for (size_t f = 0; f < nT; f++) {
         TMMTriangle& currentTriangle = m_triangles.GetData();
-        triangles[f].X() = static_cast<int>(currentTriangle.m_vertices[0]->GetData().m_id);
-        triangles[f].Y() = static_cast<int>(currentTriangle.m_vertices[1]->GetData().m_id);
-        triangles[f].Z() = static_cast<int>(currentTriangle.m_vertices[2]->GetData().m_id);
+        triangles[f].X() = static_cast<int32_t>(currentTriangle.m_vertices[0]->GetData().m_id);
+        triangles[f].Y() = static_cast<int32_t>(currentTriangle.m_vertices[1]->GetData().m_id);
+        triangles[f].Z() = static_cast<int32_t>(currentTriangle.m_vertices[2]->GetData().m_id);
         m_triangles.Next();
     }
 }
@@ -141,13 +141,13 @@ void TMMesh::Copy(TMMesh& mesh)
             edgeMap[e]->GetData().m_newFace = triangleMap[edgeMap[e]->GetData().m_newFace->GetData().m_id];
         }
         if (nT > 0) {
-            for (int f = 0; f < 2; f++) {
+            for (int32_t f = 0; f < 2; f++) {
                 if (edgeMap[e]->GetData().m_triangles[f]) {
                     edgeMap[e]->GetData().m_triangles[f] = triangleMap[edgeMap[e]->GetData().m_triangles[f]->GetData().m_id];
                 }
             }
         }
-        for (int v = 0; v < 2; v++) {
+        for (int32_t v = 0; v < 2; v++) {
             if (edgeMap[e]->GetData().m_vertices[v]) {
                 edgeMap[e]->GetData().m_vertices[v] = vertexMap[edgeMap[e]->GetData().m_vertices[v]->GetData().m_id];
             }
@@ -155,13 +155,13 @@ void TMMesh::Copy(TMMesh& mesh)
     }
     for (size_t f = 0; f < nT; f++) {
         if (nE > 0) {
-            for (int e = 0; e < 3; e++) {
+            for (int32_t e = 0; e < 3; e++) {
                 if (triangleMap[f]->GetData().m_edges[e]) {
                     triangleMap[f]->GetData().m_edges[e] = edgeMap[triangleMap[f]->GetData().m_edges[e]->GetData().m_id];
                 }
             }
         }
-        for (int v = 0; v < 3; v++) {
+        for (int32_t v = 0; v < 3; v++) {
             if (triangleMap[f]->GetData().m_vertices[v]) {
                 triangleMap[f]->GetData().m_vertices[v] = vertexMap[triangleMap[f]->GetData().m_vertices[v]->GetData().m_id];
             }
@@ -176,7 +176,7 @@ bool TMMesh::CheckConsistancy()
     size_t nE = m_edges.GetSize();
     size_t nT = m_triangles.GetSize();
     for (size_t e = 0; e < nE; e++) {
-        for (int f = 0; f < 2; f++) {
+        for (int32_t f = 0; f < 2; f++) {
             if (!m_edges.GetHead()->GetData().m_triangles[f]) {
                 return false;
             }
@@ -184,9 +184,9 @@ bool TMMesh::CheckConsistancy()
         m_edges.Next();
     }
     for (size_t f = 0; f < nT; f++) {
-        for (int e = 0; e < 3; e++) {
-            int found = 0;
-            for (int k = 0; k < 2; k++) {
+        for (int32_t e = 0; e < 3; e++) {
+            int32_t found = 0;
+            for (int32_t k = 0; k < 2; k++) {
                 if (m_triangles.GetHead()->GetData().m_edges[e]->GetData().m_triangles[k] == m_triangles.GetHead()) {
                     found++;
                 }

@@ -90,7 +90,7 @@ public:
 		renderDebug->removeFromCurrentState(RENDER_DEBUG::DebugRenderState::SolidWireShaded);
 		renderDebug->setCurrentArrowSize(float(distance*0.01));
 
-		VHACD::RaycastMesh *rm = VHACD::RaycastMesh::createRaycastMesh(vcount,3, vertices, tcount, 3, indices);
+		VHACD::RaycastMesh *rm = VHACD::RaycastMesh::createRaycastMesh(vcount, vertices, tcount, indices);
 
 		float bmn[3];
 		float bmx[3];

@@ -30,7 +30,7 @@ namespace VHACD {
 /********************************************************/
 /* AABB-triangle overlap test code                      */
 /* by Tomas Akenine-Möller                              */
-/* Function: int triBoxOverlap(float boxcenter[3],      */
+/* Function: int32_t triBoxOverlap(float boxcenter[3],      */
 /*          float boxhalfsize[3],float triverts[3][3]); */
 /* History:                                             */
 /*   2001-03-05: released the code in its first version */
@@ -145,11 +145,11 @@ namespace VHACD {
     if (min > rad || max < -rad)                     \
         return 0;
 
-int PlaneBoxOverlap(const Vec3<double>& normal,
+int32_t PlaneBoxOverlap(const Vec3<double>& normal,
     const Vec3<double>& vert,
     const Vec3<double>& maxbox)
 {
-    int q;
+    int32_t q;
     Vec3<double> vmin, vmax;
     double v;
     for (q = X; q <= Z; q++) {
@@ -170,7 +170,7 @@ int PlaneBoxOverlap(const Vec3<double>& normal,
     return 0;
 }
 
-int TriBoxOverlap(const Vec3<double>& boxcenter,
+int32_t TriBoxOverlap(const Vec3<double>& boxcenter,
     const Vec3<double>& boxhalfsize,
     const Vec3<double>& triver0,
     const Vec3<double>& triver1,
@@ -264,8 +264,8 @@ void Diagonalize(const double (&A)[3][3], double (&Q)[3][3], double (&D)[3][3])
     // A must be a symmetric matrix.
     // returns Q and D such that
     // Diagonal matrix D = QT * A * Q;  and  A = Q*D*QT
-    const int maxsteps = 24; // certainly wont need that many.
-    int k0, k1, k2;
+    const int32_t maxsteps = 24; // certainly wont need that many.
+    int32_t k0, k1, k2;
     double o[3], m[3];
     double q[4] = { 0.0, 0.0, 0.0, 1.0 };
     double jr[4];
@@ -273,7 +273,7 @@ void Diagonalize(const double (&A)[3][3], double (&Q)[3][3], double (&D)[3][3])
     double tmp1, tmp2, mq;
     double AQ[3][3];
     double thet, sgn, t, c;
-    for (int i = 0; i < maxsteps; ++i) {
+    for (int32_t i = 0; i < maxsteps; ++i) {
         // quat to matrix
         sqx = q[0] * q[0];
         sqy = q[1] * q[1];
@@ -379,13 +379,13 @@ void VoxelSet::ComputeBB()
     const size_t nVoxels = m_voxels.Size();
     if (nVoxels == 0)
         return;
-    for (int h = 0; h < 3; ++h) {
+    for (int32_t h = 0; h < 3; ++h) {
         m_minBBVoxels[h] = m_voxels[0].m_coord[h];
         m_maxBBVoxels[h] = m_voxels[0].m_coord[h];
     }
     Vec3<double> bary(0.0);
     for (size_t p = 0; p < nVoxels; ++p) {
-        for (int h = 0; h < 3; ++h) {
+        for (int32_t h = 0; h < 3; ++h) {
             bary[h] += m_voxels[p].m_coord[h];
             if (m_minBBVoxels[h] > m_voxels[p].m_coord[h])
                 m_minBBVoxels[h] = m_voxels[p].m_coord[h];
@@ -394,7 +394,7 @@ void VoxelSet::ComputeBB()
         }
     }
     bary /= (double)nVoxels;
-    for (int h = 0; h < 3; ++h) {
+    for (int32_t h = 0; h < 3; ++h) {
         m_minBBPts[h] = m_minBBVoxels[h] * m_scale + m_minBB[h];
         m_maxBBPts[h] = m_maxBBVoxels[h] * m_scale + m_minBB[h];
         m_barycenter[h] = (short)(bary[h] + 0.5);
@@ -444,8 +444,8 @@ void VoxelSet::ComputeConvexHull(Mesh& meshCH, const size_t sampling) const
             ++p;
         }
         btConvexHullComputer ch;
-        ch.compute((double*)points, 3 * sizeof(double), (int)q, -1.0, -1.0);
-        for (int v = 0; v < ch.vertices.size(); v++) {
+        ch.compute((double*)points, 3 * sizeof(double), (int32_t)q, -1.0, -1.0);
+        for (int32_t v = 0; v < ch.vertices.size(); v++) {
             cpoints.PushBack(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
         }
     }
@@ -453,21 +453,21 @@ void VoxelSet::ComputeConvexHull(Mesh& meshCH, const size_t sampling) const
 
     points = cpoints.Data();
     btConvexHullComputer ch;
-    ch.compute((double*)points, 3 * sizeof(double), (int)cpoints.Size(), -1.0, -1.0);
+    ch.compute((double*)points, 3 * sizeof(double), (int32_t)cpoints.Size(), -1.0, -1.0);
     meshCH.ResizePoints(0);
     meshCH.ResizeTriangles(0);
-    for (int v = 0; v < ch.vertices.size(); v++) {
+    for (int32_t v = 0; v < ch.vertices.size(); v++) {
         meshCH.AddPoint(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
     }
-    const int nt = ch.faces.size();
-    for (int t = 0; t < nt; ++t) {
+    const int32_t nt = ch.faces.size();
+    for (int32_t t = 0; t < nt; ++t) {
         const btConvexHullComputer::Edge* sourceEdge = &(ch.edges[ch.faces[t]]);
-        int a = sourceEdge->getSourceVertex();
-        int b = sourceEdge->getTargetVertex();
+        int32_t a = sourceEdge->getSourceVertex();
+        int32_t b = sourceEdge->getTargetVertex();
         const btConvexHullComputer::Edge* edge = sourceEdge->getNextEdgeOfFace();
-        int c = edge->getTargetVertex();
+        int32_t c = edge->getTargetVertex();
         while (c != a) {
-            meshCH.AddTriangle(Vec3<int>(a, b, c));
+            meshCH.AddTriangle(Vec3<int32_t>(a, b, c));
             edge = edge->getNextEdgeOfFace();
             b = c;
             c = edge->getTargetVertex();
@@ -529,7 +529,7 @@ void VoxelSet::Intersect(const Plane& plane,
         if (d >= 0.0) {
             if (d <= d0) {
                 GetPoints(voxel, pts);
-                for (int k = 0; k < 8; ++k) {
+                for (int32_t k = 0; k < 8; ++k) {
                     positivePts->PushBack(pts[k]);
                 }
             }
@@ -537,7 +537,7 @@ void VoxelSet::Intersect(const Plane& plane,
                 if (++sp == sampling) {
                     //                        positivePts->PushBack(pt);
                     GetPoints(voxel, pts);
-                    for (int k = 0; k < 8; ++k) {
+                    for (int32_t k = 0; k < 8; ++k) {
                         positivePts->PushBack(pts[k]);
                     }
                     sp = 0;
@@ -547,7 +547,7 @@ void VoxelSet::Intersect(const Plane& plane,
         else {
             if (-d <= d0) {
                 GetPoints(voxel, pts);
-                for (int k = 0; k < 8; ++k) {
+                for (int32_t k = 0; k < 8; ++k) {
                     negativePts->PushBack(pts[k]);
                 }
             }
@@ -555,7 +555,7 @@ void VoxelSet::Intersect(const Plane& plane,
                 if (++sn == sampling) {
                     //                        negativePts->PushBack(pt);
                     GetPoints(voxel, pts);
-                    for (int k = 0; k < 8; ++k) {
+                    for (int32_t k = 0; k < 8; ++k) {
                         negativePts->PushBack(pts[k]);
                     }
                     sn = 0;
@@ -582,7 +582,7 @@ void VoxelSet::ComputeExteriorPoints(const Plane& plane,
         if (d >= 0.0) {
             if (!mesh.IsInside(pt)) {
                 GetPoints(voxel, pts);
-                for (int k = 0; k < 8; ++k) {
+                for (int32_t k = 0; k < 8; ++k) {
                     exteriorPts->PushBack(pts[k]);
                 }
             }
@@ -617,7 +617,7 @@ void VoxelSet::SelectOnSurface(PrimitiveSet* const onSurfP) const
     if (nVoxels == 0)
         return;
 
-    for (int h = 0; h < 3; ++h) {
+    for (int32_t h = 0; h < 3; ++h) {
         onSurf->m_minBB[h] = m_minBB[h];
     }
     onSurf->m_voxels.Resize(0);
@@ -644,7 +644,7 @@ void VoxelSet::Clip(const Plane& plane,
     if (nVoxels == 0)
         return;
 
-    for (int h = 0; h < 3; ++h) {
+    for (int32_t h = 0; h < 3; ++h) {
         negativePart->m_minBB[h] = positivePart->m_minBB[h] = m_minBB[h];
     }
     positivePart->m_voxels.Resize(0);
@@ -699,22 +699,22 @@ void VoxelSet::Convert(Mesh& mesh, const VOXEL_VALUE value) const
         voxel = m_voxels[v];
         if (voxel.m_data == value) {
             GetPoints(voxel, pts);
-            int s = (int)mesh.GetNPoints();
-            for (int k = 0; k < 8; ++k) {
+            int32_t s = (int32_t)mesh.GetNPoints();
+            for (int32_t k = 0; k < 8; ++k) {
                 mesh.AddPoint(pts[k]);
             }
-            mesh.AddTriangle(Vec3<int>(s + 0, s + 2, s + 1));
-            mesh.AddTriangle(Vec3<int>(s + 0, s + 3, s + 2));
-            mesh.AddTriangle(Vec3<int>(s + 4, s + 5, s + 6));
-            mesh.AddTriangle(Vec3<int>(s + 4, s + 6, s + 7));
-            mesh.AddTriangle(Vec3<int>(s + 7, s + 6, s + 2));
-            mesh.AddTriangle(Vec3<int>(s + 7, s + 2, s + 3));
-            mesh.AddTriangle(Vec3<int>(s + 4, s + 1, s + 5));
-            mesh.AddTriangle(Vec3<int>(s + 4, s + 0, s + 1));
-            mesh.AddTriangle(Vec3<int>(s + 6, s + 5, s + 1));
-            mesh.AddTriangle(Vec3<int>(s + 6, s + 1, s + 2));
-            mesh.AddTriangle(Vec3<int>(s + 7, s + 0, s + 4));
-            mesh.AddTriangle(Vec3<int>(s + 7, s + 3, s + 0));
+            mesh.AddTriangle(Vec3<int32_t>(s + 0, s + 2, s + 1));
+            mesh.AddTriangle(Vec3<int32_t>(s + 0, s + 3, s + 2));
+            mesh.AddTriangle(Vec3<int32_t>(s + 4, s + 5, s + 6));
+            mesh.AddTriangle(Vec3<int32_t>(s + 4, s + 6, s + 7));
+            mesh.AddTriangle(Vec3<int32_t>(s + 7, s + 6, s + 2));
+            mesh.AddTriangle(Vec3<int32_t>(s + 7, s + 2, s + 3));
+            mesh.AddTriangle(Vec3<int32_t>(s + 4, s + 1, s + 5));
+            mesh.AddTriangle(Vec3<int32_t>(s + 4, s + 0, s + 1));
+            mesh.AddTriangle(Vec3<int32_t>(s + 6, s + 5, s + 1));
+            mesh.AddTriangle(Vec3<int32_t>(s + 6, s + 1, s + 2));
+            mesh.AddTriangle(Vec3<int32_t>(s + 7, s + 0, s + 4));
+            mesh.AddTriangle(Vec3<int32_t>(s + 7, s + 3, s + 0));
         }
     }
 }
@@ -816,11 +816,11 @@ void Volume::FillOutsideSurface(const size_t i0,
                     while (fifo.size() > 0) {
                         current = fifo.front();
                         fifo.pop();
-                        for (int h = 0; h < 6; ++h) {
+                        for (int32_t h = 0; h < 6; ++h) {
                             a = current[0] + neighbours[h][0];
                             b = current[1] + neighbours[h][1];
                             c = current[2] + neighbours[h][2];
-                            if (a < 0 || a >= (int)m_dim[0] || b < 0 || b >= (int)m_dim[1] || c < 0 || c >= (int)m_dim[2]) {
+                            if (a < 0 || a >= (int32_t)m_dim[0] || b < 0 || b >= (int32_t)m_dim[1] || c < 0 || c >= (int32_t)m_dim[2]) {
                                 continue;
                             }
                             unsigned char& v = GetVoxel(a, b, c);
@@ -871,7 +871,7 @@ void Volume::Convert(Mesh& mesh, const VOXEL_VALUE value) const
                     Vec3<double> p5((i + 0.5) * m_scale, (j - 0.5) * m_scale, (k + 0.5) * m_scale);
                     Vec3<double> p6((i + 0.5) * m_scale, (j + 0.5) * m_scale, (k + 0.5) * m_scale);
                     Vec3<double> p7((i - 0.5) * m_scale, (j + 0.5) * m_scale, (k + 0.5) * m_scale);
-                    int s = (int)mesh.GetNPoints();
+                    int32_t s = (int32_t)mesh.GetNPoints();
                     mesh.AddPoint(p0 + m_minBB);
                     mesh.AddPoint(p1 + m_minBB);
                     mesh.AddPoint(p2 + m_minBB);
@@ -880,18 +880,18 @@ void Volume::Convert(Mesh& mesh, const VOXEL_VALUE value) const
                     mesh.AddPoint(p5 + m_minBB);
                     mesh.AddPoint(p6 + m_minBB);
                     mesh.AddPoint(p7 + m_minBB);
-                    mesh.AddTriangle(Vec3<int>(s + 0, s + 2, s + 1));
-                    mesh.AddTriangle(Vec3<int>(s + 0, s + 3, s + 2));
-                    mesh.AddTriangle(Vec3<int>(s + 4, s + 5, s + 6));
-                    mesh.AddTriangle(Vec3<int>(s + 4, s + 6, s + 7));
-                    mesh.AddTriangle(Vec3<int>(s + 7, s + 6, s + 2));
-                    mesh.AddTriangle(Vec3<int>(s + 7, s + 2, s + 3));
-                    mesh.AddTriangle(Vec3<int>(s + 4, s + 1, s + 5));
-                    mesh.AddTriangle(Vec3<int>(s + 4, s + 0, s + 1));
-                    mesh.AddTriangle(Vec3<int>(s + 6, s + 5, s + 1));
-                    mesh.AddTriangle(Vec3<int>(s + 6, s + 1, s + 2));
-                    mesh.AddTriangle(Vec3<int>(s + 7, s + 0, s + 4));
-                    mesh.AddTriangle(Vec3<int>(s + 7, s + 3, s + 0));
+                    mesh.AddTriangle(Vec3<int32_t>(s + 0, s + 2, s + 1));
+                    mesh.AddTriangle(Vec3<int32_t>(s + 0, s + 3, s + 2));
+                    mesh.AddTriangle(Vec3<int32_t>(s + 4, s + 5, s + 6));
+                    mesh.AddTriangle(Vec3<int32_t>(s + 4, s + 6, s + 7));
+                    mesh.AddTriangle(Vec3<int32_t>(s + 7, s + 6, s + 2));
+                    mesh.AddTriangle(Vec3<int32_t>(s + 7, s + 2, s + 3));
+                    mesh.AddTriangle(Vec3<int32_t>(s + 4, s + 1, s + 5));
+                    mesh.AddTriangle(Vec3<int32_t>(s + 4, s + 0, s + 1));
+                    mesh.AddTriangle(Vec3<int32_t>(s + 6, s + 5, s + 1));
+                    mesh.AddTriangle(Vec3<int32_t>(s + 6, s + 1, s + 2));
+                    mesh.AddTriangle(Vec3<int32_t>(s + 7, s + 0, s + 4));
+                    mesh.AddTriangle(Vec3<int32_t>(s + 7, s + 3, s + 0));
                 }
             }
         }
@@ -899,7 +899,7 @@ void Volume::Convert(Mesh& mesh, const VOXEL_VALUE value) const
 }
 void Volume::Convert(VoxelSet& vset) const
 {
-    for (int h = 0; h < 3; ++h) {
+    for (int32_t h = 0; h < 3; ++h) {
         vset.m_minBB[h] = m_minBB[h];
     }
     vset.m_voxels.Allocate(m_numVoxelsInsideSurface + m_numVoxelsOnSurface);
@@ -1072,13 +1072,13 @@ void TetrahedronSet::ComputeBB()
     if (nTetrahedra == 0)
         return;
 
-    for (int h = 0; h < 3; ++h) {
+    for (int32_t h = 0; h < 3; ++h) {
         m_minBB[h] = m_maxBB[h] = m_tetrahedra[0].m_pts[0][h];
         m_barycenter[h] = 0.0;
     }
     for (size_t p = 0; p < nTetrahedra; ++p) {
-        for (int i = 0; i < 4; ++i) {
-            for (int h = 0; h < 3; ++h) {
+        for (int32_t i = 0; i < 4; ++i) {
+            for (int32_t h = 0; h < 3; ++h) {
                 if (m_minBB[h] > m_tetrahedra[p].m_pts[i][h])
                     m_minBB[h] = m_tetrahedra[p].m_pts[i][h];
                 if (m_maxBB[h] < m_tetrahedra[p].m_pts[i][h])
@@ -1108,9 +1108,9 @@ void TetrahedronSet::ComputeConvexHull(Mesh& meshCH, const size_t sampling) cons
                 ++s;
                 if (s == sampling) {
                     s = 0;
-                    for (int a = 0; a < 4; ++a) {
+                    for (int32_t a = 0; a < 4; ++a) {
                         points[q++] = m_tetrahedra[p].m_pts[a];
-                        for (int xx = 0; xx < 3; ++xx) {
+                        for (int32_t xx = 0; xx < 3; ++xx) {
                             assert(m_tetrahedra[p].m_pts[a][xx] + EPS >= m_minBB[xx]);
                             assert(m_tetrahedra[p].m_pts[a][xx] <= m_maxBB[xx] + EPS);
                         }
@@ -1120,8 +1120,8 @@ void TetrahedronSet::ComputeConvexHull(Mesh& meshCH, const size_t sampling) cons
             ++p;
         }
         btConvexHullComputer ch;
-        ch.compute((double*)points, 3 * sizeof(double), (int)q, -1.0, -1.0);
-        for (int v = 0; v < ch.vertices.size(); v++) {
+        ch.compute((double*)points, 3 * sizeof(double), (int32_t)q, -1.0, -1.0);
+        for (int32_t v = 0; v < ch.vertices.size(); v++) {
             cpoints.PushBack(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
         }
     }
@@ -1129,21 +1129,21 @@ void TetrahedronSet::ComputeConvexHull(Mesh& meshCH, const size_t sampling) cons
 
     points = cpoints.Data();
     btConvexHullComputer ch;
-    ch.compute((double*)points, 3 * sizeof(double), (int)cpoints.Size(), -1.0, -1.0);
+    ch.compute((double*)points, 3 * sizeof(double), (int32_t)cpoints.Size(), -1.0, -1.0);
     meshCH.ResizePoints(0);
     meshCH.ResizeTriangles(0);
-    for (int v = 0; v < ch.vertices.size(); v++) {
+    for (int32_t v = 0; v < ch.vertices.size(); v++) {
         meshCH.AddPoint(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
     }
-    const int nt = ch.faces.size();
-    for (int t = 0; t < nt; ++t) {
+    const int32_t nt = ch.faces.size();
+    for (int32_t t = 0; t < nt; ++t) {
         const btConvexHullComputer::Edge* sourceEdge = &(ch.edges[ch.faces[t]]);
-        int a = sourceEdge->getSourceVertex();
-        int b = sourceEdge->getTargetVertex();
+        int32_t a = sourceEdge->getSourceVertex();
+        int32_t b = sourceEdge->getTargetVertex();
         const btConvexHullComputer::Edge* edge = sourceEdge->getNextEdgeOfFace();
-        int c = edge->getTargetVertex();
+        int32_t c = edge->getTargetVertex();
         while (c != a) {
-            meshCH.AddTriangle(Vec3<int>(a, b, c));
+            meshCH.AddTriangle(Vec3<int32_t>(a, b, c));
             edge = edge->getNextEdgeOfFace();
             b = c;
             c = edge->getTargetVertex();
@@ -1164,8 +1164,8 @@ inline bool TetrahedronSet::Add(Tetrahedron& tetrahedron)
         tetrahedron.m_pts[1] = tmp;
     }
 
-    for (int a = 0; a < 4; ++a) {
-        for (int xx = 0; xx < 3; ++xx) {
+    for (int32_t a = 0; a < 4; ++a) {
+        for (int32_t xx = 0; xx < 3; ++xx) {
             assert(tetrahedron.m_pts[a][xx] + EPS >= m_minBB[xx]);
             assert(tetrahedron.m_pts[a][xx] <= m_maxBB[xx] + EPS);
         }
@@ -1174,9 +1174,9 @@ inline bool TetrahedronSet::Add(Tetrahedron& tetrahedron)
     return true;
 }
 
-void TetrahedronSet::AddClippedTetrahedra(const Vec3<double> (&pts)[10], const int nPts)
+void TetrahedronSet::AddClippedTetrahedra(const Vec3<double> (&pts)[10], const int32_t nPts)
 {
-    const int tetF[4][3] = { { 0, 1, 2 }, { 2, 1, 3 }, { 3, 1, 0 }, { 3, 0, 2 } };
+    const int32_t tetF[4][3] = { { 0, 1, 2 }, { 2, 1, 3 }, { 3, 1, 0 }, { 3, 0, 2 } };
     if (nPts < 4) {
         return;
     }
@@ -1192,15 +1192,15 @@ void TetrahedronSet::AddClippedTetrahedra(const Vec3<double> (&pts)[10], const i
         }
     }
     else if (nPts == 5) {
-        const int tet[15][4] = {
+        const int32_t tet[15][4] = {
             { 0, 1, 2, 3 }, { 1, 2, 3, 4 }, { 0, 2, 3, 4 }, { 0, 1, 3, 4 }, { 0, 1, 2, 4 },
         };
-        const int rem[5] = { 4, 0, 1, 2, 3 };
+        const int32_t rem[5] = { 4, 0, 1, 2, 3 };
         double maxVol = 0.0;
-        int h0 = -1;
+        int32_t h0 = -1;
         Tetrahedron tetrahedron0;
         tetrahedron0.m_data = PRIMITIVE_ON_SURFACE;
-        for (int h = 0; h < 5; ++h) {
+        for (int32_t h = 0; h < 5; ++h) {
             double v = ComputeVolume4(pts[tet[h][0]], pts[tet[h][1]], pts[tet[h][2]], pts[tet[h][3]]);
             if (v > maxVol) {
                 h0 = h;
@@ -1227,12 +1227,12 @@ void TetrahedronSet::AddClippedTetrahedra(const Vec3<double> (&pts)[10], const i
         else {
             return;
         }
-        int a = rem[h0];
+        int32_t a = rem[h0];
         maxVol = 0.0;
-        int h1 = -1;
+        int32_t h1 = -1;
         Tetrahedron tetrahedron1;
         tetrahedron1.m_data = PRIMITIVE_ON_SURFACE;
-        for (int h = 0; h < 4; ++h) {
+        for (int32_t h = 0; h < 4; ++h) {
             double v = ComputeVolume4(pts[a], tetrahedron0.m_pts[tetF[h][0]], tetrahedron0.m_pts[tetF[h][1]], tetrahedron0.m_pts[tetF[h][2]]);
             if (v > maxVol) {
                 h1 = h;
@@ -1249,17 +1249,17 @@ void TetrahedronSet::AddClippedTetrahedra(const Vec3<double> (&pts)[10], const i
     }
     else if (nPts == 6) {
 
-        const int tet[15][4] = { { 2, 3, 4, 5 }, { 1, 3, 4, 5 }, { 1, 2, 4, 5 }, { 1, 2, 3, 5 }, { 1, 2, 3, 4 },
+        const int32_t tet[15][4] = { { 2, 3, 4, 5 }, { 1, 3, 4, 5 }, { 1, 2, 4, 5 }, { 1, 2, 3, 5 }, { 1, 2, 3, 4 },
             { 0, 3, 4, 5 }, { 0, 2, 4, 5 }, { 0, 2, 3, 5 }, { 0, 2, 3, 4 }, { 0, 1, 4, 5 },
             { 0, 1, 3, 5 }, { 0, 1, 3, 4 }, { 0, 1, 2, 5 }, { 0, 1, 2, 4 }, { 0, 1, 2, 3 } };
-        const int rem[15][2] = { { 0, 1 }, { 0, 2 }, { 0, 3 }, { 0, 4 }, { 0, 5 },
+        const int32_t rem[15][2] = { { 0, 1 }, { 0, 2 }, { 0, 3 }, { 0, 4 }, { 0, 5 },
             { 1, 2 }, { 1, 3 }, { 1, 4 }, { 1, 5 }, { 2, 3 },
             { 2, 4 }, { 2, 5 }, { 3, 4 }, { 3, 5 }, { 4, 5 } };
         double maxVol = 0.0;
-        int h0 = -1;
+        int32_t h0 = -1;
         Tetrahedron tetrahedron0;
         tetrahedron0.m_data = PRIMITIVE_ON_SURFACE;
-        for (int h = 0; h < 15; ++h) {
+        for (int32_t h = 0; h < 15; ++h) {
             double v = ComputeVolume4(pts[tet[h][0]], pts[tet[h][1]], pts[tet[h][2]], pts[tet[h][3]]);
             if (v > maxVol) {
                 h0 = h;
@@ -1287,13 +1287,13 @@ void TetrahedronSet::AddClippedTetrahedra(const Vec3<double> (&pts)[10], const i
             return;
         }
 
-        int a0 = rem[h0][0];
-        int a1 = rem[h0][1];
-        int h1 = -1;
+        int32_t a0 = rem[h0][0];
+        int32_t a1 = rem[h0][1];
+        int32_t h1 = -1;
         Tetrahedron tetrahedron1;
         tetrahedron1.m_data = PRIMITIVE_ON_SURFACE;
         maxVol = 0.0;
-        for (int h = 0; h < 4; ++h) {
+        for (int32_t h = 0; h < 4; ++h) {
             double v = ComputeVolume4(pts[a0], tetrahedron0.m_pts[tetF[h][0]], tetrahedron0.m_pts[tetF[h][1]], tetrahedron0.m_pts[tetF[h][2]]);
             if (v > maxVol) {
                 h1 = h;
@@ -1311,10 +1311,10 @@ void TetrahedronSet::AddClippedTetrahedra(const Vec3<double> (&pts)[10], const i
             h1 = -1;
         }
         maxVol = 0.0;
-        int h2 = -1;
+        int32_t h2 = -1;
         Tetrahedron tetrahedron2;
         tetrahedron2.m_data = PRIMITIVE_ON_SURFACE;
-        for (int h = 0; h < 4; ++h) {
+        for (int32_t h = 0; h < 4; ++h) {
             double v = ComputeVolume4(pts[a0], tetrahedron0.m_pts[tetF[h][0]], tetrahedron0.m_pts[tetF[h][1]], tetrahedron0.m_pts[tetF[h][2]]);
             if (h == h1)
                 continue;
@@ -1328,7 +1328,7 @@ void TetrahedronSet::AddClippedTetrahedra(const Vec3<double> (&pts)[10], const i
             }
         }
         if (h1 != -1) {
-            for (int h = 0; h < 4; ++h) {
+            for (int32_t h = 0; h < 4; ++h) {
                 double v = ComputeVolume4(pts[a1], tetrahedron1.m_pts[tetF[h][0]], tetrahedron1.m_pts[tetF[h][1]], tetrahedron1.m_pts[tetF[h][2]]);
                 if (h == 1)
                     continue;
@@ -1387,8 +1387,8 @@ void TetrahedronSet::SelectOnSurface(PrimitiveSet* const onSurfP) const
     onSurf->m_barycenter = m_barycenter;
     onSurf->m_minBB = m_minBB;
     onSurf->m_maxBB = m_maxBB;
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
+    for (int32_t i = 0; i < 3; ++i) {
+        for (int32_t j = 0; j < 3; ++j) {
             onSurf->m_Q[i][j] = m_Q[i][j];
             onSurf->m_D[i][j] = m_D[i][j];
         }
@@ -1424,8 +1424,8 @@ void TetrahedronSet::Clip(const Plane& plane,
     positivePart->m_minBB = m_minBB;
     negativePart->m_maxBB = m_maxBB;
     positivePart->m_maxBB = m_maxBB;
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
+    for (int32_t i = 0; i < 3; ++i) {
+        for (int32_t j = 0; j < 3; ++j) {
             negativePart->m_Q[i][j] = positivePart->m_Q[i][j] = m_Q[i][j];
             negativePart->m_D[i][j] = positivePart->m_D[i][j] = m_D[i][j];
         }
@@ -1433,18 +1433,18 @@ void TetrahedronSet::Clip(const Plane& plane,
 
     Tetrahedron tetrahedron;
     double delta, alpha;
-    int sign[4];
-    int npos, nneg;
+    int32_t sign[4];
+    int32_t npos, nneg;
     Vec3<double> posPts[10];
     Vec3<double> negPts[10];
     Vec3<double> P0, P1, M;
     const Vec3<double> n(plane.m_a, plane.m_b, plane.m_c);
-    const int edges[6][2] = { { 0, 1 }, { 0, 2 }, { 0, 3 }, { 1, 2 }, { 1, 3 }, { 2, 3 } };
+    const int32_t edges[6][2] = { { 0, 1 }, { 0, 2 }, { 0, 3 }, { 1, 2 }, { 1, 3 }, { 2, 3 } };
     double dist;
     for (size_t v = 0; v < nTetrahedra; ++v) {
         tetrahedron = m_tetrahedra[v];
         npos = nneg = 0;
-        for (int i = 0; i < 4; ++i) {
+        for (int32_t i = 0; i < 4; ++i) {
             dist = plane.m_a * tetrahedron.m_pts[i][0] + plane.m_b * tetrahedron.m_pts[i][1] + plane.m_c * tetrahedron.m_pts[i][2] + plane.m_d;
             if (dist > 0.0) {
                 sign[i] = 1;
@@ -1477,8 +1477,8 @@ void TetrahedronSet::Clip(const Plane& plane,
             }
         }
         else {
-            int nnew = 0;
-            for (int j = 0; j < 6; ++j) {
+            int32_t nnew = 0;
+            for (int32_t j = 0; j < 6; ++j) {
                 if (sign[edges[j][0]] * sign[edges[j][1]] == -1) {
                     P0 = tetrahedron.m_pts[edges[j][0]];
                     P1 = tetrahedron.m_pts[edges[j][1]];
@@ -1486,7 +1486,7 @@ void TetrahedronSet::Clip(const Plane& plane,
                     alpha = -(plane.m_d + (n * P1)) / delta;
                     assert(alpha >= 0.0 && alpha <= 1.0);
                     M = alpha * P0 + (1 - alpha) * P1;
-                    for (int xx = 0; xx < 3; ++xx) {
+                    for (int32_t xx = 0; xx < 3; ++xx) {
                         assert(M[xx] + EPS >= m_minBB[xx]);
                         assert(M[xx] <= m_maxBB[xx] + EPS);
                     }
@@ -1508,15 +1508,15 @@ void TetrahedronSet::Convert(Mesh& mesh, const VOXEL_VALUE value) const
     for (size_t v = 0; v < nTetrahedra; ++v) {
         const Tetrahedron& tetrahedron = m_tetrahedra[v];
         if (tetrahedron.m_data == value) {
-            int s = (int)mesh.GetNPoints();
+            int32_t s = (int32_t)mesh.GetNPoints();
             mesh.AddPoint(tetrahedron.m_pts[0]);
             mesh.AddPoint(tetrahedron.m_pts[1]);
             mesh.AddPoint(tetrahedron.m_pts[2]);
             mesh.AddPoint(tetrahedron.m_pts[3]);
-            mesh.AddTriangle(Vec3<int>(s + 0, s + 1, s + 2));
-            mesh.AddTriangle(Vec3<int>(s + 2, s + 1, s + 3));
-            mesh.AddTriangle(Vec3<int>(s + 3, s + 1, s + 0));
-            mesh.AddTriangle(Vec3<int>(s + 3, s + 0, s + 2));
+            mesh.AddTriangle(Vec3<int32_t>(s + 0, s + 1, s + 2));
+            mesh.AddTriangle(Vec3<int32_t>(s + 2, s + 1, s + 3));
+            mesh.AddTriangle(Vec3<int32_t>(s + 3, s + 1, s + 0));
+            mesh.AddTriangle(Vec3<int32_t>(s + 3, s + 0, s + 2));
         }
     }
 }
@@ -1554,7 +1554,7 @@ void TetrahedronSet::RevertAlignToPrincipalAxes()
     double x, y, z;
     for (size_t v = 0; v < nTetrahedra; ++v) {
         Tetrahedron& tetrahedron = m_tetrahedra[v];
-        for (int i = 0; i < 4; ++i) {
+        for (int32_t i = 0; i < 4; ++i) {
             x = tetrahedron.m_pts[i][0] - m_barycenter[0];
             y = tetrahedron.m_pts[i][1] - m_barycenter[1];
             z = tetrahedron.m_pts[i][2] - m_barycenter[2];
@@ -1576,7 +1576,7 @@ void TetrahedronSet::ComputePrincipalAxes()
     double x, y, z;
     for (size_t v = 0; v < nTetrahedra; ++v) {
         Tetrahedron& tetrahedron = m_tetrahedra[v];
-        for (int i = 0; i < 4; ++i) {
+        for (int32_t i = 0; i < 4; ++i) {
             x = tetrahedron.m_pts[i][0] - m_barycenter[0];
             y = tetrahedron.m_pts[i][1] - m_barycenter[1];
             z = tetrahedron.m_pts[i][2] - m_barycenter[2];
@@ -1608,7 +1608,7 @@ void TetrahedronSet::AlignToPrincipalAxes()
     double x, y, z;
     for (size_t v = 0; v < nTetrahedra; ++v) {
         Tetrahedron& tetrahedron = m_tetrahedra[v];
-        for (int i = 0; i < 4; ++i) {
+        for (int32_t i = 0; i < 4; ++i) {
             x = tetrahedron.m_pts[i][0] - m_barycenter[0];
             y = tetrahedron.m_pts[i][1] - m_barycenter[1];
             z = tetrahedron.m_pts[i][2] - m_barycenter[2];

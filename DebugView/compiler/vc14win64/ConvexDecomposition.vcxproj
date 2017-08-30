@@ -47,7 +47,7 @@
 			<FloatingPointModel>Fast</FloatingPointModel>
 			<AdditionalOptions>/W4</AdditionalOptions>
 			<Optimization>Disabled</Optimization>
-			<AdditionalIncludeDirectories>./../../../src/VHACD_Lib/public;./../../../src/VHACD_Lib/inc;./../../NvRenderDebug;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>./../../../src/VHACD_Lib/public;./../../../src/VHACD_Lib/inc;./../../NvRenderDebug;./../../PhysXFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE=1;_CRT_SECURE_NO_DEPRECATE;OPEN_SOURCE=1;_DEBUG;_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<WarningLevel>Level3</WarningLevel>
 			<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -85,7 +85,7 @@
 			<FloatingPointModel>Fast</FloatingPointModel>
 			<AdditionalOptions>/W4</AdditionalOptions>
 			<Optimization>MaxSpeed</Optimization>
-			<AdditionalIncludeDirectories>./../../../src/VHACD_Lib/public;./../../../src/VHACD_Lib/inc;./../../NvRenderDebug;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>./../../../src/VHACD_Lib/public;./../../../src/VHACD_Lib/inc;./../../NvRenderDebug;./../../PhysXFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE=1;_CRT_SECURE_NO_DEPRECATE;OPEN_SOURCE=1;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<WarningLevel>Level3</WarningLevel>
 			<RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -117,6 +117,12 @@
 		</ClCompile>
 	</ItemGroup>
 	<ItemGroup>
+		<ClInclude Include="..\..\PhysXFramework\NvPhysXFramework.h">
+		</ClInclude>
+		<ClCompile Include="..\..\PhysXFramework\NvPhysXFrameworkBinding.cpp">
+		</ClCompile>
+	</ItemGroup>
+	<ItemGroup>
 		<ClCompile Include="..\..\main.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\TestHACD.cpp">
@@ -144,6 +150,8 @@
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\btScalar.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\btVector3.h">
+		</ClInclude>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\FloatMath.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdCircularList.h">
 		</ClInclude>
@@ -176,6 +184,8 @@
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\btAlignedAllocator.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\btConvexHullComputer.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\FloatMath.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD-ASYNC.cpp">
 		</ClCompile>

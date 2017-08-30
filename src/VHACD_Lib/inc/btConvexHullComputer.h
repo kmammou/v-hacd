@@ -23,24 +23,24 @@ subject to the following restrictions:
 /// Ole Kniemeyer, MAXON Computer GmbH
 class btConvexHullComputer {
 private:
-    btScalar compute(const void* coords, bool doubleCoords, int stride, int count, btScalar shrink, btScalar shrinkClamp);
+    btScalar compute(const void* coords, bool doubleCoords, int32_t stride, int32_t count, btScalar shrink, btScalar shrinkClamp);
 
 public:
     class Edge {
     private:
-        int next;
-        int reverse;
-        int targetVertex;
+        int32_t next;
+        int32_t reverse;
+        int32_t targetVertex;
 
         friend class btConvexHullComputer;
 
     public:
-        int getSourceVertex() const
+        int32_t getSourceVertex() const
         {
             return (this + reverse)->targetVertex;
         }
 
-        int getTargetVertex() const
+        int32_t getTargetVertex() const
         {
             return targetVertex;
         }
@@ -68,7 +68,7 @@ public:
     btAlignedObjectArray<Edge> edges;
 
     // Faces of the convex hull. Each entry is an index into the "edges" array pointing to an edge of the face. Faces are planar n-gons
-    btAlignedObjectArray<int> faces;
+    btAlignedObjectArray<int32_t> faces;
 
     /*
 		Compute convex hull of "count" vertices stored in "coords". "stride" is the difference in bytes
@@ -82,13 +82,13 @@ public:
 
 		The output convex hull can be found in the member variables "vertices", "edges", "faces".
 		*/
-    btScalar compute(const float* coords, int stride, int count, btScalar shrink, btScalar shrinkClamp)
+    btScalar compute(const float* coords, int32_t stride, int32_t count, btScalar shrink, btScalar shrinkClamp)
     {
         return compute(coords, false, stride, count, shrink, shrinkClamp);
     }
 
     // same as above, but double precision
-    btScalar compute(const double* coords, int stride, int count, btScalar shrink, btScalar shrinkClamp)
+    btScalar compute(const double* coords, int32_t stride, int32_t count, btScalar shrink, btScalar shrinkClamp)
     {
         return compute(coords, true, stride, count, shrink, shrinkClamp);
     }

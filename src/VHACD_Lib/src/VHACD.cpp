@@ -33,6 +33,16 @@
 #include "vhacdVHACD.h"
 #include "vhacdVector.h"
 #include "vhacdVolume.h"
+#include "FloatMath.h"
+
+// Internal debugging feature only
+#define DEBUG_VISUALIZE_CONSTRAINTS 0
+
+#if DEBUG_VISUALIZE_CONSTRAINTS
+#include "NvRenderDebug.h"
+extern RENDER_DEBUG::RenderDebug *gRenderDebug;
+#pragma warning(disable:4702)
+#endif
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -47,13 +57,13 @@
 #ifdef USE_SSE
 #include <immintrin.h>
 
-const int SIMD_WIDTH = 4;
-inline int FindMinimumElement(const float* const d, float* const m, const int n)
+const int32_t SIMD_WIDTH = 4;
+inline int32_t FindMinimumElement(const float* const d, float* const _, const int32_t n)
 {
     // Min within vectors
     __m128 min_i = _mm_set1_ps(-1.0f);
     __m128 min_v = _mm_set1_ps(std::numeric_limits<float>::max());
-    for (int i = 0; i <= n - SIMD_WIDTH; i += SIMD_WIDTH) {
+    for (int32_t i = 0; i <= n - SIMD_WIDTH; i += SIMD_WIDTH) {
         const __m128 data = _mm_load_ps(&d[i]);
         const __m128 pred = _mm_cmplt_ps(data, min_v);
 
@@ -69,11 +79,11 @@ inline int FindMinimumElement(const float* const d, float* const m, const int n)
     float min_d = _mm_cvtss_f32(min4);
 
     // Min index
-    const int min_idx = __builtin_ctz(_mm_movemask_ps(_mm_cmpeq_ps(min_v, min4)));
-    int ret = min_i[min_idx] + min_idx;
+    const int32_t min_idx = __builtin_ctz(_mm_movemask_ps(_mm_cmpeq_ps(min_v, min4)));
+    int32_t ret = min_i[min_idx] + min_idx;
 
     // Trailing elements
-    for (int i = (n & ~(SIMD_WIDTH - 1)); i < n; ++i) {
+    for (int32_t i = (n & ~(SIMD_WIDTH - 1)); i < n; ++i) {
         if (d[i] < min_d) {
             min_d = d[i];
             ret = i;
@@ -84,13 +94,13 @@ inline int FindMinimumElement(const float* const d, float* const m, const int n)
     return ret;
 }
 
-inline int FindMinimumElement(const float* const d, float* const m, const int begin, const int end)
+inline int32_t FindMinimumElement(const float* const d, float* const m, const int32_t begin, const int32_t end)
 {
     // Leading elements
-    int min_i = -1;
+    int32_t min_i = -1;
     float min_d = std::numeric_limits<float>::max();
-    const int aligned = (begin & ~(SIMD_WIDTH - 1)) + ((begin & (SIMD_WIDTH - 1)) ? SIMD_WIDTH : 0);
-    for (int i = begin; i < std::min(end, aligned); ++i) {
+    const int32_t aligned = (begin & ~(SIMD_WIDTH - 1)) + ((begin & (SIMD_WIDTH - 1)) ? SIMD_WIDTH : 0);
+    for (int32_t i = begin; i < std::min(end, aligned); ++i) {
         if (d[i] < min_d) {
             min_d = d[i];
             min_i = i;
@@ -99,8 +109,8 @@ inline int FindMinimumElement(const float* const d, float* const m, const int be
 
     // Middle and trailing elements
     float r_m = std::numeric_limits<float>::max();
-    const int n = end - aligned;
-    const int r_i = (n > 0) ? FindMinimumElement(&d[aligned], &r_m, n) : 0;
+    const int32_t n = end - aligned;
+    const int32_t r_i = (n > 0) ? FindMinimumElement(&d[aligned], &r_m, n) : 0;
 
     // Pick the lowest
     if (r_m < min_d) {
@@ -113,9 +123,9 @@ inline int FindMinimumElement(const float* const d, float* const m, const int be
     }
 }
 #else
-inline int FindMinimumElement(const float* const d, float* const m, const int begin, const int end)
+inline int32_t FindMinimumElement(const float* const d, float* const m, const int32_t begin, const int32_t end)
 {
-    int idx = -1;
+    int32_t idx = -1;
     float min = (std::numeric_limits<float>::max)();
     for (size_t i = begin; i < size_t(end); ++i) {
         if (d[i] < min) {
@@ -133,16 +143,16 @@ inline int FindMinimumElement(const float* const d, float* const m, const int be
 #ifndef OCL_SOURCE_FROM_FILE
 const char* oclProgramSource = "\
 __kernel void ComputePartialVolumes(__global short4 * voxels,                    \
-                                    const    int      numVoxels,                 \
+                                    const    int32_t      numVoxels,                 \
                                     const    float4   plane,                     \
                                     const    float4   minBB,                     \
                                     const    float4   scale,                     \
                                     __local  uint4 *  localPartialVolumes,       \
                                     __global uint4 *  partialVolumes)            \
 {                                                                                \
-    int localId = get_local_id(0);                                               \
-    int groupSize = get_local_size(0);                                           \
-    int i0 = get_global_id(0) << 2;                                              \
+    int32_t localId = get_local_id(0);                                               \
+    int32_t groupSize = get_local_size(0);                                           \
+    int32_t i0 = get_global_id(0) << 2;                                              \
     float4 voxel;                                                                \
     uint4  v;                                                                    \
     voxel = convert_float4(voxels[i0]);                                          \
@@ -155,7 +165,7 @@ __kernel void ComputePartialVolumes(__global short4 * voxels,                   
     v.s3 = (dot(plane, mad(scale, voxel, minBB)) >= 0.0f) * (i0 + 3 < numVoxels);\
     localPartialVolumes[localId] = v;                                            \
     barrier(CLK_LOCAL_MEM_FENCE);                                                \
-    for (int i = groupSize >> 1; i > 0; i >>= 1)                                 \
+    for (int32_t i = groupSize >> 1; i > 0; i >>= 1)                                 \
     {                                                                            \
         if (localId < i)                                                         \
         {                                                                        \
@@ -169,13 +179,13 @@ __kernel void ComputePartialVolumes(__global short4 * voxels,                   
     }                                                                            \
 }                                                                                \
 __kernel void ComputePartialSums(__global uint4 * data,                          \
-                                 const    int     dataSize,                      \
+                                 const    int32_t     dataSize,                      \
                                  __local  uint4 * partialSums)                   \
 {                                                                                \
-    int globalId  = get_global_id(0);                                            \
-    int localId   = get_local_id(0);                                             \
-    int groupSize = get_local_size(0);                                           \
-    int i;                                                                       \
+    int32_t globalId  = get_global_id(0);                                            \
+    int32_t localId   = get_local_id(0);                                             \
+    int32_t groupSize = get_local_size(0);                                           \
+    int32_t i;                                                                       \
     if (globalId < dataSize)                                                     \
     {                                                                            \
         partialSums[localId] = data[globalId];                                   \
@@ -274,7 +284,7 @@ bool VHACD::OCLInit(void* const oclDevice, IUserLogger* const logger)
 
     const char nameKernelComputePartialVolumes[] = "ComputePartialVolumes";
     const char nameKernelComputeSum[] = "ComputePartialSums";
-    for (int k = 0; k < m_ompNumProcessors; ++k) {
+    for (int32_t k = 0; k < m_ompNumProcessors; ++k) {
         m_oclKernelComputePartialVolumes[k] = clCreateKernel(m_oclProgram, nameKernelComputePartialVolumes, &error);
         if (error != CL_SUCCESS) {
             if (logger) {
@@ -315,7 +325,7 @@ bool VHACD::OCLInit(void* const oclDevice, IUserLogger* const logger)
         m_oclWorkGroupSize = workGroupSize;
     }
 
-    for (int k = 0; k < m_ompNumProcessors; ++k) {
+    for (int32_t k = 0; k < m_ompNumProcessors; ++k) {
         m_oclQueue[k] = clCreateCommandQueue(m_oclContext, *m_oclDevice, 0 /*CL_QUEUE_PROFILING_ENABLE*/, &error);
         if (error != CL_SUCCESS) {
             if (logger) {
@@ -334,7 +344,7 @@ bool VHACD::OCLRelease(IUserLogger* const logger)
 #ifdef CL_VERSION_1_1
     cl_int error;
     if (m_oclKernelComputePartialVolumes) {
-        for (int k = 0; k < m_ompNumProcessors; ++k) {
+        for (int32_t k = 0; k < m_ompNumProcessors; ++k) {
             error = clReleaseKernel(m_oclKernelComputePartialVolumes[k]);
             if (error != CL_SUCCESS) {
                 if (logger) {
@@ -346,7 +356,7 @@ bool VHACD::OCLRelease(IUserLogger* const logger)
         delete[] m_oclKernelComputePartialVolumes;
     }
     if (m_oclKernelComputeSum) {
-        for (int k = 0; k < m_ompNumProcessors; ++k) {
+        for (int32_t k = 0; k < m_ompNumProcessors; ++k) {
             error = clReleaseKernel(m_oclKernelComputeSum[k]);
             if (error != CL_SUCCESS) {
                 if (logger) {
@@ -358,7 +368,7 @@ bool VHACD::OCLRelease(IUserLogger* const logger)
         delete[] m_oclKernelComputeSum;
     }
     if (m_oclQueue) {
-        for (int k = 0; k < m_ompNumProcessors; ++k) {
+        for (int32_t k = 0; k < m_ompNumProcessors; ++k) {
             error = clReleaseCommandQueue(m_oclQueue[k]);
             if (error != CL_SUCCESS) {
                 if (logger) {
@@ -437,15 +447,15 @@ void VHACD::ComputePrimitiveSet(const Parameters& params)
         params.m_logger->Log(msg.str().c_str());
     }
 }
-bool VHACD::Compute(const double* const points, const unsigned int stridePoints, const unsigned int nPoints,
-    const int* const triangles, const unsigned int strideTriangles, const unsigned int nTriangles, const Parameters& params)
+bool VHACD::Compute(const double* const points, const uint32_t nPoints,
+    const uint32_t* const triangles,const uint32_t nTriangles, const Parameters& params)
 {
-    return ComputeACD(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
+    return ComputeACD(points, nPoints, triangles, nTriangles, params);
 }
-bool VHACD::Compute(const float* const points, const unsigned int stridePoints, const unsigned int nPoints,
-    const int* const triangles, const unsigned int strideTriangles, const unsigned int nTriangles, const Parameters& params)
+bool VHACD::Compute(const float* const points,const uint32_t nPoints,
+    const uint32_t* const triangles,const uint32_t nTriangles, const Parameters& params)
 {
-    return ComputeACD(points, stridePoints, nPoints, triangles, strideTriangles, nTriangles, params);
+    return ComputeACD(points, nPoints, triangles, nTriangles, params);
 }
 double ComputePreferredCuttingDirection(const PrimitiveSet* const tset, Vec3<double>& dir)
 {
@@ -678,7 +688,7 @@ inline double ComputeConcavity(const double volume, const double volumeCH, const
 //#define DEBUG_TEMP
 void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double volume, const SArray<Plane>& planes,
     const Vec3<double>& preferredCuttingDirection, const double w, const double alpha, const double beta,
-    const int convexhullDownsampling, const double progress0, const double progress1, Plane& bestPlane,
+    const int32_t convexhullDownsampling, const double progress0, const double progress1, Plane& bestPlane,
     double& minConcavity, const Parameters& params)
 {
     if (GetCancel()) {
@@ -687,10 +697,10 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
     char msg[256];
     size_t nPrimitives = inputPSet->GetNPrimitives();
     bool oclAcceleration = (nPrimitives > OCL_MIN_NUM_PRIMITIVES && params.m_oclAcceleration && params.m_mode == 0) ? true : false;
-    int iBest = -1;
-    int nPlanes = static_cast<int>(planes.Size());
+    int32_t iBest = -1;
+    int32_t nPlanes = static_cast<int32_t>(planes.Size());
     bool cancel = false;
-    int done = 0;
+    int32_t done = 0;
     double minTotal = MAX_DOUBLE;
     double minBalance = MAX_DOUBLE;
     double minSymmetry = MAX_DOUBLE;
@@ -704,7 +714,7 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
     PrimitiveSet** psets = 0;
     if (!params.m_convexhullApproximation) {
         psets = new PrimitiveSet*[2 * m_ompNumProcessors];
-        for (int i = 0; i < 2 * m_ompNumProcessors; ++i) {
+        for (int32_t i = 0; i < 2 * m_ompNumProcessors; ++i) {
             psets[i] = inputPSet->Create();
         }
     }
@@ -721,7 +731,7 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
         const Vec3<double> minBB = vset->GetMinBB();
         const float fMinBB[4] = { (float)minBB[0], (float)minBB[1], (float)minBB[2], 1.0f };
         const float fSclae[4] = { (float)vset->GetScale(), (float)vset->GetScale(), (float)vset->GetScale(), 0.0f };
-        const int nVoxels = (int)nPrimitives;
+        const int32_t nVoxels = (int32_t)nPrimitives;
         unitVolume = vset->GetUnitVolume();
         nWorkGroups = (nPrimitives + 4 * m_oclWorkGroupSize - 1) / (4 * m_oclWorkGroupSize);
         globalSize = nWorkGroups * m_oclWorkGroupSize;
@@ -739,10 +749,10 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
         }
 
         partialVolumes = new cl_mem[m_ompNumProcessors];
-        for (int i = 0; i < m_ompNumProcessors; ++i) {
+        for (int32_t i = 0; i < m_ompNumProcessors; ++i) {
             partialVolumes[i] = clCreateBuffer(m_oclContext,
                 CL_MEM_WRITE_ONLY,
-                sizeof(unsigned int) * 4 * nWorkGroups,
+                sizeof(uint32_t) * 4 * nWorkGroups,
                 NULL,
                 &error);
             if (error != CL_SUCCESS) {
@@ -753,13 +763,13 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
                 break;
             }
             error = clSetKernelArg(m_oclKernelComputePartialVolumes[i], 0, sizeof(cl_mem), &voxels);
-            error |= clSetKernelArg(m_oclKernelComputePartialVolumes[i], 1, sizeof(unsigned int), &nVoxels);
+            error |= clSetKernelArg(m_oclKernelComputePartialVolumes[i], 1, sizeof(uint32_t), &nVoxels);
             error |= clSetKernelArg(m_oclKernelComputePartialVolumes[i], 3, sizeof(float) * 4, fMinBB);
             error |= clSetKernelArg(m_oclKernelComputePartialVolumes[i], 4, sizeof(float) * 4, &fSclae);
-            error |= clSetKernelArg(m_oclKernelComputePartialVolumes[i], 5, sizeof(unsigned int) * 4 * m_oclWorkGroupSize, NULL);
+            error |= clSetKernelArg(m_oclKernelComputePartialVolumes[i], 5, sizeof(uint32_t) * 4 * m_oclWorkGroupSize, NULL);
             error |= clSetKernelArg(m_oclKernelComputePartialVolumes[i], 6, sizeof(cl_mem), &(partialVolumes[i]));
             error |= clSetKernelArg(m_oclKernelComputeSum[i], 0, sizeof(cl_mem), &(partialVolumes[i]));
-            error |= clSetKernelArg(m_oclKernelComputeSum[i], 2, sizeof(unsigned int) * 4 * m_oclWorkGroupSize, NULL);
+            error |= clSetKernelArg(m_oclKernelComputeSum[i], 2, sizeof(uint32_t) * 4 * m_oclWorkGroupSize, NULL);
             if (error != CL_SUCCESS) {
                 if (params.m_logger) {
                     params.m_logger->Log("Couldn't kernel atguments \n");
@@ -780,8 +790,8 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
 #if USE_THREAD == 1 && _OPENMP
 #pragma omp parallel for
 #endif
-    for (int x = 0; x < nPlanes; ++x) {
-        int threadID = 0;
+    for (int32_t x = 0; x < nPlanes; ++x) {
+        int32_t threadID = 0;
 #if USE_THREAD == 1 && _OPENMP
         threadID = omp_get_thread_num();
 #pragma omp flush(cancel)
@@ -815,9 +825,9 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
                     }
                     SetCancel(true);
                 }
-                int nValues = (int)nWorkGroups;
+                int32_t nValues = (int32_t)nWorkGroups;
                 while (nValues > 1) {
-                    error = clSetKernelArg(m_oclKernelComputeSum[threadID], 1, sizeof(int), &nValues);
+                    error = clSetKernelArg(m_oclKernelComputeSum[threadID], 1, sizeof(int32_t), &nValues);
                     if (error != CL_SUCCESS) {
                         if (params.m_logger) {
                             params.m_logger->Log("Couldn't kernel atguments \n");
@@ -834,7 +844,7 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
                         }
                         SetCancel(true);
                     }
-                    nValues = (int)nWorkGroups;
+                    nValues = (int32_t)nWorkGroups;
                 }
 #endif // CL_VERSION_1_1
             }
@@ -888,9 +898,9 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
             double volumeRight = 0.0;
             if (oclAcceleration) {
 #ifdef CL_VERSION_1_1
-                unsigned int volumes[4];
+                uint32_t volumes[4];
                 cl_int error = clEnqueueReadBuffer(m_oclQueue[threadID], partialVolumes[threadID], CL_TRUE,
-                    0, sizeof(unsigned int) * 4, volumes, 0, NULL, NULL);
+                    0, sizeof(uint32_t) * 4, volumes, 0, NULL, NULL);
                 size_t nPrimitivesRight = volumes[0] + volumes[1] + volumes[2] + volumes[3];
                 size_t nPrimitivesLeft = nPrimitives - nPrimitivesRight;
                 volumeRight = nPrimitivesRight * unitVolume;
@@ -946,7 +956,7 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
 #ifdef CL_VERSION_1_1
     if (oclAcceleration) {
         clReleaseMemObject(voxels);
-        for (int i = 0; i < m_ompNumProcessors; ++i) {
+        for (int32_t i = 0; i < m_ompNumProcessors; ++i) {
             clReleaseMemObject(partialVolumes[i]);
         }
         delete[] partialVolumes;
@@ -954,7 +964,7 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
 #endif // CL_VERSION_1_1
 
     if (psets) {
-        for (int i = 0; i < 2 * m_ompNumProcessors; ++i) {
+        for (int32_t i = 0; i < 2 * m_ompNumProcessors; ++i) {
             delete psets[i];
         }
         delete[] psets;
@@ -989,10 +999,34 @@ void VHACD::ComputeACD(const Parameters& params)
     m_pset = 0;
     SArray<Plane> planes;
     SArray<Plane> planesRef;
-    int sub = 0;
+    uint32_t sub = 0;
     bool firstIteration = true;
     m_volumeCH0 = 1.0;
-    while (sub++ < params.m_depth && inputParts.Size() > 0 && !m_cancel) {
+
+	// Compute the decomposition depth based on the number of convex hulls being requested..
+	uint32_t hullCount = 2;
+	uint32_t depth = 1;
+	while (params.m_maxConvexHulls > hullCount)
+	{
+		depth++;
+		hullCount *= 2;
+	}
+	// We must always increment the decomposition depth one higher than the maximum number of hulls requested.
+	// The reason for this is as follows.
+	// Say, for example, the user requests 32 convex hulls exactly.  This would be a decomposition depth of 5.
+	// However, when we do that, we do *not* necessarily get 32 hulls as a result.  This is because, during
+	// the recursive descent of the binary tree, one or more of the leaf nodes may have no concavity and
+	// will not be split.  So, in this way, even with a decomposition depth of 5, you can produce fewer than
+	// 32 hulls.  So, in this case, we would set the decomposition depth to 6 (producing up to as high as 64 convex hulls).
+	// Then, the merge step which combines over-described hulls down to the user requested amount, we will end up
+	// getting exactly 32 convex hulls as a result.
+	// We could just allow the artist to directly control the decomposition depth directly, but this would be a bit
+	// too complex and the preference is simply to let them specify how many hulls they want and derive the solution
+	// from that.
+	depth++;
+
+
+    while (sub++ < depth && inputParts.Size() > 0 && !m_cancel) {
         msg.str("");
         msg << "Subdivision level " << sub;
         m_operation = msg.str();
@@ -1224,8 +1258,8 @@ void VHACD::ComputeACD(const Parameters& params)
 }
 void AddPoints(const Mesh* const mesh, SArray<Vec3<double> >& pts)
 {
-    const int n = (int)mesh->GetNPoints();
-    for (int i = 0; i < n; ++i) {
+    const int32_t n = (int32_t)mesh->GetNPoints();
+    for (int32_t i = 0; i < n; ++i) {
         pts.PushBack(mesh->GetPoint(i));
     }
 }
@@ -1236,21 +1270,21 @@ void ComputeConvexHull(const Mesh* const ch1, const Mesh* const ch2, SArray<Vec3
     AddPoints(ch2, pts);
 
     btConvexHullComputer ch;
-    ch.compute((double*)pts.Data(), 3 * sizeof(double), (int)pts.Size(), -1.0, -1.0);
+    ch.compute((double*)pts.Data(), 3 * sizeof(double), (int32_t)pts.Size(), -1.0, -1.0);
     combinedCH->ResizePoints(0);
     combinedCH->ResizeTriangles(0);
-    for (int v = 0; v < ch.vertices.size(); v++) {
+    for (int32_t v = 0; v < ch.vertices.size(); v++) {
         combinedCH->AddPoint(Vec3<double>(ch.vertices[v].getX(), ch.vertices[v].getY(), ch.vertices[v].getZ()));
     }
-    const int nt = ch.faces.size();
-    for (int t = 0; t < nt; ++t) {
+    const int32_t nt = ch.faces.size();
+    for (int32_t t = 0; t < nt; ++t) {
         const btConvexHullComputer::Edge* sourceEdge = &(ch.edges[ch.faces[t]]);
-        int a = sourceEdge->getSourceVertex();
-        int b = sourceEdge->getTargetVertex();
+        int32_t a = sourceEdge->getSourceVertex();
+        int32_t b = sourceEdge->getTargetVertex();
         const btConvexHullComputer::Edge* edge = sourceEdge->getNextEdgeOfFace();
-        int c = edge->getTargetVertex();
+        int32_t c = edge->getTargetVertex();
         while (c != a) {
-            combinedCH->AddTriangle(Vec3<int>(a, b, c));
+            combinedCH->AddTriangle(Vec3<int32_t>(a, b, c));
             edge = edge->getNextEdgeOfFace();
             b = c;
             c = edge->getTargetVertex();
@@ -1275,7 +1309,7 @@ void VHACD::MergeConvexHulls(const Parameters& params)
 	// Get the current number of convex hulls
     size_t nConvexHulls = m_convexHulls.Size();
 	// Iteration counter
-    int iteration = 0;
+    int32_t iteration = 0;
 	// While we have more than at least one convex hull and the user has not asked us to cancel the operation
     if (nConvexHulls > 1 && !m_cancel) 
 	{
@@ -1312,7 +1346,7 @@ void VHACD::MergeConvexHulls(const Parameters& params)
 			{
 				break;
 			}
-            const size_t addrI = (static_cast<int>(sqrt(1 + (8 * addr))) - 1) >> 1;
+            const size_t addrI = (static_cast<int32_t>(sqrt(1 + (8 * addr))) - 1) >> 1;
             const size_t p1 = addrI + 1;
             const size_t p2 = addr - ((addrI * (addrI + 1)) >> 1);
             assert(p1 >= 0);
@@ -1474,7 +1508,7 @@ void VHACD::SimplifyConvexHull(Mesh* const ch, const size_t nvertices, const dou
     {
         icHull.AddPoints(ch->GetPointsBuffer(), ch->GetNPoints());
     }
-    icHull.Process((unsigned int)nvertices, minVolume);
+    icHull.Process((uint32_t)nvertices, minVolume);
     TMMesh& mesh = icHull.GetMesh();
     const size_t nT = mesh.GetNTriangles();
     const size_t nV = mesh.GetNVertices();
@@ -1518,4 +1552,233 @@ void VHACD::SimplifyConvexHulls(const Parameters& params)
         params.m_logger->Log(msg.str().c_str());
     }
 }
+
+bool VHACD::ComputeCenterOfMass(double centerOfMass[3]) const
+{
+	bool ret = false;
+
+	centerOfMass[0] = 0;
+	centerOfMass[1] = 0;
+	centerOfMass[2] = 0;
+	// Get number of convex hulls in the result
+	uint32_t hullCount = GetNConvexHulls();
+	if (hullCount) // if we have results
+	{
+		ret = true;
+		double totalVolume = 0;
+		// Initialize the center of mass to zero
+		centerOfMass[0] = 0;
+		centerOfMass[1] = 0;
+		centerOfMass[2] = 0;
+		// Compute the total volume of all convex hulls
+		for (uint32_t i = 0; i < hullCount; i++)
+		{
+			ConvexHull ch;
+			GetConvexHull(i, ch);
+			totalVolume += ch.m_volume;
+		}
+		// compute the reciprocal of the total volume
+		double recipVolume = 1.0 / totalVolume;
+		// Add in the weighted by volume average of the center point of each convex hull
+		for (uint32_t i = 0; i < hullCount; i++)
+		{
+			ConvexHull ch;
+			GetConvexHull(i, ch);
+			double ratio = ch.m_volume*recipVolume;
+			centerOfMass[0] += ch.m_center[0] * ratio;
+			centerOfMass[1] += ch.m_center[1] * ratio;
+			centerOfMass[2] += ch.m_center[2] * ratio;
+		}
+	}
+	return ret;
 }
+
+#pragma warning(disable:4189 4101)
+
+// Will analyze the HACD results and compute the constraints solutions.
+// It will analyze the point at which any two convex hulls touch each other and 
+// return the total number of constraint pairs found
+uint32_t VHACD::ComputeConstraints(void)
+{
+	mConstraints.clear(); // erase any previous constraint results
+	uint32_t hullCount = GetNConvexHulls(); // get the number of convex hulls in the results
+	if (hullCount == 0)
+		return 0;
+#if DEBUG_VISUALIZE_CONSTRAINTS
+	gRenderDebug->pushRenderState();
+	gRenderDebug->setCurrentDisplayTime(10);
+#endif
+
+	// We voxelize the convex hull
+	class HullData
+	{
+	public:
+		HullData(void)
+		{
+			FLOAT_MATH::fm_initMinMax(mBmin, mBmax);
+		}
+
+		~HullData(void)
+		{
+			FLOAT_MATH::fm_releaseVertexIndex(mVertexIndex);
+			FLOAT_MATH::fm_releaseTesselate(mTesselate);
+			delete[]mIndices;
+		}
+
+		void computeResolution(void)
+		{
+			mDiagonalDistance = FLOAT_MATH::fm_distance(mBmin, mBmax);
+			mTessellateDistance = mDiagonalDistance / 20;
+			mNearestPointDistance = mDiagonalDistance / 20.0f;
+			mPointResolution = mDiagonalDistance / 100;
+			mVertexIndex = FLOAT_MATH::fm_createVertexIndex(mPointResolution, false);
+			mTesselate = FLOAT_MATH::fm_createTesselate();
+		}
+
+		void computeTesselation(void)
+		{
+			mTesselationIndices = mTesselate->tesselate(mVertexIndex, mSourceTriangleCount, mIndices, mTessellateDistance, 6, mTessellateTriangleCount);
+			uint32_t vcount = mVertexIndex->getVcount();
+		}
+
+		bool getNearestVert(const double sourcePoint[3],
+							double nearest[3],
+							const HullData &other,
+							double nearestThreshold)
+		{
+			bool ret = false;
+
+			double nt2 = nearestThreshold*nearestThreshold;
+			uint32_t vcount = other.mVertexIndex->getVcount();
+			for (uint32_t i = 0; i < vcount; i++)
+			{
+				const double *p = other.mVertexIndex->getVertexDouble(i);
+				double d2 = FLOAT_MATH::fm_distanceSquared(sourcePoint, p);
+				if (d2 < nt2)
+				{
+					nearest[0] = p[0];
+					nearest[1] = p[1];
+					nearest[2] = p[2];
+					nt2 = d2;
+					ret = true;
+				}
+			}
+
+			return ret;
+		}
+
+		void findMatchingPoints(const HullData &other)
+		{
+			uint32_t vcount = mVertexIndex->getVcount();
+			for (uint32_t i = 0; i < vcount; i++)
+			{
+				const double *sourcePoint = mVertexIndex->getVertexDouble(i);
+				double nearestPoint[3];
+				if (getNearestVert(sourcePoint, nearestPoint, other, mNearestPointDistance))
+				{
+#if DEBUG_VISUALIZE_CONSTRAINTS
+					float fp1[3];
+					float fp2[3];
+					FLOAT_MATH::fm_doubleToFloat3(sourcePoint, fp1);
+					FLOAT_MATH::fm_doubleToFloat3(nearestPoint, fp2);
+					gRenderDebug->debugRay(fp1, fp2);
+#endif
+				}
+			}
+
+		}
+
+		double						mBmin[3];
+		double						mBmax[3];
+		double						mDiagonalDistance;
+		double						mTessellateDistance;
+		double						mPointResolution;
+		double						mNearestPointDistance;
+		uint32_t					mSourceTriangleCount{ 0 };
+		uint32_t					mTessellateTriangleCount{ 0 };
+		uint32_t					*mIndices{ nullptr };
+		FLOAT_MATH::fm_VertexIndex	*mVertexIndex{ nullptr };
+		FLOAT_MATH::fm_Tesselate	*mTesselate{ nullptr };
+		const uint32_t				*mTesselationIndices{ nullptr };
+	};
+
+	HullData *hullData = new HullData[hullCount];
+	for (uint32_t i = 0; i < hullCount; i++)
+	{
+		HullData &hd = hullData[i];
+		ConvexHull ch;
+		GetConvexHull(i, ch);
+		// Compute the bounding volume of this convex hull
+		for (uint32_t j = 0; j < ch.m_nPoints; j++)
+		{
+			const double *p = &ch.m_points[j * 3];
+			FLOAT_MATH::fm_minmax(p, hd.mBmin, hd.mBmax);
+		}
+		hd.computeResolution();	// Compute the tessellation resolution
+		uint32_t tcount = ch.m_nTriangles;
+		hd.mSourceTriangleCount = tcount;
+		hd.mIndices = new uint32_t[tcount * 3];
+		for (uint32_t j = 0; j < tcount; j++)
+		{
+			uint32_t i1 = ch.m_triangles[j * 3 + 0];
+			uint32_t i2 = ch.m_triangles[j * 3 + 1];
+			uint32_t i3 = ch.m_triangles[j * 3 + 2];
+			const double *p1 = &ch.m_points[i1 * 3];
+			const double *p2 = &ch.m_points[i2 * 3];
+			const double *p3 = &ch.m_points[i3 * 3];
+			bool newPos;
+			hd.mIndices[j * 3 + 0] = hd.mVertexIndex->getIndex(p1, newPos);
+			hd.mIndices[j * 3 + 1] = hd.mVertexIndex->getIndex(p2, newPos);
+			hd.mIndices[j * 3 + 2] = hd.mVertexIndex->getIndex(p3, newPos);
+		}
+		hd.computeTesselation();
+	}
+
+	for (uint32_t i = 0; i < hullCount; i++)
+	{
+		HullData &hd = hullData[i];
+		// Slightly inflate the bounding box around each convex hull for intersection tests
+		// during the constraint building phase
+		FLOAT_MATH::fm_inflateMinMax(hd.mBmin, hd.mBmax, 0.05f);
+	}
+
+	// Look for every possible pair of convex hulls as possible constraints
+	for (uint32_t i = 0; i < hullCount; i++)
+	{
+		HullData &hd1 = hullData[i];
+		for (uint32_t j = i + 1; j < hullCount; j++)
+		{
+			HullData &hd2 = hullData[j];
+			if (FLOAT_MATH::fm_intersectAABB(hd1.mBmin, hd1.mBmax, hd2.mBmin, hd2.mBmax))
+			{
+				// ok. if two convex hulls intersect, we are going to find the <n> number of nearest
+				// matching points between them.
+				hd1.findMatchingPoints(hd2);
+			}
+		}
+	}
+
+
+#if DEBUG_VISUALIZE_CONSTRAINTS
+	gRenderDebug->popRenderState();
+#endif
+
+	return uint32_t(mConstraints.size());
+}
+
+// Returns a pointer to the constraint index; null if the index is not valid or
+// the user did not previously call 'ComputeConstraints' 
+const VHACD::IVHACD::Constraint *VHACD::GetConstraint(uint32_t index) const
+{
+	const Constraint *ret = nullptr;
+
+	if (index < mConstraints.size())
+	{
+		ret = &mConstraints[index];
+	}
+
+	return ret;
+}
+
+
+} // end of VHACD namespace

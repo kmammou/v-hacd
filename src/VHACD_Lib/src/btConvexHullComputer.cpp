@@ -27,10 +27,10 @@ typedef __int64 int64_t;
 typedef unsigned __int32 uint32_t;
 typedef unsigned __int64 uint64_t;
 #else
-typedef int int32_t;
-typedef long long int int64_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long int uint64_t;
+typedef int32_t int32_t;
+typedef long long int32_t int64_t;
+typedef uint32_t uint32_t;
+typedef unsigned long long int32_t uint64_t;
 #endif
 
 #ifdef _MSC_VER
@@ -82,7 +82,7 @@ public:
         int32_t x;
         int32_t y;
         int32_t z;
-        int index;
+        int32_t index;
 
         Point32()
         {
@@ -244,7 +244,7 @@ public:
                                         : -(-*this).toScalar();
         }
 
-        int getSign() const
+        int32_t getSign() const
         {
             return ((int64_t)high < 0) ? -1 : (high || low) ? 1 : 0;
         }
@@ -254,7 +254,7 @@ public:
             return (high < b.high) || ((high == b.high) && (low < b.low));
         }
 
-        int ucmp(const Int128& b) const
+        int32_t ucmp(const Int128& b) const
         {
             if (high < b.high) {
                 return -1;
@@ -276,7 +276,7 @@ public:
     private:
         uint64_t m_numerator;
         uint64_t m_denominator;
-        int sign;
+        int32_t sign;
 
     public:
         Rational64(int64_t numerator, int64_t denominator)
@@ -315,7 +315,7 @@ public:
             return (sign == 0) && (m_denominator == 0);
         }
 
-        int compare(const Rational64& b) const;
+        int32_t compare(const Rational64& b) const;
 
         btScalar toScalar() const
         {
@@ -327,7 +327,7 @@ public:
     private:
         Int128 numerator;
         Int128 denominator;
-        int sign;
+        int32_t sign;
         bool isInt64;
 
     public:
@@ -358,7 +358,7 @@ public:
             else {
                 this->numerator = -numerator;
             }
-            int dsign = denominator.getSign();
+            int32_t dsign = denominator.getSign();
             if (dsign >= 0) {
                 this->denominator = denominator;
             }
@@ -369,9 +369,9 @@ public:
             isInt64 = false;
         }
 
-        int compare(const Rational128& b) const;
+        int32_t compare(const Rational128& b) const;
 
-        int compare(int64_t b) const;
+        int32_t compare(int64_t b) const;
 
         btScalar toScalar() const
         {
@@ -426,7 +426,7 @@ public:
         Face* lastNearbyFace;
         PointR128 point128;
         Point32 point;
-        int copy;
+        int32_t copy;
 
         Vertex()
             : next(NULL)
@@ -500,7 +500,7 @@ public:
         Edge* reverse;
         Vertex* target;
         Face* face;
-        int copy;
+        int32_t copy;
 
         ~Edge()
         {
@@ -656,12 +656,12 @@ private:
     class PoolArray {
     private:
         T* array;
-        int size;
+        int32_t size;
 
     public:
         PoolArray<T>* next;
 
-        PoolArray(int size)
+        PoolArray(int32_t size)
             : size(size)
             , next(NULL)
         {
@@ -676,7 +676,7 @@ private:
         T* init()
         {
             T* o = array;
-            for (int i = 0; i < size; i++, o++) {
+            for (int32_t i = 0; i < size; i++, o++) {
                 o->next = (i + 1 < size) ? o + 1 : NULL;
             }
             return array;
@@ -689,7 +689,7 @@ private:
         PoolArray<T>* arrays;
         PoolArray<T>* nextArray;
         T* freeObjects;
-        int arraySize;
+        int32_t arraySize;
 
     public:
         Pool()
@@ -716,7 +716,7 @@ private:
             freeObjects = NULL;
         }
 
-        void setArraySize(int arraySize)
+        void setArraySize(int32_t arraySize)
         {
             this->arraySize = arraySize;
         }
@@ -754,12 +754,12 @@ private:
     Pool<Edge> edgePool;
     Pool<Face> facePool;
     btAlignedObjectArray<Vertex*> originalVertices;
-    int mergeStamp;
-    int minAxis;
-    int medAxis;
-    int maxAxis;
-    int usedEdgePairs;
-    int maxUsedEdgePairs;
+    int32_t mergeStamp;
+    int32_t minAxis;
+    int32_t medAxis;
+    int32_t maxAxis;
+    int32_t usedEdgePairs;
+    int32_t maxUsedEdgePairs;
 
     static Orientation getOrientation(const Edge* prev, const Edge* next, const Point32& s, const Point32& t);
     Edge* findMaxAngle(bool ccw, const Vertex* start, const Point32& s, const Point64& rxs, const Point64& sxrxs, Rational64& minCot);
@@ -799,7 +799,7 @@ private:
         usedEdgePairs--;
     }
 
-    void computeInternal(int start, int end, IntermediateHull& result);
+    void computeInternal(int32_t start, int32_t end, IntermediateHull& result);
 
     bool mergeProjection(IntermediateHull& h0, IntermediateHull& h1, Vertex*& c0, Vertex*& c1);
 
@@ -814,7 +814,7 @@ private:
 public:
     Vertex* vertexList;
 
-    void compute(const void* coords, bool doubleCoords, int stride, int count);
+    void compute(const void* coords, bool doubleCoords, int32_t stride, int32_t count);
 
     btVector3 getCoordinates(const Vertex* v);
 
@@ -876,7 +876,7 @@ btConvexHullInternal::Int128 btConvexHullInternal::Int128::mul(uint64_t a, uint6
     return result;
 }
 
-int btConvexHullInternal::Rational64::compare(const Rational64& b) const
+int32_t btConvexHullInternal::Rational64::compare(const Rational64& b) const
 {
     if (sign != b.sign) {
         return sign - b.sign;
@@ -889,7 +889,7 @@ int btConvexHullInternal::Rational64::compare(const Rational64& b) const
 
 #ifdef USE_X86_64_ASM
 
-    int result;
+    int32_t result;
     int64_t tmp;
     int64_t dummy;
     __asm__("mulq %[bn]\n\t"
@@ -918,7 +918,7 @@ int btConvexHullInternal::Rational64::compare(const Rational64& b) const
 #endif
 }
 
-int btConvexHullInternal::Rational128::compare(const Rational128& b) const
+int32_t btConvexHullInternal::Rational128::compare(const Rational128& b) const
 {
     if (sign != b.sign) {
         return sign - b.sign;
@@ -934,14 +934,14 @@ int btConvexHullInternal::Rational128::compare(const Rational128& b) const
     DMul<Int128, uint64_t>::mul(numerator, b.denominator, nbdLow, nbdHigh);
     DMul<Int128, uint64_t>::mul(denominator, b.numerator, dbnLow, dbnHigh);
 
-    int cmp = nbdHigh.ucmp(dbnHigh);
+    int32_t cmp = nbdHigh.ucmp(dbnHigh);
     if (cmp) {
         return cmp * sign;
     }
     return nbdLow.ucmp(dbnLow) * sign;
 }
 
-int btConvexHullInternal::Rational128::compare(int64_t b) const
+int32_t btConvexHullInternal::Rational128::compare(int64_t b) const
 {
     if (isInt64) {
         int64_t a = sign * (int64_t)numerator.low;
@@ -1029,7 +1029,7 @@ bool btConvexHullInternal::mergeProjection(IntermediateHull& h0, IntermediateHul
     Vertex* v10 = NULL;
     int32_t sign = 1;
 
-    for (int side = 0; side <= 1; side++) {
+    for (int32_t side = 0; side <= 1; side++) {
         int32_t dx = (v1->point.x - v0->point.x) * sign;
         if (dx > 0) {
             while (true) {
@@ -1142,9 +1142,9 @@ bool btConvexHullInternal::mergeProjection(IntermediateHull& h0, IntermediateHul
     return true;
 }
 
-void btConvexHullInternal::computeInternal(int start, int end, IntermediateHull& result)
+void btConvexHullInternal::computeInternal(int32_t start, int32_t end, IntermediateHull& result)
 {
-    int n = end - start;
+    int32_t n = end - start;
     switch (n) {
     case 0:
         result.minXy = NULL;
@@ -1225,9 +1225,9 @@ void btConvexHullInternal::computeInternal(int start, int end, IntermediateHull&
     }
     }
 
-    int split0 = start + n / 2;
+    int32_t split0 = start + n / 2;
     Point32 p = originalVertices[split0 - 1]->point;
-    int split1 = split0;
+    int32_t split1 = split0;
     while ((split1 < end) && (originalVertices[split1]->point == p)) {
         split1++;
     }
@@ -1336,14 +1336,14 @@ btConvexHullInternal::Edge* btConvexHullInternal::findMaxAngle(bool ccw, const V
                 Point32 t = *e->target - *start;
                 Rational64 cot(t.dot(sxrxs), t.dot(rxs));
 #ifdef DEBUG_CONVEX_HULL
-                printf("      Angle is %f (%d) for ", (float)btAtan(cot.toScalar()), (int)cot.isNaN());
+                printf("      Angle is %f (%d) for ", (float)btAtan(cot.toScalar()), (int32_t)cot.isNaN());
                 e->print();
 #endif
                 if (cot.isNaN()) {
                     btAssert(ccw ? (t.dot(s) < 0) : (t.dot(s) > 0));
                 }
                 else {
-                    int cmp;
+                    int32_t cmp;
                     if (minEdge == NULL) {
                         minCot = cot;
                         minEdge = e;
@@ -1625,7 +1625,7 @@ void btConvexHullInternal::merge(IntermediateHull& h0, IntermediateHull& h1)
             return;
         }
         else {
-            int cmp = !min0 ? 1 : !min1 ? -1 : minCot0.compare(minCot1);
+            int32_t cmp = !min0 ? 1 : !min1 ? -1 : minCot0.compare(minCot1);
 #ifdef DEBUG_CONVEX_HULL
             printf("    -> Result %d\n", cmp);
 #endif
@@ -1764,12 +1764,12 @@ static bool pointCmp(const btConvexHullInternal::Point32& p, const btConvexHullI
     return (p.y < q.y) || ((p.y == q.y) && ((p.x < q.x) || ((p.x == q.x) && (p.z < q.z))));
 }
 
-void btConvexHullInternal::compute(const void* coords, bool doubleCoords, int stride, int count)
+void btConvexHullInternal::compute(const void* coords, bool doubleCoords, int32_t stride, int32_t count)
 {
     btVector3 min(btScalar(1e30), btScalar(1e30), btScalar(1e30)), max(btScalar(-1e30), btScalar(-1e30), btScalar(-1e30));
     const char* ptr = (const char*)coords;
     if (doubleCoords) {
-        for (int i = 0; i < count; i++) {
+        for (int32_t i = 0; i < count; i++) {
             const double* v = (const double*)ptr;
             btVector3 p((btScalar)v[0], (btScalar)v[1], (btScalar)v[2]);
             ptr += stride;
@@ -1778,7 +1778,7 @@ void btConvexHullInternal::compute(const void* coords, bool doubleCoords, int st
         }
     }
     else {
-        for (int i = 0; i < count; i++) {
+        for (int32_t i = 0; i < count; i++) {
             const float* v = (const float*)ptr;
             btVector3 p(v[0], v[1], v[2]);
             ptr += stride;
@@ -1817,7 +1817,7 @@ void btConvexHullInternal::compute(const void* coords, bool doubleCoords, int st
     points.resize(count);
     ptr = (const char*)coords;
     if (doubleCoords) {
-        for (int i = 0; i < count; i++) {
+        for (int32_t i = 0; i < count; i++) {
             const double* v = (const double*)ptr;
             btVector3 p((btScalar)v[0], (btScalar)v[1], (btScalar)v[2]);
             ptr += stride;
@@ -1829,7 +1829,7 @@ void btConvexHullInternal::compute(const void* coords, bool doubleCoords, int st
         }
     }
     else {
-        for (int i = 0; i < count; i++) {
+        for (int32_t i = 0; i < count; i++) {
             const float* v = (const float*)ptr;
             btVector3 p(v[0], v[1], v[2]);
             ptr += stride;
@@ -1845,7 +1845,7 @@ void btConvexHullInternal::compute(const void* coords, bool doubleCoords, int st
     vertexPool.reset();
     vertexPool.setArraySize(count);
     originalVertices.resize(count);
-    for (int i = 0; i < count; i++) {
+    for (int32_t i = 0; i < count; i++) {
         Vertex* v = vertexPool.newObject();
         v->edges = NULL;
         v->point = points[i];
@@ -1899,7 +1899,7 @@ btScalar btConvexHullInternal::shrink(btScalar amount, btScalar clampAmount)
     if (!vertexList) {
         return 0;
     }
-    int stamp = --mergeStamp;
+    int32_t stamp = --mergeStamp;
     btAlignedObjectArray<Vertex*> stack;
     vertexList->copy = stamp;
     stack.push_back(vertexList);
@@ -1966,11 +1966,11 @@ btScalar btConvexHullInternal::shrink(btScalar amount, btScalar clampAmount)
     hullCenter /= 4 * volume.toScalar();
     hullCenter *= scaling;
 
-    int faceCount = faces.size();
+    int32_t faceCount = faces.size();
 
     if (clampAmount > 0) {
         btScalar minDist = SIMD_INFINITY;
-        for (int i = 0; i < faceCount; i++) {
+        for (int32_t i = 0; i < faceCount; i++) {
             btVector3 normal = getBtNormal(faces[i]);
             btScalar dist = normal.dot(toBtVector(faces[i]->origin) - hullCenter);
             if (dist < minDist) {
@@ -1985,12 +1985,12 @@ btScalar btConvexHullInternal::shrink(btScalar amount, btScalar clampAmount)
         amount = btMin(amount, minDist * clampAmount);
     }
 
-    unsigned int seed = 243703;
-    for (int i = 0; i < faceCount; i++, seed = 1664525 * seed + 1013904223) {
+    uint32_t seed = 243703;
+    for (int32_t i = 0; i < faceCount; i++, seed = 1664525 * seed + 1013904223) {
         btSwap(faces[i], faces[seed % faceCount]);
     }
 
-    for (int i = 0; i < faceCount; i++) {
+    for (int32_t i = 0; i < faceCount; i++) {
         if (!shiftFace(faces[i], amount, stack)) {
             return -amount;
         }
@@ -2037,9 +2037,9 @@ bool btConvexHullInternal::shiftFace(Face* face, btScalar amount, btAlignedObjec
     printf(", normal is (%lld %lld %lld), shifted dot is %lld\n", normal.x, normal.y, normal.z, shiftedDot);
 #endif
     Rational128 optDot = face->nearbyVertex->dot(normal);
-    int cmp = optDot.compare(shiftedDot);
+    int32_t cmp = optDot.compare(shiftedDot);
 #ifdef SHOW_ITERATIONS
-    int n = 0;
+    int32_t n = 0;
 #endif
     if (cmp >= 0) {
         Edge* e = startEdge;
@@ -2055,7 +2055,7 @@ bool btConvexHullInternal::shiftFace(Face* face, btScalar amount, btAlignedObjec
             printf(", dot is %f (%f %lld)\n", (float)dot.toScalar(), (float)optDot.toScalar(), shiftedDot);
 #endif
             if (dot.compare(optDot) < 0) {
-                int c = dot.compare(shiftedDot);
+                int32_t c = dot.compare(shiftedDot);
                 optDot = dot;
                 e = e->reverse;
                 startEdge = e;
@@ -2136,7 +2136,7 @@ bool btConvexHullInternal::shiftFace(Face* face, btScalar amount, btAlignedObjec
     Edge* firstFaceEdge = NULL;
 
 #ifdef SHOW_ITERATIONS
-    int m = 0;
+    int32_t m = 0;
 #endif
     while (true) {
 #ifdef SHOW_ITERATIONS
@@ -2184,7 +2184,7 @@ bool btConvexHullInternal::shiftFace(Face* face, btScalar amount, btAlignedObjec
             break;
         }
 
-        int prevCmp = cmp;
+        int32_t prevCmp = cmp;
         Edge* prevIntersection = intersection;
         Edge* prevFaceEdge = faceEdge;
 
@@ -2331,9 +2331,9 @@ bool btConvexHullInternal::shiftFace(Face* face, btScalar amount, btAlignedObjec
 #ifdef SHOW_ITERATIONS
     n = 0;
 #endif
-    int pos = 0;
+    int32_t pos = 0;
     while (pos < stack.size()) {
-        int end = stack.size();
+        int32_t end = stack.size();
         while (pos < end) {
             Vertex* kept = stack[pos++];
 #ifdef DEBUG_CONVEX_HULL
@@ -2370,9 +2370,9 @@ bool btConvexHullInternal::shiftFace(Face* face, btScalar amount, btAlignedObjec
     return true;
 }
 
-static int getVertexCopy(btConvexHullInternal::Vertex* vertex, btAlignedObjectArray<btConvexHullInternal::Vertex*>& vertices)
+static int32_t getVertexCopy(btConvexHullInternal::Vertex* vertex, btAlignedObjectArray<btConvexHullInternal::Vertex*>& vertices)
 {
-    int index = vertex->copy;
+    int32_t index = vertex->copy;
     if (index < 0) {
         index = vertices.size();
         vertex->copy = index;
@@ -2384,7 +2384,7 @@ static int getVertexCopy(btConvexHullInternal::Vertex* vertex, btAlignedObjectAr
     return index;
 }
 
-btScalar btConvexHullComputer::compute(const void* coords, bool doubleCoords, int stride, int count, btScalar shrink, btScalar shrinkClamp)
+btScalar btConvexHullComputer::compute(const void* coords, bool doubleCoords, int32_t stride, int32_t count, btScalar shrink, btScalar shrinkClamp)
 {
     if (count <= 0) {
         vertices.clear();
@@ -2410,18 +2410,18 @@ btScalar btConvexHullComputer::compute(const void* coords, bool doubleCoords, in
 
     btAlignedObjectArray<btConvexHullInternal::Vertex*> oldVertices;
     getVertexCopy(hull.vertexList, oldVertices);
-    int copied = 0;
+    int32_t copied = 0;
     while (copied < oldVertices.size()) {
         btConvexHullInternal::Vertex* v = oldVertices[copied];
         vertices.push_back(hull.getCoordinates(v));
         btConvexHullInternal::Edge* firstEdge = v->edges;
         if (firstEdge) {
-            int firstCopy = -1;
-            int prevCopy = -1;
+            int32_t firstCopy = -1;
+            int32_t prevCopy = -1;
             btConvexHullInternal::Edge* e = firstEdge;
             do {
                 if (e->copy < 0) {
-                    int s = edges.size();
+                    int32_t s = edges.size();
                     edges.push_back(Edge());
                     edges.push_back(Edge());
                     Edge* c = &edges[s];
@@ -2450,7 +2450,7 @@ btScalar btConvexHullComputer::compute(const void* coords, bool doubleCoords, in
         copied++;
     }
 
-    for (int i = 0; i < copied; i++) {
+    for (int32_t i = 0; i < copied; i++) {
         btConvexHullInternal::Vertex* v = oldVertices[i];
         btConvexHullInternal::Edge* firstEdge = v->edges;
         if (firstEdge) {

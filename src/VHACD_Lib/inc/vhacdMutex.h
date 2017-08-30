@@ -123,7 +123,7 @@ public:
         bRet = TryEnterCriticalSection(&m_mutex) ? true : false;
         return bRet;
 #elif defined(__APPLE__) || defined(__linux__)
-        int result = pthread_mutex_trylock(&m_mutex);
+        int32_t result = pthread_mutex_trylock(&m_mutex);
         return (result == 0);
 #endif
     }

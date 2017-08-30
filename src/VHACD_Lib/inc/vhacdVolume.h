@@ -194,7 +194,7 @@ public:
     static const double EPS;
 
 private:
-    void AddClippedTetrahedra(const Vec3<double> (&pts)[10], const int nPts);
+    void AddClippedTetrahedra(const Vec3<double> (&pts)[10], const int32_t nPts);
 
     size_t m_numTetrahedraOnSurface;
     size_t m_numTetrahedraInsideSurface;
@@ -218,8 +218,8 @@ public:
 
     //! Voxelize
     template <class T>
-    void Voxelize(const T* const points, const unsigned int stridePoints, const unsigned int nPoints,
-        const int* const triangles, const unsigned int strideTriangles, const unsigned int nTriangles,
+    void Voxelize(const T* const points, const uint32_t stridePoints, const uint32_t nPoints,
+        const int32_t* const triangles, const uint32_t strideTriangles, const uint32_t nTriangles,
         const size_t dim, const Vec3<double>& barycenter, const double (&rot)[3][3]);
     unsigned char& GetVoxel(const size_t i, const size_t j, const size_t k)
     {
@@ -247,7 +247,7 @@ private:
         const size_t j1, const size_t k1);
     void FillInsideSurface();
     template <class T>
-    void ComputeBB(const T* const points, const unsigned int stridePoints, const unsigned int nPoints,
+    void ComputeBB(const T* const points, const uint32_t stridePoints, const uint32_t nPoints,
         const Vec3<double>& barycenter, const double (&rot)[3][3]);
     void Allocate();
     void Free();
@@ -261,13 +261,13 @@ private:
     size_t m_numVoxelsOutsideSurface;
     unsigned char* m_data;
 };
-int TriBoxOverlap(const Vec3<double>& boxcenter, const Vec3<double>& boxhalfsize, const Vec3<double>& triver0,
+int32_t TriBoxOverlap(const Vec3<double>& boxcenter, const Vec3<double>& boxhalfsize, const Vec3<double>& triver0,
     const Vec3<double>& triver1, const Vec3<double>& triver2);
 template <class T>
-inline void ComputeAlignedPoint(const T* const points, const unsigned int idx, const Vec3<double>& barycenter,
+inline void ComputeAlignedPoint(const T* const points, const uint32_t idx, const Vec3<double>& barycenter,
     const double (&rot)[3][3], Vec3<double>& pt){};
 template <>
-inline void ComputeAlignedPoint<float>(const float* const points, const unsigned int idx, const Vec3<double>& barycenter, const double (&rot)[3][3], Vec3<double>& pt)
+inline void ComputeAlignedPoint<float>(const float* const points, const uint32_t idx, const Vec3<double>& barycenter, const double (&rot)[3][3], Vec3<double>& pt)
 {
     double x = points[idx + 0] - barycenter[0];
     double y = points[idx + 1] - barycenter[1];
@@ -277,7 +277,7 @@ inline void ComputeAlignedPoint<float>(const float* const points, const unsigned
     pt[2] = rot[0][2] * x + rot[1][2] * y + rot[2][2] * z;
 }
 template <>
-inline void ComputeAlignedPoint<double>(const double* const points, const unsigned int idx, const Vec3<double>& barycenter, const double (&rot)[3][3], Vec3<double>& pt)
+inline void ComputeAlignedPoint<double>(const double* const points, const uint32_t idx, const Vec3<double>& barycenter, const double (&rot)[3][3], Vec3<double>& pt)
 {
     double x = points[idx + 0] - barycenter[0];
     double y = points[idx + 1] - barycenter[1];
@@ -287,16 +287,16 @@ inline void ComputeAlignedPoint<double>(const double* const points, const unsign
     pt[2] = rot[0][2] * x + rot[1][2] * y + rot[2][2] * z;
 }
 template <class T>
-void Volume::ComputeBB(const T* const points, const unsigned int stridePoints, const unsigned int nPoints,
+void Volume::ComputeBB(const T* const points, const uint32_t stridePoints, const uint32_t nPoints,
     const Vec3<double>& barycenter, const double (&rot)[3][3])
 {
     Vec3<double> pt;
     ComputeAlignedPoint(points, 0, barycenter, rot, pt);
     m_maxBB = pt;
     m_minBB = pt;
-    for (unsigned int v = 1; v < nPoints; ++v) {
+    for (uint32_t v = 1; v < nPoints; ++v) {
         ComputeAlignedPoint(points, v * stridePoints, barycenter, rot, pt);
-        for (int i = 0; i < 3; ++i) {
+        for (int32_t i = 0; i < 3; ++i) {
             if (pt[i] < m_minBB[i])
                 m_minBB[i] = pt[i];
             else if (pt[i] > m_maxBB[i])
@@ -305,8 +305,8 @@ void Volume::ComputeBB(const T* const points, const unsigned int stridePoints, c
     }
 }
 template <class T>
-void Volume::Voxelize(const T* const points, const unsigned int stridePoints, const unsigned int nPoints,
-    const int* const triangles, const unsigned int strideTriangles, const unsigned int nTriangles,
+void Volume::Voxelize(const T* const points, const uint32_t stridePoints, const uint32_t nPoints,
+    const int32_t* const triangles, const uint32_t strideTriangles, const uint32_t nTriangles,
     const size_t dim, const Vec3<double>& barycenter, const double (&rot)[3][3])
 {
     if (nPoints == 0) {
@@ -351,10 +351,10 @@ void Volume::Voxelize(const T* const points, const unsigned int stridePoints, co
     Vec3<double> pt;
     const Vec3<double> boxhalfsize(0.5, 0.5, 0.5);
     for (size_t t = 0, ti = 0; t < nTriangles; ++t, ti += strideTriangles) {
-        Vec3<int> tri(triangles[ti + 0],
+        Vec3<int32_t> tri(triangles[ti + 0],
             triangles[ti + 1],
             triangles[ti + 2]);
-        for (int c = 0; c < 3; ++c) {
+        for (int32_t c = 0; c < 3; ++c) {
             ComputeAlignedPoint(points, tri[c] * stridePoints, barycenter, rot, pt);
             p[c][0] = (pt[0] - m_minBB[0]) * invScale;
             p[c][1] = (pt[1] - m_minBB[1]) * invScale;
@@ -402,7 +402,7 @@ void Volume::Voxelize(const T* const points, const unsigned int stridePoints, co
                 boxcenter[1] = (double)j;
                 for (size_t k = k0; k < k1; ++k) {
                     boxcenter[2] = (double)k;
-                    int res = TriBoxOverlap(boxcenter, boxhalfsize, p[0], p[1], p[2]);
+                    int32_t res = TriBoxOverlap(boxcenter, boxhalfsize, p[0], p[1], p[2]);
                     unsigned char& value = GetVoxel(i, j, k);
                     if (res == 1 && value == PRIMITIVE_UNDEFINED) {
                         value = PRIMITIVE_ON_SURFACE;
