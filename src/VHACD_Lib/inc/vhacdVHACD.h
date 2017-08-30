@@ -121,9 +121,20 @@ public:
 	// return the total number of constraint pairs found
 	virtual uint32_t ComputeConstraints(void);
 
-	// Returns a pointer to the constraint index; null if the index is not valid or
-	// the user did not previously call 'ComputeConstraints' 
-	virtual const Constraint *GetConstraint(uint32_t index) const;
+	// Returns a pointer to the list of constraints generated and the 'constraintCount'
+	// Returns a null pointer if 'ComputeConstraints' has not yet been called or
+	// no constraints were found.
+	virtual const Constraint *GetConstraints(uint32_t &constraintCount) const;
+
+	// Returns the number of collision pairs which need to be filtered.
+	// These are convex hulls that overlap in their rest pose but are not constrained
+	// to each other.  These will generate potentially bad collision contacts which 
+	// prevent the objects from coming to rest.
+	// Use these pairs to exclude those collisions
+	// If it returns a null pointer, then no collision pair filters are required (or constraints haven't been generated yet)
+	// collisionFilterPairCount will be assigned the number of pairs to filter.
+	// The return value will be pairs of integer; example 3,4 meaning body 3 and body 4 should not collide
+	virtual const uint32_t *GetCollisionFilterPairs(uint32_t &collisionPairFilterCount) const;
 
 private:
     void SetCancel(bool cancel)
@@ -378,6 +389,7 @@ private:
     size_t m_oclWorkGroupSize;
 #endif //CL_VERSION_1_1
 	ConstraintVector		mConstraints;
+	std::vector<uint32_t>	mExclusionList;
 };
 }
 #endif // VHACD_VHACD_H

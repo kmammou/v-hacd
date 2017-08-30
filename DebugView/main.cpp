@@ -37,45 +37,6 @@ static std::string	 gSourceMeshName;
 static VHACD::IVHACD::Parameters gDesc;
 
 
-float fm_computePlane(const float *A,const float *B,const float *C,float *n) // returns D
-{
-	float vx = (B[0] - C[0]);
-	float vy = (B[1] - C[1]);
-	float vz = (B[2] - C[2]);
-
-	float wx = (A[0] - B[0]);
-	float wy = (A[1] - B[1]);
-	float wz = (A[2] - B[2]);
-
-	float vw_x = vy * wz - vz * wy;
-	float vw_y = vz * wx - vx * wz;
-	float vw_z = vx * wy - vy * wx;
-
-	float mag = ::sqrtf((vw_x * vw_x) + (vw_y * vw_y) + (vw_z * vw_z));
-
-	if ( mag < 0.000001f )
-	{
-		mag = 0;
-	}
-	else
-	{
-		mag = 1.0f/mag;
-	}
-
-	float x = vw_x * mag;
-	float y = vw_y * mag;
-	float z = vw_z * mag;
-
-
-	float D = 0.0f - ((x*A[0])+(y*A[1])+(z*A[2]));
-
-	n[0] = x;
-	n[1] = y;
-	n[2] = z;
-
-	return D;
-}
-
 class MeshBuilder
 {
 public:	
@@ -105,7 +66,7 @@ public:
 	void addTriangle(const float *p1,const float *p2,const float *p3)
 	{
 		float normal[3];
-		fm_computePlane(p3,p2,p1,normal);
+		FLOAT_MATH::fm_computePlane(p3,p2,p1,normal);
 
 		double nx = fabs(normal[0]);
 		double ny = fabs(normal[1]);
@@ -224,8 +185,10 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'HACD settings'
 
 	gRenderDebug->sendRemoteCommand("BeginGroup \"Simulation\"");	// Mark the beginning of a group of controls.
+	gRenderDebug->sendRemoteCommand("CheckBox ShowConstraints true ShowConstraints");
+	gRenderDebug->sendRemoteCommand("CheckBox ShowSkeleton true ShowSkeleton");
+	gRenderDebug->sendRemoteCommand("CheckBox ShowCollisionPairs false ShowCollisionPairs");
 	gRenderDebug->sendRemoteCommand("Button ToggleSimulation ToggleSimulation");
-	gRenderDebug->sendRemoteCommand("Button ComputeConstraints ComputeConstraints");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
 
@@ -289,6 +252,21 @@ public:
 				const char *value = argv[1];
 				mShowPhysics = strcmp(value, "true") == 0;
 			}
+			else if (strcmp(cmd, "ShowConstraints") == 0 && argc == 2)
+			{
+				const char *value = argv[1];
+				mShowConstraints = strcmp(value, "true") == 0;
+			}
+			else if (strcmp(cmd, "ShowSkeleton") == 0 && argc == 2)
+			{
+				const char *value = argv[1];
+				mShowSkeleton = strcmp(value, "true") == 0;
+			}
+			else if (strcmp(cmd, "ShowCollisionPairs") == 0 && argc == 2)
+			{
+				const char *value = argv[1];
+				mShowCollisionPairs = strcmp(value, "true") == 0;
+			}
 			else if (strcmp(cmd, "SaveObj") == 0)
 			{
 				mWavefront.saveObj("wavefront.obj");
@@ -309,10 +287,6 @@ public:
 			else if (strcmp(cmd, "ToggleSimulation") == 0 && mTestHACD )
 			{
 				mTestHACD->toggleSimulation();
-			}
-			else if (strcmp(cmd, "ComputeConstraints") == 0 && mTestHACD)
-			{
-				mTestHACD->computeConstraints();
 			}
 			else if (strcmp(cmd, "raycast") == 0 && mTestHACD)
 			{
@@ -452,7 +426,7 @@ public:
 		gRenderDebug->debugText2D(0, 0.04f, 0.5f, 2.0f, false, 0xFFFF00, "%s", mMeshName.c_str());
 		if ( mTestHACD )
 		{
-			gRenderDebug->debugText2D(0, 0.08f, 0.5f, 2.0f, false, 0xFFFF00, "HullCount: %d", mTestHACD->getHullCount());
+			gRenderDebug->debugText2D(0, 0.08f, 0.5f, 2.0f, false, 0xFFFF00, "HullCount: %d ConstraintCount: %d CollisionFilterCount: %d", mTestHACD->getHullCount(), mTestHACD->getConstraintCount(), mTestHACD->getCollisionFilterCount());
 		}
 		gRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::SolidWireShaded);
 		gRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::CameraFacing);
@@ -517,7 +491,7 @@ public:
 		}
 		if (mTestHACD && gShowConvexDecomposition)
 		{
-			mTestHACD->render(gExplodeViewScale, gCenter, mWireframeConvex);
+			mTestHACD->render(gExplodeViewScale, gCenter, mWireframeConvex, mShowConstraints, mShowSkeleton, mShowCollisionPairs);
 		}
 
 		gPhysXFramework->simulate(mShowPhysics);
@@ -569,6 +543,9 @@ public:
 	}
 
 	uint32_t	mMeshID{ 0 };
+	bool		mShowConstraints{ true };
+	bool		mShowCollisionPairs{ false };
+	bool		mShowSkeleton{ true };
 	bool		mShowPhysics{ true };
 	bool		mSolid{ true };
 	bool		mWireframeConvex{ false };

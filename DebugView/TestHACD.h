@@ -29,15 +29,20 @@ public:
 		const uint32_t countTriangles,
 		VHACD::IVHACD::Parameters &desc) = 0;
 
-	virtual void render(float explodeViewScale,const float center[3],bool wireframe) = 0;
+	virtual void render(float explodeViewScale,
+						const float center[3],
+						bool wireframe,
+						bool showConstraints,
+						bool showSkeleton,
+						bool showCollisionPairs) = 0;
 
 	virtual void getTransform(float xform[16]) = 0;
 
 	virtual uint32_t getHullCount(void) const = 0;
+	virtual uint32_t getConstraintCount(void) const = 0;
+	virtual uint32_t getCollisionFilterCount(void) const = 0;
 
 	virtual void saveConvexDecomposition(const char *fname,const char *sourceMeshName) = 0;
-
-	virtual void computeConstraints(void) = 0;
 
 	virtual void cancel(void) = 0;
 

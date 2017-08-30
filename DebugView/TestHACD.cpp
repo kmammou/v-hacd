@@ -35,30 +35,71 @@ public:
 		dest[2] = float(source[2] + diff[2] + center[2]);
 	}
 
-	virtual void render(float explodeViewScale,const float center[3],bool wireframe) final
+	void getExplodePosition(const float source[3], float dest[3], const double diff[3], const float center[3])
+	{
+		dest[0] = float(source[0] + diff[0] + center[0]);
+		dest[1] = float(source[1] + diff[1] + center[1]);
+		dest[2] = float(source[2] + diff[2] + center[2]);
+	}
+
+	void getExplodeViewPosition(const float center[3], const VHACD::IVHACD::ConvexHull &h, float explodeViewScale, const double sourcePos[3], float destPos[3])
+	{
+		double diff[3];
+
+		diff[0] = h.m_center[0] - center[0];
+		diff[1] = h.m_center[1] - center[1];
+		diff[2] = h.m_center[2] - center[2];
+
+		diff[0] *= explodeViewScale;
+		diff[1] *= explodeViewScale;
+		diff[2] *= explodeViewScale;
+
+		diff[0] -= h.m_center[0];
+		diff[1] -= h.m_center[1];
+		diff[2] -= h.m_center[2];
+
+		getExplodePosition(sourcePos, destPos, diff, center);
+	}
+
+	virtual void render(float explodeViewScale,
+						const float center[3],
+						bool wireframe,
+						bool showConstraints,
+						bool showSkeleton,
+						bool showCollisionPairs) final
 	{
 		uint32_t hullCount = mHACD->GetNConvexHulls();
 		if (hullCount)
 		{
+			if (!mHaveConstraints)
+			{
+				mHaveConstraints = true;
+				mHACD->ComputeConstraints();
+			}
 			mRenderDebug->pushRenderState();
 			float xform[16];
 			getTransform(xform);
 			mRenderDebug->setPose(xform);
+
+			// Render constraints here...
+			uint32_t constraintCount;
+			const VHACD::IVHACD::Constraint *constraints = mHACD->GetConstraints(constraintCount);
+
 			for (uint32_t j = 0; j < hullCount; j++)
 			{
 				VHACD::IVHACD::ConvexHull h;
 				mHACD->GetConvexHull(j, h);
 				{
 
-                    if (wireframe)
-                    {
-                        mRenderDebug->removeFromCurrentState(RENDER_DEBUG::DebugRenderState::SolidShaded);
-                        mRenderDebug->removeFromCurrentState(RENDER_DEBUG::DebugRenderState::SolidWireShaded);
-                    }
-                    else
-                    {
-                        mRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::SolidWireShaded);
-                    }
+					if (wireframe)
+					{
+						mRenderDebug->removeFromCurrentState(RENDER_DEBUG::DebugRenderState::SolidShaded);
+						mRenderDebug->removeFromCurrentState(RENDER_DEBUG::DebugRenderState::SolidWireShaded);
+					}
+					else
+					{
+						mRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::SolidWireShaded);
+					}
 
 					uint32_t cindex = (j % 20) + RENDER_DEBUG::DebugColors::Red;
 
@@ -99,8 +140,100 @@ public:
 
 						mRenderDebug->debugTri(v1, v2, v3);
 					}
+
+					if (constraints && showConstraints)
+					{
+						mRenderDebug->pushRenderState();
+						for (uint32_t i = 0; i < constraintCount; i++)
+						{
+							const VHACD::IVHACD::Constraint &c = constraints[i];
+							if (c.mHullA == j)
+							{
+								float p1[3];
+								FLOAT_MATH::fm_doubleToFloat3(c.mConstraintPoint, p1);
+								float quat[4];
+								quat[0] = float(c.mConstraintOrientation[0]);
+								quat[1] = float(c.mConstraintOrientation[1]);
+								quat[2] = float(c.mConstraintOrientation[2]);
+								quat[3] = float(c.mConstraintOrientation[3]);
+								float transform[16];
+								FLOAT_MATH::fm_quatToMatrix(quat, transform);
+								transform[12] = p1[0];
+								transform[13] = p1[1];
+								transform[14] = p1[2];
+								float p2[3];
+								float basis[3] = { 1.5f, 0, 0, };
+								FLOAT_MATH::fm_transform(transform, basis, p2);
+								float v1[3];
+								float v2[3];
+								getExplodePosition(p1, v1, diff, center);
+								getExplodePosition(p2, v2, diff, center);
+								mRenderDebug->debugThickRay(v1, v2, 0.01f);
+								mRenderDebug->setCurrentColor(0xFF00FF);
+								mRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::SolidShaded);
+								mRenderDebug->debugSphere(v1, 0.02f);
+							}
+						}
+						mRenderDebug->popRenderState();
+					}
 				}
 			}
+			if (showSkeleton)
+			{
+				for (uint32_t i = 0; i < constraintCount; i++)
+				{
+					const VHACD::IVHACD::Constraint &c = constraints[i];
+					VHACD::IVHACD::ConvexHull h1, h2;
+
+					mHACD->GetConvexHull(c.mHullA, h1);
+					mHACD->GetConvexHull(c.mHullB, h2);
+
+					float p1[3];
+					float p2[3];
+
+					getExplodeViewPosition(center, h1, explodeViewScale, h1.m_center, p1);
+					getExplodeViewPosition(center, h2, explodeViewScale, h2.m_center, p2);
+
+					mRenderDebug->pushRenderState();
+					mRenderDebug->setCurrentColor(0xFFFF00);
+					mRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::SolidShaded);
+					mRenderDebug->debugSphere(p1, 0.1f);
+					mRenderDebug->debugSphere(p2, 0.1f);
+					mRenderDebug->debugThickRay(p1, p2, 0.02f);
+					mRenderDebug->popRenderState();
+				}
+			}
+			if (showCollisionPairs)
+			{
+				uint32_t collisionCount;
+				const uint32_t *pairs = mHACD->GetCollisionFilterPairs(collisionCount);
+				for (uint32_t i = 0; i < collisionCount; i++)
+				{
+					uint32_t hulla = pairs[i * 2];
+					uint32_t hullb = pairs[i * 2 + 1];
+
+					VHACD::IVHACD::ConvexHull h1, h2;
+
+					mHACD->GetConvexHull(hulla, h1);
+					mHACD->GetConvexHull(hullb, h2);
+
+					float p1[3];
+					float p2[3];
+
+					getExplodeViewPosition(center, h1, explodeViewScale, h1.m_center, p1);
+					getExplodeViewPosition(center, h2, explodeViewScale, h2.m_center, p2);
+
+					mRenderDebug->pushRenderState();
+					mRenderDebug->setCurrentColor(0xFF0000);
+					mRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::SolidShaded);
+					mRenderDebug->debugSphere(p1, 0.1f);
+					mRenderDebug->debugSphere(p2, 0.1f);
+					mRenderDebug->debugThickRay(p1, p2, 0.02f);
+					mRenderDebug->popRenderState();
+
+				}
+			}
+
 			mRenderDebug->popRenderState();
 		}
 		else
@@ -121,6 +254,7 @@ public:
 	{
 		desc.m_callback = this;
 		desc.m_logger = this;
+		mHaveConstraints = false; // clear have constraints flag so they will be recomputed when the decomopsition is complete
 		mHACD->Compute(points, countPoints, triangles, countTriangles, desc);
 	}
 
@@ -158,6 +292,31 @@ public:
 	{
 		return mHACD ? mHACD->GetNConvexHulls() : 0;
 	}
+
+	virtual uint32_t getConstraintCount(void) const final
+	{
+		uint32_t ret = 0;
+
+		if (mHACD)
+		{
+			mHACD->GetConstraints(ret);
+		}
+
+		return ret;
+	}
+
+	virtual uint32_t getCollisionFilterCount(void) const final
+	{
+		uint32_t ret = 0;
+
+		if (mHACD)
+		{
+			mHACD->GetCollisionFilterPairs(ret);
+		}
+
+		return ret;
+	}
+
 
 	virtual void cancel(void)
 	{
@@ -296,7 +455,7 @@ public:
 		}
 	}
 
-	virtual void computeConstraints(void)
+	void computeConstraints(void)
 	{
 		if (mHACD)
 		{
@@ -316,6 +475,7 @@ public:
 	std::string							mStage;
 	std::string							mOperation;
 	float								mCenterOfMass[3];
+	bool								mHaveConstraints{ false };
 };
 
 TestHACD *TestHACD::create(RENDER_DEBUG::RenderDebug *renderDebug,NV_PHYSX_FRAMEWORK::PhysXFramework *pf)

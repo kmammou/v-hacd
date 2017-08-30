@@ -36,7 +36,7 @@
 #include "FloatMath.h"
 
 // Internal debugging feature only
-#define DEBUG_VISUALIZE_CONSTRAINTS 1
+#define DEBUG_VISUALIZE_CONSTRAINTS 0
 
 #if DEBUG_VISUALIZE_CONSTRAINTS
 #include "NvRenderDebug.h"
@@ -1601,6 +1601,7 @@ bool VHACD::ComputeCenterOfMass(double centerOfMass[3]) const
 uint32_t VHACD::ComputeConstraints(void)
 {
 	mConstraints.clear(); // erase any previous constraint results
+	mExclusionList.clear(); // erase any previous collision filter pairs
 	uint32_t hullCount = GetNConvexHulls(); // get the number of convex hulls in the results
 	if (hullCount == 0)
 		return 0;
@@ -1667,8 +1668,9 @@ uint32_t VHACD::ComputeConstraints(void)
 			return ret;
 		}
 
-		void findMatchingPoints(const HullData &other)
+		bool findMatchingPoints(const HullData &other,double constraintPos[3], double constraintRotation[4])
 		{
+			bool ret = false;
 			class Vec3
 			{
 			public:
@@ -1699,7 +1701,7 @@ uint32_t VHACD::ComputeConstraints(void)
 					weights.push_back(distance);
 					weights.push_back(distance);
 
-#if DEBUG_VISUALIZE_CONSTRAINTS
+#if DEBUG_VISUALIZE_CONSTRAINTS && 0
 					float fp1[3];
 					float fp2[3];
 					FLOAT_MATH::fm_doubleToFloat3(sourcePoint, fp1);
@@ -1716,8 +1718,26 @@ uint32_t VHACD::ComputeConstraints(void)
 				bool found = FLOAT_MATH::fm_computeBestFitPlane(count, points[0].mPos, sizeof(Vec3), &weights[0], sizeof(double), plane, center);
 				if (found)
 				{
+
+					double quat[4];
+					double ref[3] = { 1,0,0 };
+					FLOAT_MATH::fm_rotationArc(ref, plane, quat);
+
+					constraintPos[0] = center[0];
+					constraintPos[1] = center[1];
+					constraintPos[2] = center[2];
+
+					constraintRotation[0] = quat[0];
+					constraintRotation[1] = quat[1];
+					constraintRotation[2] = quat[2];
+					constraintRotation[3] = quat[3];
+
+					ret = true;
+
+#if DEBUG_VISUALIZE_CONSTRAINTS
 					float from[3];
 					float to[3];
+
 					FLOAT_MATH::fm_doubleToFloat3(center, from);
 					FLOAT_MATH::fm_doubleToFloat3(plane, to);
 					to[0] += from[0];
@@ -1725,8 +1745,26 @@ uint32_t VHACD::ComputeConstraints(void)
 					to[2] += from[2];
 					gRenderDebug->debugThickRay(from, to);
 					gRenderDebug->debugSphere(from, 0.1f);
+
+
+					double xform[16];
+					float transform[16];
+					FLOAT_MATH::fm_quatToMatrix(quat, xform);
+					for (uint32_t i = 0; i < 16; i++)
+					{
+						transform[i] = float(xform[i]);
+					}
+					transform[12] = from[0];
+					transform[13] = from[1];
+					transform[14] = from[2];
+
+
+					gRenderDebug->debugAxes(transform, 0.8f);
+#endif
+
 				}
 			}
+			return ret;
 		}
 
 		double						mBmin[3];
@@ -1794,7 +1832,18 @@ uint32_t VHACD::ComputeConstraints(void)
 			{
 				// ok. if two convex hulls intersect, we are going to find the <n> number of nearest
 				// matching points between them.
-				hd1.findMatchingPoints(hd2);
+				VHACD::Constraint c;
+				c.mHullA = i;
+				c.mHullB = j;
+				if (hd1.findMatchingPoints(hd2, c.mConstraintPoint, c.mConstraintOrientation))
+				{
+					mConstraints.push_back(c);
+				}
+				else // if the bounding boxes overlap but there is not a constraint between them; add this pair to the exclusion list
+				{
+					mExclusionList.push_back(i);
+					mExclusionList.push_back(j);
+				}
 			}
 		}
 	}
@@ -1807,15 +1856,40 @@ uint32_t VHACD::ComputeConstraints(void)
 	return uint32_t(mConstraints.size());
 }
 
-// Returns a pointer to the constraint index; null if the index is not valid or
-// the user did not previously call 'ComputeConstraints' 
-const VHACD::IVHACD::Constraint *VHACD::GetConstraint(uint32_t index) const
+// Returns a pointer to the list of constraints generated and the 'constraintCount'
+// Returns a null pointer if 'ComputeConstraints' has not yet been called or
+// no constraints were found. 
+const VHACD::IVHACD::Constraint *VHACD::GetConstraints(uint32_t &constraintCount) const
 {
 	const Constraint *ret = nullptr;
 
-	if (index < mConstraints.size())
+	constraintCount = 0;
+	if ( !mConstraints.empty() )
 	{
-		ret = &mConstraints[index];
+		constraintCount = uint32_t(mConstraints.size());
+		ret = &mConstraints[0];
+	}
+
+	return ret;
+}
+
+// Returns the number of collision pairs which need to be filtered.
+// These are convex hulls that overlap in their rest pose but are not constrained
+// to each other.  These will generate potentially bad collision contacts which 
+// prevent the objects from coming to rest.
+// Use these pairs to exclude those collisions
+// If it returns a null pointer, then no collision pair filters are required (or constraints haven't been generated yet)
+// collisionFilterPairCount will be assigned the number of pairs to filter.
+// The return value will be pairs of integer; example 3,4 meaning body 3 and body 4 should not collide
+const uint32_t *VHACD::GetCollisionFilterPairs(uint32_t &collisionPairFilterCount) const
+{
+	const uint32_t *ret = nullptr;
+
+	collisionPairFilterCount = 0;
+	if (!mExclusionList.empty())
+	{
+		collisionPairFilterCount = (uint32_t)mExclusionList.size() / 2;
+		ret = &mExclusionList[0];
 	}
 
 	return ret;
