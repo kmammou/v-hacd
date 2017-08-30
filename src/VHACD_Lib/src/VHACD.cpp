@@ -1628,8 +1628,8 @@ uint32_t VHACD::ComputeConstraints(void)
 		void computeResolution(void)
 		{
 			mDiagonalDistance = FLOAT_MATH::fm_distance(mBmin, mBmax);
-			mTessellateDistance = mDiagonalDistance / 20;
-			mNearestPointDistance = mDiagonalDistance / 20.0f;
+			mTessellateDistance = mDiagonalDistance / 10;
+			mNearestPointDistance = mDiagonalDistance / 10.0f;
 			mPointResolution = mDiagonalDistance / 100;
 			mVertexIndex = FLOAT_MATH::fm_createVertexIndex(mPointResolution, false);
 			mTesselate = FLOAT_MATH::fm_createTesselate();
@@ -1704,7 +1704,7 @@ uint32_t VHACD::ComputeConstraints(void)
 					float fp2[3];
 					FLOAT_MATH::fm_doubleToFloat3(sourcePoint, fp1);
 					FLOAT_MATH::fm_doubleToFloat3(nearestPoint, fp2);
-					gRenderDebug->debugRay(fp1, fp2);
+					gRenderDebug->debugLine(fp1, fp2);
 #endif
 				}
 			}
@@ -1724,6 +1724,7 @@ uint32_t VHACD::ComputeConstraints(void)
 					to[1] += from[1];
 					to[2] += from[2];
 					gRenderDebug->debugThickRay(from, to);
+					gRenderDebug->debugSphere(from, 0.1f);
 				}
 			}
 		}

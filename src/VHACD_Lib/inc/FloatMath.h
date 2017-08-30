@@ -154,8 +154,8 @@ double fm_dot(const double p1[3],const double p2[3]);
 void  fm_cross(float cross[3],const float a[3],const float b[3]);
 void  fm_cross(double cross[3],const double a[3],const double b[3]);
 
-void  fm_computeNormalVector(float n[3],const float p1[3],const float p2[3]); // as P2-P1 normalized.
-void  fm_computeNormalVector(double n[3],const double p1[3],const double p2[3]); // as P2-P1 normalized.
+float  fm_computeNormalVector(float n[3],const float p1[3],const float p2[3]); // as P2-P1 normalized.
+double  fm_computeNormalVector(double n[3],const double p1[3],const double p2[3]); // as P2-P1 normalized.
 
 bool  fm_computeWindingOrder(const float p1[3],const float p2[3],const float p3[3]); // returns true if the triangle is clockwise.
 bool  fm_computeWindingOrder(const double p1[3],const double p2[3],const double p3[3]); // returns true if the triangle is clockwise.

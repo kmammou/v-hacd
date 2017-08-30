@@ -513,12 +513,12 @@ void fm_cross(REAL *cross,const REAL *a,const REAL *b)
 	cross[2] = a[0]*b[1] - a[1]*b[0];
 }
 
-void fm_computeNormalVector(REAL *n,const REAL *p1,const REAL *p2)
+REAL fm_computeNormalVector(REAL *n,const REAL *p1,const REAL *p2)
 {
   n[0] = p2[0] - p1[0];
   n[1] = p2[1] - p1[1];
   n[2] = p2[2] - p1[2];
-  fm_normalize(n);
+  return fm_normalize(n);
 }
 
 bool  fm_computeWindingOrder(const REAL *p1,const REAL *p2,const REAL *p3) // returns true if the triangle is clockwise.
