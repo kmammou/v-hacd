@@ -59,7 +59,11 @@ public:
 		virtual void createActor(const float centerOfMass[3],float mass,bool asRagdoll) = 0;
 
 		// Creates a fixed constraint between these two bodies
-		virtual bool createConstraint(uint32_t bodyA, uint32_t bodyB) = 0;
+		virtual bool createConstraint(uint32_t bodyA,	// Index of first body
+			uint32_t bodyB,								// Index of second body
+			const float worldPos[3],					// World position of the constraint location
+			const float worldOrientation[4],
+			uint32_t limitRangeDegrees) = 0;		// World orientation of the constraint 
 
 		virtual bool getXform(float xform[16],uint32_t index) = 0;
 

@@ -20,7 +20,7 @@ public:
 
 	static TestHACD *create(RENDER_DEBUG::RenderDebug *renderDebug,NV_PHYSX_FRAMEWORK::PhysXFramework *physxFramework);
 
-	virtual void toggleSimulation(bool simulateAsRagdoll) = 0;
+	virtual void toggleSimulation(bool simulateAsRagdoll,uint32_t limitRangeDegrees) = 0;
 
 	virtual void decompose(
 		const double* const points,

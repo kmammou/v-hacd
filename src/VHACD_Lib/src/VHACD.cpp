@@ -1720,7 +1720,7 @@ uint32_t VHACD::ComputeConstraints(void)
 				{
 
 					double quat[4];
-					double ref[3] = { 1,0,0 };
+					double ref[3] = { 0,1,0 };
 					FLOAT_MATH::fm_rotationArc(ref, plane, quat);
 
 					constraintPos[0] = center[0];

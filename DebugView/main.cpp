@@ -185,6 +185,7 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'HACD settings'
 
 	gRenderDebug->sendRemoteCommand("BeginGroup \"Simulation\"");	// Mark the beginning of a group of controls.
+	gRenderDebug->sendRemoteCommand("SliderInt LimitRangeDegrees 45 1 90 LimitRangeDegrees");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowConstraints true ShowConstraints");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowSkeleton true ShowSkeleton");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowCollisionPairs false ShowCollisionPairs");
@@ -292,7 +293,7 @@ public:
 			}
 			else if (strcmp(cmd, "ToggleSimulation") == 0 && mTestHACD )
 			{
-				mTestHACD->toggleSimulation(mSimulateAsRagdoll);
+				mTestHACD->toggleSimulation(mSimulateAsRagdoll,mLimitRangeDegrees);
 			}
 			else if (strcmp(cmd, "raycast") == 0 && mTestHACD)
 			{
@@ -305,6 +306,11 @@ public:
 			{
 				printf("Canceling Convex Decomposition\n");
 				mTestHACD->cancel();
+			}
+			else if (strcmp(cmd, "LimitRangeDegrees") == 0 && argc == 2)
+			{
+				mLimitRangeDegrees = uint32_t( atoi(argv[1]));
+				printf("LimitRangeDegrees=%d\n", mLimitRangeDegrees);
 			}
 			else if (strcmp(cmd, "MaxHullVertices") == 0 && argc == 2)
 			{
@@ -556,6 +562,7 @@ public:
 	}
 
 	uint32_t	mMeshID{ 0 };
+	uint32_t	mLimitRangeDegrees{ 45 };
 	bool		mSimulateAsRagdoll{ false };
 	bool		mShowConstraints{ true };
 	bool		mShowCollisionPairs{ false };

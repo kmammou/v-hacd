@@ -382,7 +382,7 @@ public:
 		}
 	}
 
-	virtual void toggleSimulation(bool simulateAsRagdoll)
+	virtual void toggleSimulation(bool simulateAsRagdoll,uint32_t limitRangeDegrees)
 	{
 		mSimulateAsRagdoll = simulateAsRagdoll;
 		if (mCompoundActor)
@@ -437,7 +437,16 @@ public:
 							for (uint32_t i = 0; i < constraintCount; i++)
 							{
 								const VHACD::IVHACD::Constraint &c = constraints[i];
-								mCompoundActor->createConstraint(c.mHullA, c.mHullB);
+								float pos[3];
+								float rot[4];
+								pos[0] = float(c.mConstraintPoint[0]);
+								pos[1] = float(c.mConstraintPoint[1]);
+								pos[2] = float(c.mConstraintPoint[2]);
+								rot[0] = float(c.mConstraintOrientation[0]);
+								rot[1] = float(c.mConstraintOrientation[1]);
+								rot[2] = float(c.mConstraintOrientation[2]);
+								rot[3] = float(c.mConstraintOrientation[3]);
+								mCompoundActor->createConstraint(c.mHullA, c.mHullB, pos, rot, limitRangeDegrees);
 							}
 						}
 					}
