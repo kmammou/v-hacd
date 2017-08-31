@@ -56,9 +56,12 @@ public:
 			float meshScale[3]) = 0;
 
 		// Create a simulated actor based on the collection of convex meshes
-		virtual void createActor(const float centerOfMass[3],float mass) = 0;
+		virtual void createActor(const float centerOfMass[3],float mass,bool asRagdoll) = 0;
 
-		virtual void getXform(float xform[16]) = 0;
+		// Creates a fixed constraint between these two bodies
+		virtual bool createConstraint(uint32_t bodyA, uint32_t bodyB) = 0;
+
+		virtual bool getXform(float xform[16],uint32_t index) = 0;
 
 		virtual void release(void) = 0;
 	};

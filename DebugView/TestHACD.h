@@ -20,7 +20,7 @@ public:
 
 	static TestHACD *create(RENDER_DEBUG::RenderDebug *renderDebug,NV_PHYSX_FRAMEWORK::PhysXFramework *physxFramework);
 
-	virtual void toggleSimulation(void) = 0;
+	virtual void toggleSimulation(bool simulateAsRagdoll) = 0;
 
 	virtual void decompose(
 		const double* const points,
@@ -43,6 +43,8 @@ public:
 	virtual uint32_t getCollisionFilterCount(void) const = 0;
 
 	virtual void saveConvexDecomposition(const char *fname,const char *sourceMeshName) = 0;
+
+	virtual bool isSimulating(void) const = 0;
 
 	virtual void cancel(void) = 0;
 

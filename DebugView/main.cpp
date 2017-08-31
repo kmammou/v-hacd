@@ -188,6 +188,7 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("CheckBox ShowConstraints true ShowConstraints");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowSkeleton true ShowSkeleton");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowCollisionPairs false ShowCollisionPairs");
+	gRenderDebug->sendRemoteCommand("CheckBox SimulateAsRagdoll false SimulateAsRagdoll");
 	gRenderDebug->sendRemoteCommand("Button ToggleSimulation ToggleSimulation");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
@@ -267,6 +268,11 @@ public:
 				const char *value = argv[1];
 				mShowCollisionPairs = strcmp(value, "true") == 0;
 			}
+			else if (strcmp(cmd, "SimulateAsRagdoll") == 0 && argc == 2)
+			{
+				const char *value = argv[1];
+				mSimulateAsRagdoll = strcmp(value, "true") == 0;
+			}
 			else if (strcmp(cmd, "SaveObj") == 0)
 			{
 				mWavefront.saveObj("wavefront.obj");
@@ -286,7 +292,7 @@ public:
 			}
 			else if (strcmp(cmd, "ToggleSimulation") == 0 && mTestHACD )
 			{
-				mTestHACD->toggleSimulation();
+				mTestHACD->toggleSimulation(mSimulateAsRagdoll);
 			}
 			else if (strcmp(cmd, "raycast") == 0 && mTestHACD)
 			{
@@ -436,53 +442,60 @@ public:
 
 		if (gShowSourceMesh)
 		{
-			if (mSolid)
+			if (mTestHACD && mSimulateAsRagdoll && mTestHACD->isSimulating())
 			{
-				RENDER_DEBUG::RenderDebugInstance instance;
-				float xform[16];
-				FLOAT_MATH::fm_identity(xform);
-				if (mTestHACD)
-				{
-					mTestHACD->getTransform(xform);
-					instance.mTransform[0] = xform[12];
-					instance.mTransform[1] = xform[13];
-					instance.mTransform[2] = xform[14];
-
-					instance.mTransform[3] = xform[0];
-					instance.mTransform[4] = xform[1];
-					instance.mTransform[5] = xform[2];
-
-					instance.mTransform[6] = xform[4];
-					instance.mTransform[7] = xform[5];
-					instance.mTransform[8] = xform[6];
-
-					instance.mTransform[9] = xform[8];
-					instance.mTransform[10] = xform[9];
-					instance.mTransform[11] = xform[10];
-				}
-				gRenderDebug->renderTriangleMeshInstances(mMeshID, 1, &instance);
+				// we don't render while simulating...
 			}
 			else
 			{
-				gRenderDebug->pushRenderState();
-				float xform[16];
-				FLOAT_MATH::fm_identity(xform);
-				if (mTestHACD)
+				if (mSolid)
 				{
-					mTestHACD->getTransform(xform);
+					RENDER_DEBUG::RenderDebugInstance instance;
+					float xform[16];
+					FLOAT_MATH::fm_identity(xform);
+					if (mTestHACD)
+					{
+						mTestHACD->getTransform(xform);
+						instance.mTransform[0] = xform[12];
+						instance.mTransform[1] = xform[13];
+						instance.mTransform[2] = xform[14];
+
+						instance.mTransform[3] = xform[0];
+						instance.mTransform[4] = xform[1];
+						instance.mTransform[5] = xform[2];
+
+						instance.mTransform[6] = xform[4];
+						instance.mTransform[7] = xform[5];
+						instance.mTransform[8] = xform[6];
+
+						instance.mTransform[9] = xform[8];
+						instance.mTransform[10] = xform[9];
+						instance.mTransform[11] = xform[10];
+					}
+					gRenderDebug->renderTriangleMeshInstances(mMeshID, 1, &instance);
 				}
-				gRenderDebug->setPose(xform);
-				for (uint32_t i = 0; i < mWavefront.mTriCount; i++)
+				else
 				{
-					uint32_t i1 = mWavefront.mIndices[i * 3 + 0];
-					uint32_t i2 = mWavefront.mIndices[i * 3 + 1];
-					uint32_t i3 = mWavefront.mIndices[i * 3 + 2];
-					const float *p1 = &mWavefront.mVertices[i1 * 3];
-					const float *p2 = &mWavefront.mVertices[i2 * 3];
-					const float *p3 = &mWavefront.mVertices[i3 * 3];
-					gRenderDebug->debugTri(p3, p2, p1);
+					gRenderDebug->pushRenderState();
+					float xform[16];
+					FLOAT_MATH::fm_identity(xform);
+					if (mTestHACD)
+					{
+						mTestHACD->getTransform(xform);
+					}
+					gRenderDebug->setPose(xform);
+					for (uint32_t i = 0; i < mWavefront.mTriCount; i++)
+					{
+						uint32_t i1 = mWavefront.mIndices[i * 3 + 0];
+						uint32_t i2 = mWavefront.mIndices[i * 3 + 1];
+						uint32_t i3 = mWavefront.mIndices[i * 3 + 2];
+						const float *p1 = &mWavefront.mVertices[i1 * 3];
+						const float *p2 = &mWavefront.mVertices[i2 * 3];
+						const float *p3 = &mWavefront.mVertices[i3 * 3];
+						gRenderDebug->debugTri(p3, p2, p1);
+					}
+					gRenderDebug->popRenderState();
 				}
-				gRenderDebug->popRenderState();
 			}
 		}
 		if (mTestHACD == nullptr)
@@ -543,6 +556,7 @@ public:
 	}
 
 	uint32_t	mMeshID{ 0 };
+	bool		mSimulateAsRagdoll{ false };
 	bool		mShowConstraints{ true };
 	bool		mShowCollisionPairs{ false };
 	bool		mShowSkeleton{ true };

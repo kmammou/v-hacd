@@ -68,6 +68,12 @@ public:
 						bool showSkeleton,
 						bool showCollisionPairs) final
 	{
+		// We can't currently do the visualization if we are doing a full ragdoll simulation
+		// while simulating; so don't try
+		if (mSimulateAsRagdoll && isSimulating())
+		{
+			return;
+		}
 		uint32_t hullCount = mHACD->GetNConvexHulls();
 		if (hullCount)
 		{
@@ -376,8 +382,9 @@ public:
 		}
 	}
 
-	virtual void toggleSimulation(void)
+	virtual void toggleSimulation(bool simulateAsRagdoll)
 	{
+		mSimulateAsRagdoll = simulateAsRagdoll;
 		if (mCompoundActor)
 		{
 			releaseSimulationObjects();
@@ -420,7 +427,20 @@ public:
 					mCenterOfMass[0] = float(centerOfMass[0]);
 					mCenterOfMass[1] = float(centerOfMass[1]);
 					mCenterOfMass[2] = float(centerOfMass[2]);
-					mCompoundActor->createActor(mCenterOfMass,DEFAULT_MASS);
+					mCompoundActor->createActor(mCenterOfMass,DEFAULT_MASS,simulateAsRagdoll);
+					if (simulateAsRagdoll)
+					{
+						uint32_t constraintCount;
+						const VHACD::IVHACD::Constraint *constraints = mHACD->GetConstraints(constraintCount);
+						if (constraints)
+						{
+							for (uint32_t i = 0; i < constraintCount; i++)
+							{
+								const VHACD::IVHACD::Constraint &c = constraints[i];
+								mCompoundActor->createConstraint(c.mHullA, c.mHullB);
+							}
+						}
+					}
 				}
 			}
 		}
@@ -451,7 +471,7 @@ public:
 		FLOAT_MATH::fm_identity(xform);
 		if (mCompoundActor)
 		{
-			mCompoundActor->getXform(xform);
+			mCompoundActor->getXform(xform,0);
 		}
 	}
 
@@ -463,6 +483,12 @@ public:
 		}
 	}
 
+	virtual bool isSimulating(void) const
+	{
+		return mCompoundActor ? true : false;
+	}
+
+	bool								mSimulateAsRagdoll{ false };
 	uint32_t							mConvexMeshCount{ 0 };
 	NV_PHYSX_FRAMEWORK::PhysXFramework::ConvexMesh		**mConvexMeshes{ nullptr };
 	NV_PHYSX_FRAMEWORK::PhysXFramework::CompoundActor	*mCompoundActor{ nullptr };
