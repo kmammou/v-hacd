@@ -20,6 +20,15 @@ namespace RENDER_DEBUG
 namespace NV_PHYSX_FRAMEWORK
 {
 
+enum ConstraintType
+{
+	CT_FIXED,
+	CT_SPHERICAL,
+	CT_HINGE,
+	CT_BALL_AND_SOCKET,
+	CT_REVOLUTE,
+};
+
 #define PHYSX_FRAMEWORK_VERSION_NUMBER 1
 
 // Instantiate the PhysX SDK, create a scene, and a ground plane
@@ -63,7 +72,11 @@ public:
 			uint32_t bodyB,								// Index of second body
 			const float worldPos[3],					// World position of the constraint location
 			const float worldOrientation[4],
-			uint32_t limitRangeDegrees) = 0;		// World orientation of the constraint 
+			ConstraintType type,			// Type of constraint to use
+			float	limitDistance,			// If a revolute joint, the distance limit
+			uint32_t twistLimit,			// Twist limit in degrees (if used)
+			uint32_t swing1Limit,			// Swing 1 limit in degrees (if used)
+			uint32_t swing2Limit) = 0;		// Swing 2 limit in degrees (if used)
 
 		virtual bool getXform(float xform[16],uint32_t index) = 0;
 

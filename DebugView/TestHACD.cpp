@@ -26,6 +26,8 @@ public:
 	{
 		mHACD->Release();
 		releaseSimulationObjects();
+		delete[]mIndices;
+		delete[]mVertices;
 	}
 
 	void getExplodePosition(const double source[3], float dest[3], const double diff[3],const float center[3])
@@ -382,7 +384,12 @@ public:
 		}
 	}
 
-	virtual void toggleSimulation(bool simulateAsRagdoll,uint32_t limitRangeDegrees)
+	virtual void toggleSimulation(bool simulateAsRagdoll,
+		NV_PHYSX_FRAMEWORK::ConstraintType ctype,
+		float limitDistance,
+		uint32_t twistLimit,			// Twist limit in degrees (if used)
+		uint32_t swing1Limit,			// Swing 1 limit in degrees (if used)
+		uint32_t swing2Limit) final		// Swing 2 limit in degrees (if used)
 	{
 		mSimulateAsRagdoll = simulateAsRagdoll;
 		if (mCompoundActor)
@@ -446,7 +453,7 @@ public:
 								rot[1] = float(c.mConstraintOrientation[1]);
 								rot[2] = float(c.mConstraintOrientation[2]);
 								rot[3] = float(c.mConstraintOrientation[3]);
-								mCompoundActor->createConstraint(c.mHullA, c.mHullB, pos, rot, limitRangeDegrees);
+								mCompoundActor->createConstraint(c.mHullA, c.mHullB, pos, rot, ctype, limitDistance, twistLimit, swing1Limit, swing2Limit);
 							}
 						}
 					}
@@ -497,6 +504,21 @@ public:
 		return mCompoundActor ? true : false;
 	}
 
+	virtual void setRenderMesh(uint32_t vcount,
+		const float *vertices,
+		uint32_t tcount,
+		const uint32_t *indices)
+	{
+		delete[]mIndices;
+		delete[]mVertices;
+		mVertexCount = vcount;
+		mTriangleCount = tcount;
+		mVertices = new float[vcount * 3];
+		mIndices = new uint32_t[tcount * 3];
+		memcpy(mVertices,vertices, sizeof(float)*vcount * 3);
+		memcpy(mIndices,indices, sizeof(uint32_t)*tcount * 3);
+	}
+
 	bool								mSimulateAsRagdoll{ false };
 	uint32_t							mConvexMeshCount{ 0 };
 	NV_PHYSX_FRAMEWORK::PhysXFramework::ConvexMesh		**mConvexMeshes{ nullptr };
@@ -511,6 +533,11 @@ public:
 	std::string							mOperation;
 	float								mCenterOfMass[3];
 	bool								mHaveConstraints{ false };
+	// Render mesh....
+	uint32_t							mVertexCount{ 0 };
+	uint32_t							mTriangleCount{ 0 };
+	float								*mVertices{ nullptr };
+	uint32_t							*mIndices{ nullptr };
 };
 
 TestHACD *TestHACD::create(RENDER_DEBUG::RenderDebug *renderDebug,NV_PHYSX_FRAMEWORK::PhysXFramework *pf)

@@ -27,6 +27,7 @@ static bool			gShowSourceMesh = true;
 static bool			gShowConvexDecomposition = true;
 static bool			gUseHACD = true;
 static float		gScaleInputMesh = 1;
+static uint32_t		gTessellateInputMesh = 1;
 static float		gExplodeViewScale = 1;
 static float		gCenter[3] { 0, 0, 0 };
 static uint32_t		gVertexCount = 0;
@@ -162,12 +163,12 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("BeginGroup \"View\"");	// Mark the beginning of a group of controls.
 	gRenderDebug->sendRemoteCommand("CheckBox ShowSourceMesh true ShowSourceMesh");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowConvexDecomposition true ShowConvexDecomposition");
+	gRenderDebug->sendRemoteCommand("CheckBox WireframeSourceMesh false WireframeSourceMesh");
     gRenderDebug->sendRemoteCommand("CheckBox WireframeConvex false WireframeConvex");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowPhysics true ShowPhysics");
 	gRenderDebug->sendRemoteCommand("Slider ScaleInputMesh 1 0.01 100 ScaleInputMesh");
+	gRenderDebug->sendRemoteCommand("SliderInt TessellateInputMesh 1 1 100 TessellateInputMesh");
 	gRenderDebug->sendRemoteCommand("Slider ExplodeViewScale 1 1 4 ExplodeViewScale");
-	gRenderDebug->sendRemoteCommand("Button PerformConvexDecomposition decomp");
-	gRenderDebug->sendRemoteCommand("Button Cancel \"cancel\"");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
 
@@ -175,6 +176,8 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("SliderInt MaxHullVertices 32 8 512 MaxHullVertices");
 	gRenderDebug->sendRemoteCommand("SliderInt MaxConvexHulls 32 1 512 MaxConvexHulls");
 	gRenderDebug->sendRemoteCommand("Slider Concavity 0.001 0 0.1 Concavity");
+	gRenderDebug->sendRemoteCommand("Button PerformConvexDecomposition decomp");
+	gRenderDebug->sendRemoteCommand("Button Cancel \"cancel\"");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'HACD settings'
 
 	gRenderDebug->sendRemoteCommand("BeginGroup \"V-HACD Settings2\"");	// Mark the beginning of a group of controls.
@@ -185,6 +188,7 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'HACD settings'
 
 	gRenderDebug->sendRemoteCommand("BeginGroup \"Simulation\"");	// Mark the beginning of a group of controls.
+	gRenderDebug->sendRemoteCommand("Combo ConstraintType ConstraintType HINGE FIXED SPHERICAL BALLSOCKET REVOLUTE");
 	gRenderDebug->sendRemoteCommand("SliderInt LimitRangeDegrees 45 1 90 LimitRangeDegrees");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowConstraints true ShowConstraints");
 	gRenderDebug->sendRemoteCommand("CheckBox ShowSkeleton true ShowSkeleton");
@@ -240,10 +244,6 @@ public:
 			{
 				mExit = true;
 			}
-			else if (strcmp(cmd, "toggle") == 0)
-			{
-				mSolid = mSolid ? false : true;
-			}
 			else if (strcmp(cmd, "decomp") == 0 && mTestHACD)
 			{
 				printf("Performing Convex Decomposition\n");
@@ -293,7 +293,7 @@ public:
 			}
 			else if (strcmp(cmd, "ToggleSimulation") == 0 && mTestHACD )
 			{
-				mTestHACD->toggleSimulation(mSimulateAsRagdoll,mLimitRangeDegrees);
+				mTestHACD->toggleSimulation(mSimulateAsRagdoll, mConstraintType, 0, mLimitRangeDegrees, 0, 0);
 			}
 			else if (strcmp(cmd, "raycast") == 0 && mTestHACD)
 			{
@@ -311,6 +311,31 @@ public:
 			{
 				mLimitRangeDegrees = uint32_t( atoi(argv[1]));
 				printf("LimitRangeDegrees=%d\n", mLimitRangeDegrees);
+			}
+			else if (strcmp(cmd, "ConstraintType") == 0 && argc == 2)
+			{
+				const char *ct = argv[1];
+				if (strcmp(ct, "HINGE") == 0)
+				{
+					mConstraintType = NV_PHYSX_FRAMEWORK::CT_HINGE;
+				}
+				else if (strcmp(ct, "FIXED") == 0)
+				{
+					mConstraintType = NV_PHYSX_FRAMEWORK::CT_FIXED;
+				}
+				else if (strcmp(ct, "SPHERICAL") == 0)
+				{
+					mConstraintType = NV_PHYSX_FRAMEWORK::CT_SPHERICAL;
+				}
+				else if (strcmp(ct, "BALLSOCKET") == 0)
+				{
+					mConstraintType = NV_PHYSX_FRAMEWORK::CT_BALL_AND_SOCKET;
+				}
+				else if (strcmp(ct, "REVOLUTE") == 0)
+				{
+					mConstraintType = NV_PHYSX_FRAMEWORK::CT_REVOLUTE;
+				}
+				printf("ConstraintType=%s\n", ct);
 			}
 			else if (strcmp(cmd, "MaxHullVertices") == 0 && argc == 2)
 			{
@@ -363,6 +388,11 @@ public:
 				const char *value = argv[1];
 				mWireframeConvex = strcmp(value, "true") == 0;
 			}
+			else if (strcmp(cmd, "WireframeSourceMesh") == 0 && argc == 2)
+			{
+				const char *value = argv[1];
+				mWireframeSourceMesh = strcmp(value, "true") == 0;
+			}
 			else if (strcmp(cmd, "Resolution") == 0 && argc == 2)
 			{
 				const char *value = argv[1];
@@ -388,6 +418,19 @@ public:
 				gRenderDebug->releaseTriangleMesh(mMeshID);
 				mMeshID = 0;
 			}
+			else if (strcmp(cmd, "TessellateInputMesh") == 0 && argc == 2)
+			{
+				const char *value = argv[1];
+				gTessellateInputMesh = uint32_t(atoi(value));
+				printf("TessellateInputMesh=%d\n", gTessellateInputMesh);
+				if (mTestHACD)
+				{
+					mTestHACD->release();
+					mTestHACD = nullptr;
+				}
+				gRenderDebug->releaseTriangleMesh(mMeshID);
+				mMeshID = 0;
+			}
 			else if (strcmp(cmd, "save") == 0)
 			{
 				if (mTestHACD)
@@ -404,7 +447,7 @@ public:
 	{
 		if (mMeshID == 0 && mSourceMesh.mVertexCount)
 		{
-			mSourceMesh.deepCopyScale(mWavefront, gScaleInputMesh,gCenterMesh);
+			mSourceMesh.deepCopyScale(mWavefront, gScaleInputMesh,gCenterMesh,gTessellateInputMesh);
 			gCenterMesh = false; // clear the center mesh semaphore
 			gVertexCount = mWavefront.mVertexCount;
 			gTriangleCount = mWavefront.mTriCount;
@@ -434,17 +477,20 @@ public:
 				gRenderDebug->createTriangleMesh(mMeshID, (uint32_t)mb.mVertices.size(), &mb.mVertices[0], 0, nullptr);
 			}
 			fm_computCenter(mWavefront.mVertexCount, mWavefront.mVertices, gCenter);
+			if (mTestHACD)
+			{
+				mTestHACD->setRenderMesh(mWavefront.mVertexCount, mWavefront.mVertices, mWavefront.mTriCount, mWavefront.mIndices);
+			}
 		}
 		gRenderDebug->debugText2D(0, 0.04f, 0.5f, 2.0f, false, 0xFFFF00, "%s", mMeshName.c_str());
 		if ( mTestHACD )
 		{
-			gRenderDebug->debugText2D(0, 0.08f, 0.5f, 2.0f, false, 0xFFFF00, "HullCount: %d ConstraintCount: %d CollisionFilterCount: %d", mTestHACD->getHullCount(), mTestHACD->getConstraintCount(), mTestHACD->getCollisionFilterCount());
+			gRenderDebug->debugText2D(0, 0.08f, 0.5f, 2.0f, false, 0xFFFF00, "VertexCount: %d TriangleCount: %d", mWavefront.mVertexCount, mWavefront.mTriCount);
+			gRenderDebug->debugText2D(0, 0.12f, 0.5f, 2.0f, false, 0xFFFF00, "HullCount: %d ConstraintCount: %d CollisionFilterCount: %d", mTestHACD->getHullCount(), mTestHACD->getConstraintCount(), mTestHACD->getCollisionFilterCount());
 		}
 		gRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::SolidWireShaded);
 		gRenderDebug->addToCurrentState(RENDER_DEBUG::DebugRenderState::CameraFacing);
 		gRenderDebug->setCurrentColor(0xFFFF00);
-
-
 
 		if (gShowSourceMesh)
 		{
@@ -454,7 +500,7 @@ public:
 			}
 			else
 			{
-				if (mSolid)
+				if (!mWireframeSourceMesh)
 				{
 					RENDER_DEBUG::RenderDebugInstance instance;
 					float xform[16];
@@ -568,14 +614,15 @@ public:
 	bool		mShowCollisionPairs{ false };
 	bool		mShowSkeleton{ true };
 	bool		mShowPhysics{ true };
-	bool		mSolid{ true };
 	bool		mWireframeConvex{ false };
+	bool		mWireframeSourceMesh{ false };
 	TestHACD	*mTestHACD{ nullptr };
 	bool		mExit{ false };
 	WavefrontObj mSourceMesh;
 	WavefrontObj mWavefront;
 	double		*mMeshVertices{ nullptr };
 	std::string	mMeshName;
+	NV_PHYSX_FRAMEWORK::ConstraintType	mConstraintType{ NV_PHYSX_FRAMEWORK::CT_HINGE };
 };
 
 #define USE_DEBUG 0
