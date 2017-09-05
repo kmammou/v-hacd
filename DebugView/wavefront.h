@@ -55,7 +55,7 @@ public:
 	void releaseMesh(void);
 
 
-	void deepCopyScale(WavefrontObj &dest, float scaleFactor,bool centerMesh);
+	void deepCopyScale(WavefrontObj &dest, float scaleFactor,bool centerMesh,uint32_t tessellateInputMesh);
 
 	bool saveObj(const char *fname);
 

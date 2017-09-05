@@ -175,7 +175,7 @@ void  fm_quatToEuler(const REAL quat[4],REAL &ax,REAL &ay,REAL &az)
 	REAL sinv, cosv, sinf, cosf;
 	if ( (REAL)fabs(cost) > 0.001f )
 	{
-    cost = 1.0f / cost;
+	cost = 1.0f / cost;
 		sinv = ((2.0f * y * z) + (2.0f * w * x)) * cost;
 		cosv = (1.0f - (2.0f * x * x) - (2.0f * y * y)) * cost;
 		sinf = ((2.0f * x * y) + (2.0f * w * z)) * cost;
@@ -219,12 +219,12 @@ void fm_getAABB(uint32_t vcount,const REAL *points,uint32_t pstride,REAL *bmin,R
 
   for (uint32_t i=1; i<vcount; i++)
   {
-  	source+=pstride;
-  	const REAL *p = (const REAL *) source;
+	source+=pstride;
+	const REAL *p = (const REAL *) source;
 
-  	if ( p[0] < bmin[0] ) bmin[0] = p[0];
-  	if ( p[1] < bmin[1] ) bmin[1] = p[1];
-  	if ( p[2] < bmin[2] ) bmin[2] = p[2];
+	if ( p[0] < bmin[0] ) bmin[0] = p[0];
+	if ( p[1] < bmin[1] ) bmin[1] = p[1];
+	if ( p[2] < bmin[2] ) bmin[2] = p[2];
 
 		if ( p[0] > bmax[0] ) bmax[0] = p[0];
 		if ( p[1] > bmax[1] ) bmax[1] = p[1];
@@ -394,18 +394,18 @@ void  fm_transform(const REAL matrix[16],const REAL v[3],REAL t[3]) // rotate an
 {
   if ( matrix )
   {
-    REAL tx = (matrix[0*4+0] * v[0]) +  (matrix[1*4+0] * v[1]) + (matrix[2*4+0] * v[2]) + matrix[3*4+0];
-    REAL ty = (matrix[0*4+1] * v[0]) +  (matrix[1*4+1] * v[1]) + (matrix[2*4+1] * v[2]) + matrix[3*4+1];
-    REAL tz = (matrix[0*4+2] * v[0]) +  (matrix[1*4+2] * v[1]) + (matrix[2*4+2] * v[2]) + matrix[3*4+2];
-    t[0] = tx;
-    t[1] = ty;
-    t[2] = tz;
+	REAL tx = (matrix[0*4+0] * v[0]) +  (matrix[1*4+0] * v[1]) + (matrix[2*4+0] * v[2]) + matrix[3*4+0];
+	REAL ty = (matrix[0*4+1] * v[0]) +  (matrix[1*4+1] * v[1]) + (matrix[2*4+1] * v[2]) + matrix[3*4+1];
+	REAL tz = (matrix[0*4+2] * v[0]) +  (matrix[1*4+2] * v[1]) + (matrix[2*4+2] * v[2]) + matrix[3*4+2];
+	t[0] = tx;
+	t[1] = ty;
+	t[2] = tz;
   }
   else
   {
-    t[0] = v[0];
-    t[1] = v[1];
-    t[2] = v[2];
+	t[0] = v[0];
+	t[1] = v[1];
+	t[2] = v[2];
   }
 }
 
@@ -413,18 +413,18 @@ void  fm_rotate(const REAL matrix[16],const REAL v[3],REAL t[3]) // rotate and t
 {
   if ( matrix )
   {
-    REAL tx = (matrix[0*4+0] * v[0]) +  (matrix[1*4+0] * v[1]) + (matrix[2*4+0] * v[2]);
-    REAL ty = (matrix[0*4+1] * v[0]) +  (matrix[1*4+1] * v[1]) + (matrix[2*4+1] * v[2]);
-    REAL tz = (matrix[0*4+2] * v[0]) +  (matrix[1*4+2] * v[1]) + (matrix[2*4+2] * v[2]);
-    t[0] = tx;
-    t[1] = ty;
-    t[2] = tz;
+	REAL tx = (matrix[0*4+0] * v[0]) +  (matrix[1*4+0] * v[1]) + (matrix[2*4+0] * v[2]);
+	REAL ty = (matrix[0*4+1] * v[0]) +  (matrix[1*4+1] * v[1]) + (matrix[2*4+1] * v[2]);
+	REAL tz = (matrix[0*4+2] * v[0]) +  (matrix[1*4+2] * v[1]) + (matrix[2*4+2] * v[2]);
+	t[0] = tx;
+	t[1] = ty;
+	t[2] = tz;
   }
   else
   {
-    t[0] = v[0];
-    t[1] = v[1];
-    t[2] = v[2];
+	t[0] = v[0];
+	t[1] = v[1];
+	t[2] = v[2];
   }
 }
 
@@ -513,12 +513,12 @@ void fm_cross(REAL *cross,const REAL *a,const REAL *b)
 	cross[2] = a[0]*b[1] - a[1]*b[0];
 }
 
-void fm_computeNormalVector(REAL *n,const REAL *p1,const REAL *p2)
+REAL fm_computeNormalVector(REAL *n,const REAL *p1,const REAL *p2)
 {
   n[0] = p2[0] - p1[0];
   n[1] = p2[1] - p1[1];
   n[2] = p2[2] - p1[2];
-  fm_normalize(n);
+  return fm_normalize(n);
 }
 
 bool  fm_computeWindingOrder(const REAL *p1,const REAL *p2,const REAL *p3) // returns true if the triangle is clockwise.
@@ -540,9 +540,9 @@ bool  fm_computeWindingOrder(const REAL *p1,const REAL *p2,const REAL *p3) // re
 
 
   if ( d <= 0 )
-    ret = false;
+	ret = false;
   else
-    ret = true;
+	ret = true;
 
   return ret;
 }
@@ -552,16 +552,16 @@ REAL fm_normalize(REAL *n) // normalize this vector
   REAL dist = (REAL)sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
   if ( dist > 0.0000001f )
   {
-    REAL mag = 1.0f / dist;
-    n[0]*=mag;
-    n[1]*=mag;
-    n[2]*=mag;
+	REAL mag = 1.0f / dist;
+	n[0]*=mag;
+	n[1]*=mag;
+	n[2]*=mag;
   }
   else
   {
-    n[0] = 1;
-    n[1] = 0;
-    n[2] = 0;
+	n[0] = 1;
+	n[1] = 0;
+	n[2] = 0;
   }
 
   return dist;
@@ -663,12 +663,12 @@ void  fm_composeTransform(const REAL *position,const REAL *quat,const REAL *scal
 
   if ( scale && ( scale[0] != 1 || scale[1] != 1 || scale[2] != 1 ) )
   {
-    REAL work[16];
-    memcpy(work,matrix,sizeof(REAL)*16);
-    REAL mscale[16];
-    fm_identity(mscale);
-    fm_scale(scale[0],scale[1],scale[2],mscale);
-    fm_matrixMultiply(work,mscale,matrix);
+	REAL work[16];
+	memcpy(work,matrix,sizeof(REAL)*16);
+	REAL mscale[16];
+	fm_identity(mscale);
+	fm_scale(scale[0],scale[1],scale[2],mscale);
+	fm_matrixMultiply(work,mscale,matrix);
   }
 
   matrix[12] = position[0];
@@ -712,9 +712,9 @@ Output, REAL ENORM0_3D, the Euclidean norm of (P1-P0).
   REAL value;
 
   value = (REAL)sqrt (
-    ( x1 - x0 ) * ( x1 - x0 ) + 
-    ( y1 - y0 ) * ( y1 - y0 ) + 
-    ( z1 - z0 ) * ( z1 - z0 ) );
+	( x1 - x0 ) * ( x1 - x0 ) + 
+	( y1 - y0 ) * ( y1 - y0 ) + 
+	( z1 - z0 ) * ( z1 - z0 ) );
 
   return value;
 }
@@ -722,28 +722,28 @@ Output, REAL ENORM0_3D, the Euclidean norm of (P1-P0).
 
 static REAL triangle_area_3d ( REAL x1, REAL y1, REAL z1, REAL x2,REAL y2, REAL z2, REAL x3, REAL y3, REAL z3 )
 
-                        /**********************************************************************/
+						/**********************************************************************/
 
-                        /*
-                        Purpose:
+						/*
+						Purpose:
 
-                        TRIANGLE_AREA_3D computes the area of a triangle in 3D.
+						TRIANGLE_AREA_3D computes the area of a triangle in 3D.
 
-                        Modified:
+						Modified:
 
-                        22 April 1999
+						22 April 1999
 
-                        Author:
+						Author:
 
-                        John Burkardt
+						John Burkardt
 
-                        Parameters:
+						Parameters:
 
-                        Input, REAL X1, Y1, Z1, X2, Y2, Z2, X3, Y3, Z3, the (X,Y,Z)
-                        coordinates of the corners of the triangle.
+						Input, REAL X1, Y1, Z1, X2, Y2, Z2, X3, Y3, Z3, the (X,Y,Z)
+						coordinates of the corners of the triangle.
 
-                        Output, REAL TRIANGLE_AREA_3D, the area of the triangle.
-                        */
+						Output, REAL TRIANGLE_AREA_3D, the area of the triangle.
+						*/
 {
   REAL a;
   REAL alpha;
@@ -757,9 +757,9 @@ static REAL triangle_area_3d ( REAL x1, REAL y1, REAL z1, REAL x2,REAL y2, REAL 
   Find the projection of (P3-P1) onto (P2-P1).
   */
   dot = 
-    ( x2 - x1 ) * ( x3 - x1 ) +
-    ( y2 - y1 ) * ( y3 - y1 ) +
-    ( z2 - z1 ) * ( z3 - z1 );
+	( x2 - x1 ) * ( x3 - x1 ) +
+	( y2 - y1 ) * ( y3 - y1 ) +
+	( z2 - z1 ) * ( z3 - z1 );
 
   base = enorm0_3d ( x1, y1, z1, x2, y2, z2 );
   /*
@@ -768,18 +768,18 @@ static REAL triangle_area_3d ( REAL x1, REAL y1, REAL z1, REAL x2,REAL y2, REAL 
   */
   if ( base == 0.0 ) {
 
-    height = 0.0;
+	height = 0.0;
 
   }
   else {
 
-    alpha = dot / ( base * base );
+	alpha = dot / ( base * base );
 
-    a = x3 - x1 - alpha * ( x2 - x1 );
-    b = y3 - y1 - alpha * ( y2 - y1 );
-    c = z3 - z1 - alpha * ( z2 - z1 );
+	a = x3 - x1 - alpha * ( x2 - x1 );
+	b = y3 - y1 - alpha * ( y2 - y1 );
+	c = z3 - z1 - alpha * ( z2 - z1 );
 
-    height = (REAL)sqrt ( a * a + b * b + c * c );
+	height = (REAL)sqrt ( a * a + b * b + c * c );
 
   }
 
@@ -811,7 +811,7 @@ bool fm_pointTestXZ(const REAL *p,const REAL *i,const REAL *j)
   bool ret = false;
 
   if (((( i[2] <= p[2] ) && ( p[2]  < j[2] )) || (( j[2] <= p[2] ) && ( p[2]  < i[2] ))) && ( p[0] < (j[0] - i[0]) * (p[2] - i[2]) / (j[2] - i[2]) + i[0]))
-    ret = true;
+	ret = true;
 
   return ret;
 };
@@ -835,9 +835,9 @@ bool  fm_insideAABB(const REAL *pos,const REAL *bmin,const REAL *bmax)
   bool ret = false;
 
   if ( pos[0] >= bmin[0] && pos[0] <= bmax[0] &&
-       pos[1] >= bmin[1] && pos[1] <= bmax[1] &&
-       pos[2] >= bmin[2] && pos[2] <= bmax[2] )
-    ret = true;
+	   pos[1] >= bmin[1] && pos[1] <= bmax[1] &&
+	   pos[2] >= bmin[2] && pos[2] <= bmax[2] )
+	ret = true;
 
   return ret;
 }
@@ -848,19 +848,19 @@ uint32_t fm_clipTestPoint(const REAL *bmin,const REAL *bmax,const REAL *pos)
   uint32_t ret = 0;
 
   if ( pos[0] < bmin[0] )
-    ret|=FMCS_XMIN;
+	ret|=FMCS_XMIN;
   else if ( pos[0] > bmax[0] )
-    ret|=FMCS_XMAX;
+	ret|=FMCS_XMAX;
 
   if ( pos[1] < bmin[1] )
-    ret|=FMCS_YMIN;
+	ret|=FMCS_YMIN;
   else if ( pos[1] > bmax[1] )
-    ret|=FMCS_YMAX;
+	ret|=FMCS_YMAX;
 
   if ( pos[2] < bmin[2] )
-    ret|=FMCS_ZMIN;
+	ret|=FMCS_ZMIN;
   else if ( pos[2] > bmax[2] )
-    ret|=FMCS_ZMAX;
+	ret|=FMCS_ZMAX;
 
   return ret;
 }
@@ -870,14 +870,14 @@ uint32_t fm_clipTestPointXZ(const REAL *bmin,const REAL *bmax,const REAL *pos) /
   uint32_t ret = 0;
 
   if ( pos[0] < bmin[0] )
-    ret|=FMCS_XMIN;
+	ret|=FMCS_XMIN;
   else if ( pos[0] > bmax[0] )
-    ret|=FMCS_XMAX;
+	ret|=FMCS_XMAX;
 
   if ( pos[2] < bmin[2] )
-    ret|=FMCS_ZMIN;
+	ret|=FMCS_ZMIN;
   else if ( pos[2] > bmax[2] )
-    ret|=FMCS_ZMAX;
+	ret|=FMCS_ZMAX;
 
   return ret;
 }
@@ -909,29 +909,29 @@ bool intersect(const REAL *si,const REAL *ei,const REAL *bmin,const REAL *bmax,R
 
   for (int32_t i = 0; i < 3; i++)
   {
-    if (*si < *ei)
-    {
-      if (*si > *bmax || *ei < *bmin)
-        return false;
-      REAL di = *ei - *si;
-      st = (*si < *bmin)? (*bmin - *si) / di: 0;
-      et = (*ei > *bmax)? (*bmax - *si) / di: 1;
-    }
-    else
-    {
-      if (*ei > *bmax || *si < *bmin)
-        return false;
-      REAL di = *ei - *si;
-      st = (*si > *bmax)? (*bmax - *si) / di: 0;
-      et = (*ei < *bmin)? (*bmin - *si) / di: 1;
-    }
+	if (*si < *ei)
+	{
+	  if (*si > *bmax || *ei < *bmin)
+		return false;
+	  REAL di = *ei - *si;
+	  st = (*si < *bmin)? (*bmin - *si) / di: 0;
+	  et = (*ei > *bmax)? (*bmax - *si) / di: 1;
+	}
+	else
+	{
+	  if (*ei > *bmax || *si < *bmin)
+		return false;
+	  REAL di = *ei - *si;
+	  st = (*si > *bmax)? (*bmax - *si) / di: 0;
+	  et = (*ei < *bmin)? (*bmin - *si) / di: 1;
+	}
 
-    if (st > fst) fst = st;
-    if (et < fet) fet = et;
-    if (fet < fst)
-      return false;
-    bmin++; bmax++;
-    si++; ei++;
+	if (st > fst) fst = st;
+	if (et < fet) fet = et;
+	if (fet < fst)
+	  return false;
+	bmin++; bmax++;
+	si++; ei++;
   }
 
   *time = fst;
@@ -1014,9 +1014,9 @@ FM_Axis fm_getDominantAxis(const REAL normal[3])
   REAL z = (REAL)fabs(normal[2]);
 
   if ( y > x && y > z )
-    ret = FM_YAXIS;
+	ret = FM_YAXIS;
   else if ( z > x && z > y )
-    ret = FM_ZAXIS;
+	ret = FM_ZAXIS;
 
   return ret;
 }
@@ -1036,29 +1036,29 @@ bool fm_lineSphereIntersect(const REAL *center,REAL radius,const REAL *p1,const 
 
   if ( distance > 0 )
   {
-    REAL recip = 1.0f / distance;
-    dir[0]*=recip;
-    dir[1]*=recip;
-    dir[2]*=recip;
-    ret = fm_raySphereIntersect(center,radius,p1,dir,distance,intersect);
+	REAL recip = 1.0f / distance;
+	dir[0]*=recip;
+	dir[1]*=recip;
+	dir[2]*=recip;
+	ret = fm_raySphereIntersect(center,radius,p1,dir,distance,intersect);
   }
   else
   {
-    dir[0] = center[0]-p1[0];
-    dir[1] = center[1]-p1[1];
-    dir[2] = center[2]-p1[2];
-    REAL d2 = dir[0]*dir[0]+dir[1]*dir[1]+dir[2]*dir[2];
-    REAL r2 = radius*radius;
-    if ( d2 < r2 )
-    {
-      ret = true;
-      if ( intersect )
-      {
-        intersect[0] = p1[0];
-        intersect[1] = p1[1];
-        intersect[2] = p1[2];
-      }
-    }
+	dir[0] = center[0]-p1[0];
+	dir[1] = center[1]-p1[1];
+	dir[2] = center[2]-p1[2];
+	REAL d2 = dir[0]*dir[0]+dir[1]*dir[1]+dir[2]*dir[2];
+	REAL r2 = radius*radius;
+	if ( d2 < r2 )
+	{
+	  ret = true;
+	  if ( intersect )
+	  {
+		intersect[0] = p1[0];
+		intersect[1] = p1[1];
+		intersect[2] = p1[2];
+	  }
+	}
   }
   return ret;
 }
@@ -1089,9 +1089,9 @@ bool fm_raySphereIntersect(const REAL *center,REAL radius,const REAL *pos,const 
   // direction vector so that we get a valid intersection location.
   if ( dist2 < radius2 )
   {
-    V[0]*=-1;
-    V[1]*=-1;
-    V[2]*=-1;
+	V[0]*=-1;
+	V[1]*=-1;
+	V[2]*=-1;
   }
 
 
@@ -1104,15 +1104,15 @@ bool fm_raySphereIntersect(const REAL *center,REAL radius,const REAL *pos,const 
 		if ( intersect )
 		{
 		  REAL d = (REAL)sqrt(disc);
-      REAL diff = v-d;
-      if ( diff < distance )
-      {
-        intersect[0] = pos[0]+V[0]*diff;
-        intersect[1] = pos[1]+V[1]*diff;
-        intersect[2] = pos[2]+V[2]*diff;
-        ret = true;
-      }
-    }
+	  REAL diff = v-d;
+	  if ( diff < distance )
+	  {
+		intersect[0] = pos[0]+V[0]*diff;
+		intersect[1] = pos[1]+V[1]*diff;
+		intersect[2] = pos[2]+V[2]*diff;
+		ret = true;
+	  }
+	}
 	}
 
 	return ret;
@@ -1148,11 +1148,11 @@ bool  fm_insideAABB(const REAL *obmin,const REAL *obmax,const REAL *tbmin,const 
   bool ret = false;
 
   if ( tbmax[0] <= obmax[0] &&
-       tbmax[1] <= obmax[1] &&
-       tbmax[2] <= obmax[2] &&
-       tbmin[0] >= obmin[0] &&
-       tbmin[1] >= obmin[1] &&
-       tbmin[2] >= obmin[2] ) ret = true;
+	   tbmax[1] <= obmax[1] &&
+	   tbmax[2] <= obmax[2] &&
+	   tbmin[0] >= obmin[0] &&
+	   tbmin[1] >= obmin[1] &&
+	   tbmin[2] >= obmin[2] ) ret = true;
 
   return ret;
 }
@@ -1220,62 +1220,62 @@ REAL fm_distancePointLineSegment(const REAL *Point,const REAL *LineStart,const R
 
   if ( LineMag > 0 )
   {
-    REAL U = ( ( ( Point[0] - LineStart[0] ) * ( LineEnd[0] - LineStart[0] ) ) + ( ( Point[1] - LineStart[1] ) * ( LineEnd[1] - LineStart[1] ) ) + ( ( Point[2] - LineStart[2] ) * ( LineEnd[2] - LineStart[2] ) ) ) / ( LineMag * LineMag );
-    if( U < 0.0f || U > 1.0f )
-    {
-      REAL d1 = fm_distanceSquared(Point,LineStart);
-      REAL d2 = fm_distanceSquared(Point,LineEnd);
-      if ( d1 <= d2 )
-      {
-        ret = (REAL)sqrt(d1);
-        intersection[0] = LineStart[0];
-        intersection[1] = LineStart[1];
-        intersection[2] = LineStart[2];
-        type = LS_START;
-      }
-      else
-      {
-        ret = (REAL)sqrt(d2);
-        intersection[0] = LineEnd[0];
-        intersection[1] = LineEnd[1];
-        intersection[2] = LineEnd[2];
-        type = LS_END;
-      }
-    }
-    else
-    {
-      intersection[0] = LineStart[0] + U * ( LineEnd[0] - LineStart[0] );
-      intersection[1] = LineStart[1] + U * ( LineEnd[1] - LineStart[1] );
-      intersection[2] = LineStart[2] + U * ( LineEnd[2] - LineStart[2] );
+	REAL U = ( ( ( Point[0] - LineStart[0] ) * ( LineEnd[0] - LineStart[0] ) ) + ( ( Point[1] - LineStart[1] ) * ( LineEnd[1] - LineStart[1] ) ) + ( ( Point[2] - LineStart[2] ) * ( LineEnd[2] - LineStart[2] ) ) ) / ( LineMag * LineMag );
+	if( U < 0.0f || U > 1.0f )
+	{
+	  REAL d1 = fm_distanceSquared(Point,LineStart);
+	  REAL d2 = fm_distanceSquared(Point,LineEnd);
+	  if ( d1 <= d2 )
+	  {
+		ret = (REAL)sqrt(d1);
+		intersection[0] = LineStart[0];
+		intersection[1] = LineStart[1];
+		intersection[2] = LineStart[2];
+		type = LS_START;
+	  }
+	  else
+	  {
+		ret = (REAL)sqrt(d2);
+		intersection[0] = LineEnd[0];
+		intersection[1] = LineEnd[1];
+		intersection[2] = LineEnd[2];
+		type = LS_END;
+	  }
+	}
+	else
+	{
+	  intersection[0] = LineStart[0] + U * ( LineEnd[0] - LineStart[0] );
+	  intersection[1] = LineStart[1] + U * ( LineEnd[1] - LineStart[1] );
+	  intersection[2] = LineStart[2] + U * ( LineEnd[2] - LineStart[2] );
 
-      ret = fm_distance(Point,intersection);
+	  ret = fm_distance(Point,intersection);
 
-      REAL d1 = fm_distanceSquared(intersection,LineStart);
-      REAL d2 = fm_distanceSquared(intersection,LineEnd);
+	  REAL d1 = fm_distanceSquared(intersection,LineStart);
+	  REAL d2 = fm_distanceSquared(intersection,LineEnd);
 	  REAL mag = (epsilon*2)*(epsilon*2);
 
-      if ( d1 < mag ) // if less than 1/100th the total distance, treat is as the 'start'
-      {
-        type = LS_START;
-      }
-      else if ( d2 < mag )
-      {
-        type = LS_END;
-      }
-      else
-      {
-        type = LS_MIDDLE;
-      }
+	  if ( d1 < mag ) // if less than 1/100th the total distance, treat is as the 'start'
+	  {
+		type = LS_START;
+	  }
+	  else if ( d2 < mag )
+	  {
+		type = LS_END;
+	  }
+	  else
+	  {
+		type = LS_MIDDLE;
+	  }
 
-    }
+	}
   }
   else
   {
-    ret = LineMag;
-    intersection[0] = LineEnd[0];
-    intersection[1] = LineEnd[1];
-    intersection[2] = LineEnd[2];
-    type = LS_END;
+	ret = LineMag;
+	intersection[0] = LineEnd[0];
+	intersection[1] = LineEnd[1];
+	intersection[2] = LineEnd[2];
+	type = LS_END;
   }
 
   return ret;
@@ -1293,186 +1293,186 @@ public:
 
   void DecrSortEigenStuff(void)
   {
-    Tridiagonal(); //diagonalize the matrix.
-    QLAlgorithm(); //
-    DecreasingSort();
-    GuaranteeRotation();
+	Tridiagonal(); //diagonalize the matrix.
+	QLAlgorithm(); //
+	DecreasingSort();
+	GuaranteeRotation();
   }
 
   void Tridiagonal(void)
   {
-    Type fM00 = mElement[0][0];
-    Type fM01 = mElement[0][1];
-    Type fM02 = mElement[0][2];
-    Type fM11 = mElement[1][1];
-    Type fM12 = mElement[1][2];
-    Type fM22 = mElement[2][2];
+	Type fM00 = mElement[0][0];
+	Type fM01 = mElement[0][1];
+	Type fM02 = mElement[0][2];
+	Type fM11 = mElement[1][1];
+	Type fM12 = mElement[1][2];
+	Type fM22 = mElement[2][2];
 
-    m_afDiag[0] = fM00;
-    m_afSubd[2] = 0;
-    if (fM02 != (Type)0.0)
-    {
-      Type fLength = (REAL)sqrt(fM01*fM01+fM02*fM02);
-      Type fInvLength = ((Type)1.0)/fLength;
-      fM01 *= fInvLength;
-      fM02 *= fInvLength;
-      Type fQ = ((Type)2.0)*fM01*fM12+fM02*(fM22-fM11);
-      m_afDiag[1] = fM11+fM02*fQ;
-      m_afDiag[2] = fM22-fM02*fQ;
-      m_afSubd[0] = fLength;
-      m_afSubd[1] = fM12-fM01*fQ;
-      mElement[0][0] = (Type)1.0;
-      mElement[0][1] = (Type)0.0;
-      mElement[0][2] = (Type)0.0;
-      mElement[1][0] = (Type)0.0;
-      mElement[1][1] = fM01;
-      mElement[1][2] = fM02;
-      mElement[2][0] = (Type)0.0;
-      mElement[2][1] = fM02;
-      mElement[2][2] = -fM01;
-      m_bIsRotation = false;
-    }
-    else
-    {
-      m_afDiag[1] = fM11;
-      m_afDiag[2] = fM22;
-      m_afSubd[0] = fM01;
-      m_afSubd[1] = fM12;
-      mElement[0][0] = (Type)1.0;
-      mElement[0][1] = (Type)0.0;
-      mElement[0][2] = (Type)0.0;
-      mElement[1][0] = (Type)0.0;
-      mElement[1][1] = (Type)1.0;
-      mElement[1][2] = (Type)0.0;
-      mElement[2][0] = (Type)0.0;
-      mElement[2][1] = (Type)0.0;
-      mElement[2][2] = (Type)1.0;
-      m_bIsRotation = true;
-    }
+	m_afDiag[0] = fM00;
+	m_afSubd[2] = 0;
+	if (fM02 != (Type)0.0)
+	{
+	  Type fLength = (REAL)sqrt(fM01*fM01+fM02*fM02);
+	  Type fInvLength = ((Type)1.0)/fLength;
+	  fM01 *= fInvLength;
+	  fM02 *= fInvLength;
+	  Type fQ = ((Type)2.0)*fM01*fM12+fM02*(fM22-fM11);
+	  m_afDiag[1] = fM11+fM02*fQ;
+	  m_afDiag[2] = fM22-fM02*fQ;
+	  m_afSubd[0] = fLength;
+	  m_afSubd[1] = fM12-fM01*fQ;
+	  mElement[0][0] = (Type)1.0;
+	  mElement[0][1] = (Type)0.0;
+	  mElement[0][2] = (Type)0.0;
+	  mElement[1][0] = (Type)0.0;
+	  mElement[1][1] = fM01;
+	  mElement[1][2] = fM02;
+	  mElement[2][0] = (Type)0.0;
+	  mElement[2][1] = fM02;
+	  mElement[2][2] = -fM01;
+	  m_bIsRotation = false;
+	}
+	else
+	{
+	  m_afDiag[1] = fM11;
+	  m_afDiag[2] = fM22;
+	  m_afSubd[0] = fM01;
+	  m_afSubd[1] = fM12;
+	  mElement[0][0] = (Type)1.0;
+	  mElement[0][1] = (Type)0.0;
+	  mElement[0][2] = (Type)0.0;
+	  mElement[1][0] = (Type)0.0;
+	  mElement[1][1] = (Type)1.0;
+	  mElement[1][2] = (Type)0.0;
+	  mElement[2][0] = (Type)0.0;
+	  mElement[2][1] = (Type)0.0;
+	  mElement[2][2] = (Type)1.0;
+	  m_bIsRotation = true;
+	}
   }
 
   bool QLAlgorithm(void)
   {
-    const int32_t iMaxIter = 32;
+	const int32_t iMaxIter = 32;
 
-    for (int32_t i0 = 0; i0 <3; i0++)
-    {
-      int32_t i1;
-      for (i1 = 0; i1 < iMaxIter; i1++)
-      {
-        int32_t i2;
-        for (i2 = i0; i2 <= (3-2); i2++)
-        {
-          Type fTmp = fabs(m_afDiag[i2]) + fabs(m_afDiag[i2+1]);
-          if ( fabs(m_afSubd[i2]) + fTmp == fTmp )
-            break;
-        }
-        if (i2 == i0)
-        {
-          break;
-        }
+	for (int32_t i0 = 0; i0 <3; i0++)
+	{
+	  int32_t i1;
+	  for (i1 = 0; i1 < iMaxIter; i1++)
+	  {
+		int32_t i2;
+		for (i2 = i0; i2 <= (3-2); i2++)
+		{
+		  Type fTmp = fabs(m_afDiag[i2]) + fabs(m_afDiag[i2+1]);
+		  if ( fabs(m_afSubd[i2]) + fTmp == fTmp )
+			break;
+		}
+		if (i2 == i0)
+		{
+		  break;
+		}
 
-        Type fG = (m_afDiag[i0+1] - m_afDiag[i0])/(((Type)2.0) * m_afSubd[i0]);
-        Type fR = (REAL)sqrt(fG*fG+(Type)1.0);
-        if (fG < (Type)0.0)
-        {
-          fG = m_afDiag[i2]-m_afDiag[i0]+m_afSubd[i0]/(fG-fR);
-        }
-        else
-        {
-          fG = m_afDiag[i2]-m_afDiag[i0]+m_afSubd[i0]/(fG+fR);
-        }
-        Type fSin = (Type)1.0, fCos = (Type)1.0, fP = (Type)0.0;
-        for (int32_t i3 = i2-1; i3 >= i0; i3--)
-        {
-          Type fF = fSin*m_afSubd[i3];
-          Type fB = fCos*m_afSubd[i3];
-          if (fabs(fF) >= fabs(fG))
-          {
-            fCos = fG/fF;
-            fR = (REAL)sqrt(fCos*fCos+(Type)1.0);
-            m_afSubd[i3+1] = fF*fR;
-            fSin = ((Type)1.0)/fR;
-            fCos *= fSin;
-          }
-          else
-          {
-            fSin = fF/fG;
-            fR = (REAL)sqrt(fSin*fSin+(Type)1.0);
-            m_afSubd[i3+1] = fG*fR;
-            fCos = ((Type)1.0)/fR;
-            fSin *= fCos;
-          }
-          fG = m_afDiag[i3+1]-fP;
-          fR = (m_afDiag[i3]-fG)*fSin+((Type)2.0)*fB*fCos;
-          fP = fSin*fR;
-          m_afDiag[i3+1] = fG+fP;
-          fG = fCos*fR-fB;
-          for (int32_t i4 = 0; i4 < 3; i4++)
-          {
-            fF = mElement[i4][i3+1];
-            mElement[i4][i3+1] = fSin*mElement[i4][i3]+fCos*fF;
-            mElement[i4][i3] = fCos*mElement[i4][i3]-fSin*fF;
-          }
-        }
-        m_afDiag[i0] -= fP;
-        m_afSubd[i0] = fG;
-        m_afSubd[i2] = (Type)0.0;
-      }
-      if (i1 == iMaxIter)
-      {
-        return false;
-      }
-    }
-    return true;
+		Type fG = (m_afDiag[i0+1] - m_afDiag[i0])/(((Type)2.0) * m_afSubd[i0]);
+		Type fR = (REAL)sqrt(fG*fG+(Type)1.0);
+		if (fG < (Type)0.0)
+		{
+		  fG = m_afDiag[i2]-m_afDiag[i0]+m_afSubd[i0]/(fG-fR);
+		}
+		else
+		{
+		  fG = m_afDiag[i2]-m_afDiag[i0]+m_afSubd[i0]/(fG+fR);
+		}
+		Type fSin = (Type)1.0, fCos = (Type)1.0, fP = (Type)0.0;
+		for (int32_t i3 = i2-1; i3 >= i0; i3--)
+		{
+		  Type fF = fSin*m_afSubd[i3];
+		  Type fB = fCos*m_afSubd[i3];
+		  if (fabs(fF) >= fabs(fG))
+		  {
+			fCos = fG/fF;
+			fR = (REAL)sqrt(fCos*fCos+(Type)1.0);
+			m_afSubd[i3+1] = fF*fR;
+			fSin = ((Type)1.0)/fR;
+			fCos *= fSin;
+		  }
+		  else
+		  {
+			fSin = fF/fG;
+			fR = (REAL)sqrt(fSin*fSin+(Type)1.0);
+			m_afSubd[i3+1] = fG*fR;
+			fCos = ((Type)1.0)/fR;
+			fSin *= fCos;
+		  }
+		  fG = m_afDiag[i3+1]-fP;
+		  fR = (m_afDiag[i3]-fG)*fSin+((Type)2.0)*fB*fCos;
+		  fP = fSin*fR;
+		  m_afDiag[i3+1] = fG+fP;
+		  fG = fCos*fR-fB;
+		  for (int32_t i4 = 0; i4 < 3; i4++)
+		  {
+			fF = mElement[i4][i3+1];
+			mElement[i4][i3+1] = fSin*mElement[i4][i3]+fCos*fF;
+			mElement[i4][i3] = fCos*mElement[i4][i3]-fSin*fF;
+		  }
+		}
+		m_afDiag[i0] -= fP;
+		m_afSubd[i0] = fG;
+		m_afSubd[i2] = (Type)0.0;
+	  }
+	  if (i1 == iMaxIter)
+	  {
+		return false;
+	  }
+	}
+	return true;
   }
 
   void DecreasingSort(void)
   {
-    //sort eigenvalues in decreasing order, e[0] >= ... >= e[iSize-1]
-    for (int32_t i0 = 0, i1; i0 <= 3-2; i0++)
-    {
-      // locate maximum eigenvalue
-      i1 = i0;
-      Type fMax = m_afDiag[i1];
-      int32_t i2;
-      for (i2 = i0+1; i2 < 3; i2++)
-      {
-        if (m_afDiag[i2] > fMax)
-        {
-          i1 = i2;
-          fMax = m_afDiag[i1];
-        }
-      }
+	//sort eigenvalues in decreasing order, e[0] >= ... >= e[iSize-1]
+	for (int32_t i0 = 0, i1; i0 <= 3-2; i0++)
+	{
+	  // locate maximum eigenvalue
+	  i1 = i0;
+	  Type fMax = m_afDiag[i1];
+	  int32_t i2;
+	  for (i2 = i0+1; i2 < 3; i2++)
+	  {
+		if (m_afDiag[i2] > fMax)
+		{
+		  i1 = i2;
+		  fMax = m_afDiag[i1];
+		}
+	  }
 
-      if (i1 != i0)
-      {
-        // swap eigenvalues
-        m_afDiag[i1] = m_afDiag[i0];
-        m_afDiag[i0] = fMax;
-        // swap eigenvectors
-        for (i2 = 0; i2 < 3; i2++)
-        {
-          Type fTmp = mElement[i2][i0];
-          mElement[i2][i0] = mElement[i2][i1];
-          mElement[i2][i1] = fTmp;
-          m_bIsRotation = !m_bIsRotation;
-        }
-      }
-    }
+	  if (i1 != i0)
+	  {
+		// swap eigenvalues
+		m_afDiag[i1] = m_afDiag[i0];
+		m_afDiag[i0] = fMax;
+		// swap eigenvectors
+		for (i2 = 0; i2 < 3; i2++)
+		{
+		  Type fTmp = mElement[i2][i0];
+		  mElement[i2][i0] = mElement[i2][i1];
+		  mElement[i2][i1] = fTmp;
+		  m_bIsRotation = !m_bIsRotation;
+		}
+	  }
+	}
   }
 
 
   void GuaranteeRotation(void)
   {
-    if (!m_bIsRotation)
-    {
-      // change sign on the first column
-      for (int32_t iRow = 0; iRow <3; iRow++)
-      {
-        mElement[iRow][0] = -mElement[iRow][0];
-      }
-    }
+	if (!m_bIsRotation)
+	{
+	  // change sign on the first column
+	  for (int32_t iRow = 0; iRow <3; iRow++)
+	  {
+		mElement[iRow][0] = -mElement[iRow][0];
+	  }
+	}
   }
 
   Type mElement[3][3];
@@ -1484,11 +1484,12 @@ public:
 #endif
 
 bool fm_computeBestFitPlane(uint32_t vcount,
-                     const REAL *points,
-                     uint32_t vstride,
-                     const REAL *weights,
-                     uint32_t wstride,
-                     REAL *plane)
+					 const REAL *points,
+					 uint32_t vstride,
+					 const REAL *weights,
+					 uint32_t wstride,
+					 REAL *plane,
+					REAL *center)
 {
   bool ret = false;
 
@@ -1497,31 +1498,31 @@ bool fm_computeBestFitPlane(uint32_t vcount,
   REAL wtotal = 0;
 
   {
-    const char *source  = (const char *) points;
-    const char *wsource = (const char *) weights;
+	const char *source  = (const char *) points;
+	const char *wsource = (const char *) weights;
 
-    for (uint32_t i=0; i<vcount; i++)
-    {
+	for (uint32_t i=0; i<vcount; i++)
+	{
 
-      const REAL *p = (const REAL *) source;
+	  const REAL *p = (const REAL *) source;
 
-      REAL w = 1;
+	  REAL w = 1;
 
-      if ( wsource )
-      {
-        const REAL *ws = (const REAL *) wsource;
-        w = *ws; //
-        wsource+=wstride;
-      }
+	  if ( wsource )
+	  {
+		const REAL *ws = (const REAL *) wsource;
+		w = *ws; //
+		wsource+=wstride;
+	  }
 
-      kOrigin[0]+=p[0]*w;
-      kOrigin[1]+=p[1]*w;
-      kOrigin[2]+=p[2]*w;
+	  kOrigin[0]+=p[0]*w;
+	  kOrigin[1]+=p[1]*w;
+	  kOrigin[2]+=p[2]*w;
 
-      wtotal+=w;
+	  wtotal+=w;
 
-      source+=vstride;
-    }
+	  source+=vstride;
+	}
   }
 
   REAL recip = 1.0f / wtotal; // reciprocol of total weighting
@@ -1529,6 +1530,10 @@ bool fm_computeBestFitPlane(uint32_t vcount,
   kOrigin[0]*=recip;
   kOrigin[1]*=recip;
   kOrigin[2]*=recip;
+
+  center[0] = kOrigin[0];
+  center[1] = kOrigin[1];
+  center[2] = kOrigin[2];
 
 
   REAL fSumXX=0;
@@ -1541,40 +1546,40 @@ bool fm_computeBestFitPlane(uint32_t vcount,
 
 
   {
-    const char *source  = (const char *) points;
-    const char *wsource = (const char *) weights;
+	const char *source  = (const char *) points;
+	const char *wsource = (const char *) weights;
 
-    for (uint32_t i=0; i<vcount; i++)
-    {
+	for (uint32_t i=0; i<vcount; i++)
+	{
 
-      const REAL *p = (const REAL *) source;
+	  const REAL *p = (const REAL *) source;
 
-      REAL w = 1;
+	  REAL w = 1;
 
-      if ( wsource )
-      {
-        const REAL *ws = (const REAL *) wsource;
-        w = *ws; //
-        wsource+=wstride;
-      }
+	  if ( wsource )
+	  {
+		const REAL *ws = (const REAL *) wsource;
+		w = *ws; //
+		wsource+=wstride;
+	  }
 
-      REAL kDiff[3];
+	  REAL kDiff[3];
 
-      kDiff[0] = w*(p[0] - kOrigin[0]); // apply vertex weighting!
-      kDiff[1] = w*(p[1] - kOrigin[1]);
-      kDiff[2] = w*(p[2] - kOrigin[2]);
+	  kDiff[0] = w*(p[0] - kOrigin[0]); // apply vertex weighting!
+	  kDiff[1] = w*(p[1] - kOrigin[1]);
+	  kDiff[2] = w*(p[2] - kOrigin[2]);
 
-      fSumXX+= kDiff[0] * kDiff[0]; // sume of the squares of the differences.
-      fSumXY+= kDiff[0] * kDiff[1]; // sume of the squares of the differences.
-      fSumXZ+= kDiff[0] * kDiff[2]; // sume of the squares of the differences.
+	  fSumXX+= kDiff[0] * kDiff[0]; // sume of the squares of the differences.
+	  fSumXY+= kDiff[0] * kDiff[1]; // sume of the squares of the differences.
+	  fSumXZ+= kDiff[0] * kDiff[2]; // sume of the squares of the differences.
 
-      fSumYY+= kDiff[1] * kDiff[1];
-      fSumYZ+= kDiff[1] * kDiff[2];
-      fSumZZ+= kDiff[2] * kDiff[2];
+	  fSumYY+= kDiff[1] * kDiff[1];
+	  fSumYZ+= kDiff[1] * kDiff[2];
+	  fSumZZ+= kDiff[2] * kDiff[2];
 
 
-      source+=vstride;
-    }
+	  source+=vstride;
+	}
   }
 
   fSumXX *= recip;
@@ -1643,7 +1648,7 @@ bool fm_colinear(const REAL a1[3],const REAL a2[3],const REAL b1[3],const REAL b
 
   if ( dot >= epsilon )
   {
-    ret = true;
+	ret = true;
   }
 
 
@@ -1672,7 +1677,7 @@ bool fm_colinear(const REAL *p1,const REAL *p2,const REAL *p3,REAL epsilon)
 
   if ( dot >= epsilon )
   {
-    ret = true;
+	ret = true;
   }
 
 
@@ -1695,33 +1700,33 @@ IntersectResult fm_intersectLineSegments2d(const REAL *a1,const REAL *a2,const R
   REAL nume_b = ((a2[0] - a1[0])*(a1[1] - b1[1])) - ((a2[1] - a1[1])*(a1[0] - b1[0]));
   if (denom == 0 )
   {
-    if(nume_a == 0 && nume_b == 0)
-    {
-      ret = IR_COINCIDENT;
-    }
-    else
-    {
-      ret = IR_PARALLEL;
-    }
+	if(nume_a == 0 && nume_b == 0)
+	{
+	  ret = IR_COINCIDENT;
+	}
+	else
+	{
+	  ret = IR_PARALLEL;
+	}
   }
   else
   {
 
-    REAL recip = 1 / denom;
-    REAL ua = nume_a * recip;
-    REAL ub = nume_b * recip;
+	REAL recip = 1 / denom;
+	REAL ua = nume_a * recip;
+	REAL ub = nume_b * recip;
 
-    if(ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1 )
-    {
-      // Get the intersection point.
-      intersection[0] = a1[0] + ua*(a2[0] - a1[0]);
-      intersection[1] = a1[1] + ua*(a2[1] - a1[1]);
-      ret = IR_DO_INTERSECT;
-    }
-    else
-    {
-      ret = IR_DONT_INTERSECT;
-    }
+	if(ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1 )
+	{
+	  // Get the intersection point.
+	  intersection[0] = a1[0] + ua*(a2[0] - a1[0]);
+	  intersection[1] = a1[1] + ua*(a2[1] - a1[1]);
+	  ret = IR_DO_INTERSECT;
+	}
+	else
+	{
+	  ret = IR_DONT_INTERSECT;
+	}
   }
   return ret;
 }
@@ -1735,32 +1740,32 @@ IntersectResult fm_intersectLineSegments2dTime(const REAL *a1,const REAL *a2,con
   REAL nume_b = ((a2[0] - a1[0])*(a1[1] - b1[1])) - ((a2[1] - a1[1])*(a1[0] - b1[0]));
   if (denom == 0 )
   {
-    if(nume_a == 0 && nume_b == 0)
-    {
-      ret = IR_COINCIDENT;
-    }
-    else
-    {
-      ret = IR_PARALLEL;
-    }
+	if(nume_a == 0 && nume_b == 0)
+	{
+	  ret = IR_COINCIDENT;
+	}
+	else
+	{
+	  ret = IR_PARALLEL;
+	}
   }
   else
   {
 
-    REAL recip = 1 / denom;
-    REAL ua = nume_a * recip;
-    REAL ub = nume_b * recip;
+	REAL recip = 1 / denom;
+	REAL ua = nume_a * recip;
+	REAL ub = nume_b * recip;
 
-    if(ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1 )
-    {
-      t1 = ua;
-      t2 = ub;
-      ret = IR_DO_INTERSECT;
-    }
-    else
-    {
-      ret = IR_DONT_INTERSECT;
-    }
+	if(ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1 )
+	{
+	  t1 = ua;
+	  t2 = ub;
+	  ret = IR_DO_INTERSECT;
+	}
+	else
+	{
+	  ret = IR_DONT_INTERSECT;
+	}
   }
   return ret;
 }
@@ -1802,10 +1807,10 @@ PlaneTriResult fm_getSidePlane(const REAL *p,const REAL *plane,REAL epsilon)
 
   if ( d < -epsilon || d > epsilon )
   {
-    if ( d > 0 )
-  		ret =  PTR_FRONT; // it is 'in front' within the provided epsilon value.
-    else
-      ret = PTR_BACK;
+	if ( d > 0 )
+		ret =  PTR_FRONT; // it is 'in front' within the provided epsilon value.
+	else
+	  ret = PTR_BACK;
   }
 
   return ret;
@@ -1825,9 +1830,9 @@ public:
 
   void set(const Type *p)
   {
-    x = p[0];
-    y = p[1];
-    z = p[2];
+	x = p[0];
+	y = p[1];
+	z = p[2];
   }
 
   Type x;
@@ -1840,15 +1845,15 @@ template <class Type> class plane
 public:
   plane(const Type *p)
   {
-    normal.x = p[0];
-    normal.y = p[1];
-    normal.z = p[2];
-    D        = p[3];
+	normal.x = p[0];
+	normal.y = p[1];
+	normal.z = p[2];
+	D        = p[3];
   }
 
   Type Classify_Point(const point<Type> &p)
   {
-    return p.x*normal.x + p.y*normal.y + p.z*normal.z + D;
+	return p.x*normal.x + p.y*normal.y + p.z*normal.z + D;
   }
 
   point<Type> normal;
@@ -1860,15 +1865,15 @@ template <class Type> class polygon
 public:
   polygon(void)
   {
-    mVcount = 0;
+	mVcount = 0;
   }
 
   polygon(const Type *p1,const Type *p2,const Type *p3)
   {
-    mVcount = 3;
-    mVertices[0].set(p1);
-    mVertices[1].set(p2);
-    mVertices[2].set(p3);
+	mVcount = 3;
+	mVertices[0].set(p1);
+	mVertices[1].set(p2);
+	mVertices[2].set(p3);
   }
 
 
@@ -1876,61 +1881,61 @@ public:
 
   const point<Type>& Vertex(int32_t index)
   {
-    if ( index < 0 ) index+=mVcount;
-    return mVertices[index];
+	if ( index < 0 ) index+=mVcount;
+	return mVertices[index];
   };
 
 
   void set(const point<Type> *pts,int32_t count)
   {
-    for (int32_t i=0; i<count; i++)
-    {
-      mVertices[i] = pts[i];
-    }
-    mVcount = count;
+	for (int32_t i=0; i<count; i++)
+	{
+	  mVertices[i] = pts[i];
+	}
+	mVcount = count;
   }
 
 
   void Split_Polygon(polygon<Type> *poly,plane<Type> *part, polygon<Type> &front, polygon<Type> &back)
   {
-    int32_t   count = poly->NumVertices ();
-    int32_t   out_c = 0, in_c = 0;
-    point<Type> ptA, ptB,outpts[MAXPTS],inpts[MAXPTS];
-    Type sideA, sideB;
-    ptA = poly->Vertex (count - 1);
-    sideA = part->Classify_Point (ptA);
-    for (int32_t i = -1; ++i < count;)
-    {
-      ptB = poly->Vertex(i);
-      sideB = part->Classify_Point(ptB);
-      if (sideB > 0)
-      {
-        if (sideA < 0)
-        {
-  			  point<Type> v;
-          fm_intersectPointPlane(&ptB.x, &ptA.x, &v.x, &part->normal.x );
-          outpts[out_c++] = inpts[in_c++] = v;
-        }
-        outpts[out_c++] = ptB;
-      }
-      else if (sideB < 0)
-      {
-        if (sideA > 0)
-        {
-          point<Type> v;
-          fm_intersectPointPlane(&ptB.x, &ptA.x, &v.x, &part->normal.x );
-          outpts[out_c++] = inpts[in_c++] = v;
-        }
-        inpts[in_c++] = ptB;
-      }
-      else
-         outpts[out_c++] = inpts[in_c++] = ptB;
-      ptA = ptB;
-      sideA = sideB;
-    }
+	int32_t   count = poly->NumVertices ();
+	int32_t   out_c = 0, in_c = 0;
+	point<Type> ptA, ptB,outpts[MAXPTS],inpts[MAXPTS];
+	Type sideA, sideB;
+	ptA = poly->Vertex (count - 1);
+	sideA = part->Classify_Point (ptA);
+	for (int32_t i = -1; ++i < count;)
+	{
+	  ptB = poly->Vertex(i);
+	  sideB = part->Classify_Point(ptB);
+	  if (sideB > 0)
+	  {
+		if (sideA < 0)
+		{
+			  point<Type> v;
+		  fm_intersectPointPlane(&ptB.x, &ptA.x, &v.x, &part->normal.x );
+		  outpts[out_c++] = inpts[in_c++] = v;
+		}
+		outpts[out_c++] = ptB;
+	  }
+	  else if (sideB < 0)
+	  {
+		if (sideA > 0)
+		{
+		  point<Type> v;
+		  fm_intersectPointPlane(&ptB.x, &ptA.x, &v.x, &part->normal.x );
+		  outpts[out_c++] = inpts[in_c++] = v;
+		}
+		inpts[in_c++] = ptB;
+	  }
+	  else
+		 outpts[out_c++] = inpts[in_c++] = ptB;
+	  ptA = ptB;
+	  sideA = sideB;
+	}
 
-    front.set(&outpts[0], out_c);
-    back.set(&inpts[0], in_c);
+	front.set(&outpts[0], out_c);
+	back.set(&inpts[0], in_c);
   }
 
   int32_t           mVcount;
@@ -1955,13 +1960,13 @@ static inline void add(const REAL *p,REAL *dest,uint32_t tstride,uint32_t &pcoun
 
 
 PlaneTriResult fm_planeTriIntersection(const REAL *_plane,    // the plane equation in Ax+By+Cz+D format
-                                    const REAL *triangle, // the source triangle.
-                                    uint32_t tstride,  // stride in bytes of the input and output *vertices*
-                                    REAL        epsilon,  // the co-planar epsilon value.
-                                    REAL       *front,    // the triangle in front of the
-                                    uint32_t &fcount,  // number of vertices in the 'front' triangle
-                                    REAL       *back,     // the triangle in back of the plane
-                                    uint32_t &bcount) // the number of vertices in the 'back' triangle.
+									const REAL *triangle, // the source triangle.
+									uint32_t tstride,  // stride in bytes of the input and output *vertices*
+									REAL        epsilon,  // the co-planar epsilon value.
+									REAL       *front,    // the triangle in front of the
+									uint32_t &fcount,  // number of vertices in the 'front' triangle
+									REAL       *back,     // the triangle in back of the plane
+									uint32_t &bcount) // the number of vertices in the 'back' triangle.
 {
 
   fcount = 0;
@@ -1982,44 +1987,44 @@ PlaneTriResult fm_planeTriIntersection(const REAL *_plane,    // the plane equat
   // If any of the points lay right *on* the plane....
   if ( r1 == PTR_ON_PLANE || r2 == PTR_ON_PLANE || r3 == PTR_ON_PLANE )
   {
-    // If the triangle is completely co-planar, then just treat it as 'front' and return!
-    if ( r1 == PTR_ON_PLANE && r2 == PTR_ON_PLANE && r3 == PTR_ON_PLANE )
-    {
-      add(p1,front,tstride,fcount);
-      add(p2,front,tstride,fcount);
-      add(p3,front,tstride,fcount);
-      return PTR_FRONT;
-    }
-    // Decide to place the co-planar points on the same side as the co-planar point.
-    PlaneTriResult r= PTR_ON_PLANE;
-    if ( r1 != PTR_ON_PLANE )
-      r = r1;
-    else if ( r2 != PTR_ON_PLANE )
-      r = r2;
-    else if ( r3 != PTR_ON_PLANE )
-      r = r3;
+	// If the triangle is completely co-planar, then just treat it as 'front' and return!
+	if ( r1 == PTR_ON_PLANE && r2 == PTR_ON_PLANE && r3 == PTR_ON_PLANE )
+	{
+	  add(p1,front,tstride,fcount);
+	  add(p2,front,tstride,fcount);
+	  add(p3,front,tstride,fcount);
+	  return PTR_FRONT;
+	}
+	// Decide to place the co-planar points on the same side as the co-planar point.
+	PlaneTriResult r= PTR_ON_PLANE;
+	if ( r1 != PTR_ON_PLANE )
+	  r = r1;
+	else if ( r2 != PTR_ON_PLANE )
+	  r = r2;
+	else if ( r3 != PTR_ON_PLANE )
+	  r = r3;
 
-    if ( r1 == PTR_ON_PLANE ) r1 = r;
-    if ( r2 == PTR_ON_PLANE ) r2 = r;
-    if ( r3 == PTR_ON_PLANE ) r3 = r;
+	if ( r1 == PTR_ON_PLANE ) r1 = r;
+	if ( r2 == PTR_ON_PLANE ) r2 = r;
+	if ( r3 == PTR_ON_PLANE ) r3 = r;
 
   }
 
   if ( r1 == r2 && r1 == r3 ) // if all three vertices are on the same side of the plane.
   {
-    if ( r1 == PTR_FRONT ) // if all three are in front of the plane, then copy to the 'front' output triangle.
-    {
-      add(p1,front,tstride,fcount);
-      add(p2,front,tstride,fcount);
-      add(p3,front,tstride,fcount);
-    }
-    else
-    {
-      add(p1,back,tstride,bcount); // if all three are in 'back' then copy to the 'back' output triangle.
-      add(p2,back,tstride,bcount);
-      add(p3,back,tstride,bcount);
-    }
-    return r1; // if all three points are on the same side of the plane return result
+	if ( r1 == PTR_FRONT ) // if all three are in front of the plane, then copy to the 'front' output triangle.
+	{
+	  add(p1,front,tstride,fcount);
+	  add(p2,front,tstride,fcount);
+	  add(p3,front,tstride,fcount);
+	}
+	else
+	{
+	  add(p1,back,tstride,bcount); // if all three are in 'back' then copy to the 'back' output triangle.
+	  add(p2,back,tstride,bcount);
+	  add(p3,back,tstride,bcount);
+	}
+	return r1; // if all three points are on the same side of the plane return result
   }
 
 
@@ -2032,12 +2037,12 @@ PlaneTriResult fm_planeTriIntersection(const REAL *_plane,    // the plane equat
 
   for (int32_t i=0; i<pfront.mVcount; i++)
   {
-    add( &pfront.mVertices[i].x, front, tstride, fcount );
+	add( &pfront.mVertices[i].x, front, tstride, fcount );
   }
 
   for (int32_t i=0; i<pback.mVcount; i++)
   {
-    add( &pback.mVertices[i].x, back, tstride, bcount );
+	add( &pback.mVertices[i].x, back, tstride, bcount );
   }
 
   PlaneTriResult ret = PTR_SPLIT;
@@ -2046,10 +2051,10 @@ PlaneTriResult fm_planeTriIntersection(const REAL *_plane,    // the plane equat
   if ( bcount < 3 ) bcount = 0;
 
   if ( fcount == 0 && bcount )
-    ret = PTR_BACK;
+	ret = PTR_BACK;
 
   if ( bcount == 0 && fcount )
-    ret = PTR_FRONT;
+	ret = PTR_FRONT;
 
 
   return ret;
@@ -2065,20 +2070,20 @@ void computeOBB(uint32_t vcount,const REAL *points,uint32_t pstride,REAL *sides,
 
   for (uint32_t i=0; i<vcount; i++)
   {
-    const REAL *p = (const REAL *) src;
-    REAL t[3];
+	const REAL *p = (const REAL *) src;
+	REAL t[3];
 
-    fm_inverseRT(matrix, p, t ); // inverse rotate translate
+	fm_inverseRT(matrix, p, t ); // inverse rotate translate
 
-    if ( t[0] < bmin[0] ) bmin[0] = t[0];
-    if ( t[1] < bmin[1] ) bmin[1] = t[1];
-    if ( t[2] < bmin[2] ) bmin[2] = t[2];
+	if ( t[0] < bmin[0] ) bmin[0] = t[0];
+	if ( t[1] < bmin[1] ) bmin[1] = t[1];
+	if ( t[2] < bmin[2] ) bmin[2] = t[2];
 
-    if ( t[0] > bmax[0] ) bmax[0] = t[0];
-    if ( t[1] > bmax[1] ) bmax[1] = t[1];
-    if ( t[2] > bmax[2] ) bmax[2] = t[2];
+	if ( t[0] > bmax[0] ) bmax[0] = t[0];
+	if ( t[1] > bmax[1] ) bmax[1] = t[1];
+	if ( t[2] > bmax[2] ) bmax[2] = t[2];
 
-    src+=pstride;
+	src+=pstride;
   }
 
   REAL center[3];
@@ -2104,7 +2109,8 @@ void computeOBB(uint32_t vcount,const REAL *points,uint32_t pstride,REAL *sides,
 void fm_computeBestFitOBB(uint32_t vcount,const REAL *points,uint32_t pstride,REAL *sides,REAL *matrix,bool bruteForce)
 {
   REAL plane[4];
-  fm_computeBestFitPlane(vcount,points,pstride,0,0,plane);
+  REAL center[3];
+  fm_computeBestFitPlane(vcount,points,pstride,0,0,plane,center);
   fm_planeToMatrix(plane,matrix);
   computeOBB( vcount, points, pstride, sides, matrix );
 
@@ -2114,26 +2120,26 @@ void fm_computeBestFitOBB(uint32_t vcount,const REAL *points,uint32_t pstride,RE
   REAL volume = sides[0]*sides[1]*sides[2];
   if ( bruteForce )
   {
-    for (REAL a=10; a<180; a+=10)
-    {
-      REAL quat[4];
-      fm_eulerToQuat(0,a*FM_DEG_TO_RAD,0,quat);
-      REAL temp[16];
-      REAL pmatrix[16];
-      fm_quatToMatrix(quat,temp);
-      fm_matrixMultiply(temp,refmatrix,pmatrix);
-      REAL psides[3];
-      computeOBB( vcount, points, pstride, psides, pmatrix );
-      REAL v = psides[0]*psides[1]*psides[2];
-      if ( v < volume )
-      {
-        volume = v;
-        memcpy(matrix,pmatrix,sizeof(REAL)*16);
-        sides[0] = psides[0];
-        sides[1] = psides[1];
-        sides[2] = psides[2];
-      }
-    }
+	for (REAL a=10; a<180; a+=10)
+	{
+	  REAL quat[4];
+	  fm_eulerToQuat(0,a*FM_DEG_TO_RAD,0,quat);
+	  REAL temp[16];
+	  REAL pmatrix[16];
+	  fm_quatToMatrix(quat,temp);
+	  fm_matrixMultiply(temp,refmatrix,pmatrix);
+	  REAL psides[3];
+	  computeOBB( vcount, points, pstride, psides, pmatrix );
+	  REAL v = psides[0]*psides[1]*psides[2];
+	  if ( v < volume )
+	  {
+		volume = v;
+		memcpy(matrix,pmatrix,sizeof(REAL)*16);
+		sides[0] = psides[0];
+		sides[1] = psides[1];
+		sides[2] = psides[2];
+	  }
+	}
   }
 }
 
@@ -2167,11 +2173,11 @@ void fm_computeBestFitABB(uint32_t vcount,const REAL *points,uint32_t pstride,RE
 		if ( p[1] < bmin[1] ) bmin[1] = p[1];
 		if ( p[2] < bmin[2] ) bmin[2] = p[2];
 
-    if ( p[0] > bmax[0] ) bmax[0] = p[0];
-    if ( p[1] > bmax[1] ) bmax[1] = p[1];
-    if ( p[2] > bmax[2] ) bmax[2] = p[2];
+	if ( p[0] > bmax[0] ) bmax[0] = p[0];
+	if ( p[1] > bmax[1] ) bmax[1] = p[1];
+	if ( p[2] > bmax[2] ) bmax[2] = p[2];
 
-    cp+=pstride;
+	cp+=pstride;
 	}
 
 
@@ -2245,8 +2251,8 @@ class KdTreeFindNode
 public:
   KdTreeFindNode(void)
   {
-    mNode = 0;
-    mDistance = 0;
+	mNode = 0;
+	mDistance = 0;
   }
   KdTreeNode  *mNode;
   double        mDistance;
@@ -2264,16 +2270,16 @@ class KdTreeNode
 public:
   KdTreeNode(void)
   {
-    mIndex = 0;
-    mLeft = 0;
-    mRight = 0;
+	mIndex = 0;
+	mLeft = 0;
+	mRight = 0;
   }
 
   KdTreeNode(uint32_t index)
   {
-    mIndex = index;
-    mLeft = 0;
-    mRight = 0;
+	mIndex = index;
+	mLeft = 0;
+	mRight = 0;
   };
 
 	~KdTreeNode(void)
@@ -2283,118 +2289,118 @@ public:
 
   void addDouble(KdTreeNode *node,Axes dim,const KdTreeInterface *iface)
   {
-    const double *nodePosition = iface->getPositionDouble( node->mIndex );
-    const double *position     = iface->getPositionDouble( mIndex );
-    switch ( dim )
-    {
-      case X_AXIS:
-        if ( nodePosition[0] <= position[0] )
-        {
-          if ( mLeft )
-            mLeft->addDouble(node,Y_AXIS,iface);
-          else
-            mLeft = node;
-        }
-        else
-        {
-          if ( mRight )
-            mRight->addDouble(node,Y_AXIS,iface);
-          else
-            mRight = node;
-        }
-        break;
-      case Y_AXIS:
-        if ( nodePosition[1] <= position[1] )
-        {
-          if ( mLeft )
-            mLeft->addDouble(node,Z_AXIS,iface);
-          else
-            mLeft = node;
-        }
-        else
-        {
-          if ( mRight )
-            mRight->addDouble(node,Z_AXIS,iface);
-          else
-            mRight = node;
-        }
-        break;
-      case Z_AXIS:
-        if ( nodePosition[2] <= position[2] )
-        {
-          if ( mLeft )
-            mLeft->addDouble(node,X_AXIS,iface);
-          else
-            mLeft = node;
-        }
-        else
-        {
-          if ( mRight )
-            mRight->addDouble(node,X_AXIS,iface);
-          else
-            mRight = node;
-        }
-        break;
-    }
+	const double *nodePosition = iface->getPositionDouble( node->mIndex );
+	const double *position     = iface->getPositionDouble( mIndex );
+	switch ( dim )
+	{
+	  case X_AXIS:
+		if ( nodePosition[0] <= position[0] )
+		{
+		  if ( mLeft )
+			mLeft->addDouble(node,Y_AXIS,iface);
+		  else
+			mLeft = node;
+		}
+		else
+		{
+		  if ( mRight )
+			mRight->addDouble(node,Y_AXIS,iface);
+		  else
+			mRight = node;
+		}
+		break;
+	  case Y_AXIS:
+		if ( nodePosition[1] <= position[1] )
+		{
+		  if ( mLeft )
+			mLeft->addDouble(node,Z_AXIS,iface);
+		  else
+			mLeft = node;
+		}
+		else
+		{
+		  if ( mRight )
+			mRight->addDouble(node,Z_AXIS,iface);
+		  else
+			mRight = node;
+		}
+		break;
+	  case Z_AXIS:
+		if ( nodePosition[2] <= position[2] )
+		{
+		  if ( mLeft )
+			mLeft->addDouble(node,X_AXIS,iface);
+		  else
+			mLeft = node;
+		}
+		else
+		{
+		  if ( mRight )
+			mRight->addDouble(node,X_AXIS,iface);
+		  else
+			mRight = node;
+		}
+		break;
+	}
 
   }
 
 
   void addFloat(KdTreeNode *node,Axes dim,const KdTreeInterface *iface)
   {
-    const float *nodePosition = iface->getPositionFloat( node->mIndex );
-    const float *position     = iface->getPositionFloat( mIndex );
-    switch ( dim )
-    {
-      case X_AXIS:
-        if ( nodePosition[0] <= position[0] )
-        {
-          if ( mLeft )
-            mLeft->addFloat(node,Y_AXIS,iface);
-          else
-            mLeft = node;
-        }
-        else
-        {
-          if ( mRight )
-            mRight->addFloat(node,Y_AXIS,iface);
-          else
-            mRight = node;
-        }
-        break;
-      case Y_AXIS:
-        if ( nodePosition[1] <= position[1] )
-        {
-          if ( mLeft )
-            mLeft->addFloat(node,Z_AXIS,iface);
-          else
-            mLeft = node;
-        }
-        else
-        {
-          if ( mRight )
-            mRight->addFloat(node,Z_AXIS,iface);
-          else
-            mRight = node;
-        }
-        break;
-      case Z_AXIS:
-        if ( nodePosition[2] <= position[2] )
-        {
-          if ( mLeft )
-            mLeft->addFloat(node,X_AXIS,iface);
-          else
-            mLeft = node;
-        }
-        else
-        {
-          if ( mRight )
-            mRight->addFloat(node,X_AXIS,iface);
-          else
-            mRight = node;
-        }
-        break;
-    }
+	const float *nodePosition = iface->getPositionFloat( node->mIndex );
+	const float *position     = iface->getPositionFloat( mIndex );
+	switch ( dim )
+	{
+	  case X_AXIS:
+		if ( nodePosition[0] <= position[0] )
+		{
+		  if ( mLeft )
+			mLeft->addFloat(node,Y_AXIS,iface);
+		  else
+			mLeft = node;
+		}
+		else
+		{
+		  if ( mRight )
+			mRight->addFloat(node,Y_AXIS,iface);
+		  else
+			mRight = node;
+		}
+		break;
+	  case Y_AXIS:
+		if ( nodePosition[1] <= position[1] )
+		{
+		  if ( mLeft )
+			mLeft->addFloat(node,Z_AXIS,iface);
+		  else
+			mLeft = node;
+		}
+		else
+		{
+		  if ( mRight )
+			mRight->addFloat(node,Z_AXIS,iface);
+		  else
+			mRight = node;
+		}
+		break;
+	  case Z_AXIS:
+		if ( nodePosition[2] <= position[2] )
+		{
+		  if ( mLeft )
+			mLeft->addFloat(node,X_AXIS,iface);
+		  else
+			mLeft = node;
+		}
+		else
+		{
+		  if ( mRight )
+			mRight->addFloat(node,X_AXIS,iface);
+		  else
+			mRight = node;
+		}
+		break;
+	}
 
   }
 
@@ -2404,278 +2410,278 @@ public:
   void search(Axes axis,const double *pos,double radius,uint32_t &count,uint32_t maxObjects,KdTreeFindNode *found,const KdTreeInterface *iface)
   {
 
-    const double *position = iface->getPositionDouble(mIndex);
+	const double *position = iface->getPositionDouble(mIndex);
 
-    double dx = pos[0] - position[0];
-    double dy = pos[1] - position[1];
-    double dz = pos[2] - position[2];
+	double dx = pos[0] - position[0];
+	double dy = pos[1] - position[1];
+	double dz = pos[2] - position[2];
 
-    KdTreeNode *search1 = 0;
-    KdTreeNode *search2 = 0;
+	KdTreeNode *search1 = 0;
+	KdTreeNode *search2 = 0;
 
-    switch ( axis )
-    {
-      case X_AXIS:
-       if ( dx <= 0 )     // JWR  if we are to the left
-       {
-        search1 = mLeft; // JWR  then search to the left
-        if ( -dx < radius )  // JWR  if distance to the right is less than our search radius, continue on the right as well.
-          search2 = mRight;
-       }
-       else
-       {
-         search1 = mRight; // JWR  ok, we go down the left tree
-         if ( dx < radius ) // JWR  if the distance from the right is less than our search radius
-	  			search2 = mLeft;
-        }
-        axis = Y_AXIS;
-        break;
-      case Y_AXIS:
-        if ( dy <= 0 )
-        {
-          search1 = mLeft;
-          if ( -dy < radius )
-    				search2 = mRight;
-        }
-        else
-        {
-          search1 = mRight;
-          if ( dy < radius )
-    				search2 = mLeft;
-        }
-        axis = Z_AXIS;
-        break;
-      case Z_AXIS:
-        if ( dz <= 0 )
-        {
-          search1 = mLeft;
-          if ( -dz < radius )
-    				search2 = mRight;
-        }
-        else
-        {
-          search1 = mRight;
-          if ( dz < radius )
-    				search2 = mLeft;
-        }
-        axis = X_AXIS;
-        break;
-    }
+	switch ( axis )
+	{
+	  case X_AXIS:
+	   if ( dx <= 0 )     // JWR  if we are to the left
+	   {
+		search1 = mLeft; // JWR  then search to the left
+		if ( -dx < radius )  // JWR  if distance to the right is less than our search radius, continue on the right as well.
+		  search2 = mRight;
+	   }
+	   else
+	   {
+		 search1 = mRight; // JWR  ok, we go down the left tree
+		 if ( dx < radius ) // JWR  if the distance from the right is less than our search radius
+				search2 = mLeft;
+		}
+		axis = Y_AXIS;
+		break;
+	  case Y_AXIS:
+		if ( dy <= 0 )
+		{
+		  search1 = mLeft;
+		  if ( -dy < radius )
+					search2 = mRight;
+		}
+		else
+		{
+		  search1 = mRight;
+		  if ( dy < radius )
+					search2 = mLeft;
+		}
+		axis = Z_AXIS;
+		break;
+	  case Z_AXIS:
+		if ( dz <= 0 )
+		{
+		  search1 = mLeft;
+		  if ( -dz < radius )
+					search2 = mRight;
+		}
+		else
+		{
+		  search1 = mRight;
+		  if ( dz < radius )
+					search2 = mLeft;
+		}
+		axis = X_AXIS;
+		break;
+	}
 
-    double r2 = radius*radius;
-    double m  = dx*dx+dy*dy+dz*dz;
+	double r2 = radius*radius;
+	double m  = dx*dx+dy*dy+dz*dz;
 
-    if ( m < r2 )
-    {
-      switch ( count )
-      {
-        case 0:
-          found[count].mNode = this;
-          found[count].mDistance = m;
-          break;
-        case 1:
-          if ( m < found[0].mDistance )
-          {
-            if ( maxObjects == 1 )
-            {
-              found[0].mNode = this;
-              found[0].mDistance = m;
-            }
-            else
-            {
-              found[1] = found[0];
-              found[0].mNode = this;
-              found[0].mDistance = m;
-            }
-          }
-          else if ( maxObjects > 1)
-          {
-            found[1].mNode = this;
-            found[1].mDistance = m;
-          }
-          break;
-        default:
-          {
-            bool inserted = false;
+	if ( m < r2 )
+	{
+	  switch ( count )
+	  {
+		case 0:
+		  found[count].mNode = this;
+		  found[count].mDistance = m;
+		  break;
+		case 1:
+		  if ( m < found[0].mDistance )
+		  {
+			if ( maxObjects == 1 )
+			{
+			  found[0].mNode = this;
+			  found[0].mDistance = m;
+			}
+			else
+			{
+			  found[1] = found[0];
+			  found[0].mNode = this;
+			  found[0].mDistance = m;
+			}
+		  }
+		  else if ( maxObjects > 1)
+		  {
+			found[1].mNode = this;
+			found[1].mDistance = m;
+		  }
+		  break;
+		default:
+		  {
+			bool inserted = false;
 
-            for (uint32_t i=0; i<count; i++)
-            {
-              if ( m < found[i].mDistance ) // if this one is closer than a pre-existing one...
-              {
-                // insertion sort...
-                uint32_t scan = count;
-                if ( scan >= maxObjects ) scan=maxObjects-1;
-                for (uint32_t j=scan; j>i; j--)
-                {
-                  found[j] = found[j-1];
-                }
-                found[i].mNode = this;
-                found[i].mDistance = m;
-                inserted = true;
-                break;
-              }
-            }
+			for (uint32_t i=0; i<count; i++)
+			{
+			  if ( m < found[i].mDistance ) // if this one is closer than a pre-existing one...
+			  {
+				// insertion sort...
+				uint32_t scan = count;
+				if ( scan >= maxObjects ) scan=maxObjects-1;
+				for (uint32_t j=scan; j>i; j--)
+				{
+				  found[j] = found[j-1];
+				}
+				found[i].mNode = this;
+				found[i].mDistance = m;
+				inserted = true;
+				break;
+			  }
+			}
 
-            if ( !inserted && count < maxObjects )
-            {
-              found[count].mNode = this;
-              found[count].mDistance = m;
-            }
-          }
-          break;
-      }
-      count++;
-      if ( count > maxObjects )
-      {
-        count = maxObjects;
-      }
-    }
+			if ( !inserted && count < maxObjects )
+			{
+			  found[count].mNode = this;
+			  found[count].mDistance = m;
+			}
+		  }
+		  break;
+	  }
+	  count++;
+	  if ( count > maxObjects )
+	  {
+		count = maxObjects;
+	  }
+	}
 
 
-    if ( search1 )
-  		search1->search( axis, pos,radius, count, maxObjects, found, iface);
+	if ( search1 )
+		search1->search( axis, pos,radius, count, maxObjects, found, iface);
 
-    if ( search2 )
-	  	search2->search( axis, pos,radius, count, maxObjects, found, iface);
+	if ( search2 )
+		search2->search( axis, pos,radius, count, maxObjects, found, iface);
 
   }
 
   void search(Axes axis,const float *pos,float radius,uint32_t &count,uint32_t maxObjects,KdTreeFindNode *found,const KdTreeInterface *iface)
   {
 
-    const float *position = iface->getPositionFloat(mIndex);
+	const float *position = iface->getPositionFloat(mIndex);
 
-    float dx = pos[0] - position[0];
-    float dy = pos[1] - position[1];
-    float dz = pos[2] - position[2];
+	float dx = pos[0] - position[0];
+	float dy = pos[1] - position[1];
+	float dz = pos[2] - position[2];
 
-    KdTreeNode *search1 = 0;
-    KdTreeNode *search2 = 0;
+	KdTreeNode *search1 = 0;
+	KdTreeNode *search2 = 0;
 
-    switch ( axis )
-    {
-      case X_AXIS:
-       if ( dx <= 0 )     // JWR  if we are to the left
-       {
-        search1 = mLeft; // JWR  then search to the left
-        if ( -dx < radius )  // JWR  if distance to the right is less than our search radius, continue on the right as well.
-          search2 = mRight;
-       }
-       else
-       {
-         search1 = mRight; // JWR  ok, we go down the left tree
-         if ( dx < radius ) // JWR  if the distance from the right is less than our search radius
-	  			search2 = mLeft;
-        }
-        axis = Y_AXIS;
-        break;
-      case Y_AXIS:
-        if ( dy <= 0 )
-        {
-          search1 = mLeft;
-          if ( -dy < radius )
-    				search2 = mRight;
-        }
-        else
-        {
-          search1 = mRight;
-          if ( dy < radius )
-    				search2 = mLeft;
-        }
-        axis = Z_AXIS;
-        break;
-      case Z_AXIS:
-        if ( dz <= 0 )
-        {
-          search1 = mLeft;
-          if ( -dz < radius )
-    				search2 = mRight;
-        }
-        else
-        {
-          search1 = mRight;
-          if ( dz < radius )
-    				search2 = mLeft;
-        }
-        axis = X_AXIS;
-        break;
-    }
+	switch ( axis )
+	{
+	  case X_AXIS:
+	   if ( dx <= 0 )     // JWR  if we are to the left
+	   {
+		search1 = mLeft; // JWR  then search to the left
+		if ( -dx < radius )  // JWR  if distance to the right is less than our search radius, continue on the right as well.
+		  search2 = mRight;
+	   }
+	   else
+	   {
+		 search1 = mRight; // JWR  ok, we go down the left tree
+		 if ( dx < radius ) // JWR  if the distance from the right is less than our search radius
+				search2 = mLeft;
+		}
+		axis = Y_AXIS;
+		break;
+	  case Y_AXIS:
+		if ( dy <= 0 )
+		{
+		  search1 = mLeft;
+		  if ( -dy < radius )
+					search2 = mRight;
+		}
+		else
+		{
+		  search1 = mRight;
+		  if ( dy < radius )
+					search2 = mLeft;
+		}
+		axis = Z_AXIS;
+		break;
+	  case Z_AXIS:
+		if ( dz <= 0 )
+		{
+		  search1 = mLeft;
+		  if ( -dz < radius )
+					search2 = mRight;
+		}
+		else
+		{
+		  search1 = mRight;
+		  if ( dz < radius )
+					search2 = mLeft;
+		}
+		axis = X_AXIS;
+		break;
+	}
 
-    float r2 = radius*radius;
-    float m  = dx*dx+dy*dy+dz*dz;
+	float r2 = radius*radius;
+	float m  = dx*dx+dy*dy+dz*dz;
 
-    if ( m < r2 )
-    {
-      switch ( count )
-      {
-        case 0:
-          found[count].mNode = this;
-          found[count].mDistance = m;
-          break;
-        case 1:
-          if ( m < found[0].mDistance )
-          {
-            if ( maxObjects == 1 )
-            {
-              found[0].mNode = this;
-              found[0].mDistance = m;
-            }
-            else
-            {
-              found[1] = found[0];
-              found[0].mNode = this;
-              found[0].mDistance = m;
-            }
-          }
-          else if ( maxObjects > 1)
-          {
-            found[1].mNode = this;
-            found[1].mDistance = m;
-          }
-          break;
-        default:
-          {
-            bool inserted = false;
+	if ( m < r2 )
+	{
+	  switch ( count )
+	  {
+		case 0:
+		  found[count].mNode = this;
+		  found[count].mDistance = m;
+		  break;
+		case 1:
+		  if ( m < found[0].mDistance )
+		  {
+			if ( maxObjects == 1 )
+			{
+			  found[0].mNode = this;
+			  found[0].mDistance = m;
+			}
+			else
+			{
+			  found[1] = found[0];
+			  found[0].mNode = this;
+			  found[0].mDistance = m;
+			}
+		  }
+		  else if ( maxObjects > 1)
+		  {
+			found[1].mNode = this;
+			found[1].mDistance = m;
+		  }
+		  break;
+		default:
+		  {
+			bool inserted = false;
 
-            for (uint32_t i=0; i<count; i++)
-            {
-              if ( m < found[i].mDistance ) // if this one is closer than a pre-existing one...
-              {
-                // insertion sort...
-                uint32_t scan = count;
-                if ( scan >= maxObjects ) scan=maxObjects-1;
-                for (uint32_t j=scan; j>i; j--)
-                {
-                  found[j] = found[j-1];
-                }
-                found[i].mNode = this;
-                found[i].mDistance = m;
-                inserted = true;
-                break;
-              }
-            }
+			for (uint32_t i=0; i<count; i++)
+			{
+			  if ( m < found[i].mDistance ) // if this one is closer than a pre-existing one...
+			  {
+				// insertion sort...
+				uint32_t scan = count;
+				if ( scan >= maxObjects ) scan=maxObjects-1;
+				for (uint32_t j=scan; j>i; j--)
+				{
+				  found[j] = found[j-1];
+				}
+				found[i].mNode = this;
+				found[i].mDistance = m;
+				inserted = true;
+				break;
+			  }
+			}
 
-            if ( !inserted && count < maxObjects )
-            {
-              found[count].mNode = this;
-              found[count].mDistance = m;
-            }
-          }
-          break;
-      }
-      count++;
-      if ( count > maxObjects )
-      {
-        count = maxObjects;
-      }
-    }
+			if ( !inserted && count < maxObjects )
+			{
+			  found[count].mNode = this;
+			  found[count].mDistance = m;
+			}
+		  }
+		  break;
+	  }
+	  count++;
+	  if ( count > maxObjects )
+	  {
+		count = maxObjects;
+	  }
+	}
 
 
-    if ( search1 )
-  		search1->search( axis, pos,radius, count, maxObjects, found, iface);
+	if ( search1 )
+		search1->search( axis, pos,radius, count, maxObjects, found, iface);
 
-    if ( search2 )
-	  	search2->search( axis, pos,radius, count, maxObjects, found, iface);
+	if ( search2 )
+		search2->search( axis, pos,radius, count, maxObjects, found, iface);
 
   }
 
@@ -2701,21 +2707,21 @@ public:
 
   KdTreeNodeBundle(void)
   {
-    mNext = 0;
-    mIndex = 0;
+	mNext = 0;
+	mIndex = 0;
   }
 
   bool isFull(void) const
   {
-    return (bool)( mIndex == MAX_BUNDLE_SIZE );
+	return (bool)( mIndex == MAX_BUNDLE_SIZE );
   }
 
   KdTreeNode * getNextNode(void)
   {
-    assert(mIndex<MAX_BUNDLE_SIZE);
-    KdTreeNode *ret = &mNodes[mIndex];
-    mIndex++;
-    return ret;
+	assert(mIndex<MAX_BUNDLE_SIZE);
+	KdTreeNode *ret = &mNodes[mIndex];
+	mIndex++;
+	return ret;
   }
 
   KdTreeNodeBundle  *mNext;
@@ -2732,183 +2738,183 @@ class KdTree : public KdTreeInterface
 public:
   KdTree(void)
   {
-    mRoot = 0;
-    mBundle = 0;
-    mVcount = 0;
-    mUseDouble = false;
+	mRoot = 0;
+	mBundle = 0;
+	mVcount = 0;
+	mUseDouble = false;
   }
 
   virtual ~KdTree(void)
   {
-    reset();
+	reset();
   }
 
   const double * getPositionDouble(uint32_t index) const
   {
-    assert( mUseDouble );
-    assert ( index < mVcount );
-    return  &mVerticesDouble[index*3];
+	assert( mUseDouble );
+	assert ( index < mVcount );
+	return  &mVerticesDouble[index*3];
   }
 
   const float * getPositionFloat(uint32_t index) const
   {
-    assert( !mUseDouble );
-    assert ( index < mVcount );
-    return  &mVerticesFloat[index*3];
+	assert( !mUseDouble );
+	assert ( index < mVcount );
+	return  &mVerticesFloat[index*3];
   }
 
   uint32_t search(const double *pos,double radius,uint32_t maxObjects,KdTreeFindNode *found) const
   {
-    assert( mUseDouble );
-    if ( !mRoot )	return 0;
-    uint32_t count = 0;
-    mRoot->search(X_AXIS,pos,radius,count,maxObjects,found,this);
-    return count;
+	assert( mUseDouble );
+	if ( !mRoot )	return 0;
+	uint32_t count = 0;
+	mRoot->search(X_AXIS,pos,radius,count,maxObjects,found,this);
+	return count;
   }
 
   uint32_t search(const float *pos,float radius,uint32_t maxObjects,KdTreeFindNode *found) const
   {
-    assert( !mUseDouble );
-    if ( !mRoot )	return 0;
-    uint32_t count = 0;
-    mRoot->search(X_AXIS,pos,radius,count,maxObjects,found,this);
-    return count;
+	assert( !mUseDouble );
+	if ( !mRoot )	return 0;
+	uint32_t count = 0;
+	mRoot->search(X_AXIS,pos,radius,count,maxObjects,found,this);
+	return count;
   }
 
   void reset(void)
   {
-    mRoot = 0;
-    mVerticesDouble.clear();
-    mVerticesFloat.clear();
-    KdTreeNodeBundle *bundle = mBundle;
-    while ( bundle )
-    {
-      KdTreeNodeBundle *next = bundle->mNext;
-      delete bundle;
-      bundle = next;
-    }
-    mBundle = 0;
-    mVcount = 0;
+	mRoot = 0;
+	mVerticesDouble.clear();
+	mVerticesFloat.clear();
+	KdTreeNodeBundle *bundle = mBundle;
+	while ( bundle )
+	{
+	  KdTreeNodeBundle *next = bundle->mNext;
+	  delete bundle;
+	  bundle = next;
+	}
+	mBundle = 0;
+	mVcount = 0;
   }
 
   uint32_t add(double x,double y,double z)
   {
-    assert(mUseDouble);
-    uint32_t ret = mVcount;
-    mVerticesDouble.push_back(x);
-    mVerticesDouble.push_back(y);
-    mVerticesDouble.push_back(z);
-    mVcount++;
-    KdTreeNode *node = getNewNode(ret);
-    if ( mRoot )
-    {
-      mRoot->addDouble(node,X_AXIS,this);
-    }
-    else
-    {
-      mRoot = node;
-    }
-    return ret;
+	assert(mUseDouble);
+	uint32_t ret = mVcount;
+	mVerticesDouble.push_back(x);
+	mVerticesDouble.push_back(y);
+	mVerticesDouble.push_back(z);
+	mVcount++;
+	KdTreeNode *node = getNewNode(ret);
+	if ( mRoot )
+	{
+	  mRoot->addDouble(node,X_AXIS,this);
+	}
+	else
+	{
+	  mRoot = node;
+	}
+	return ret;
   }
 
   uint32_t add(float x,float y,float z)
   {
-    assert(!mUseDouble);
-    uint32_t ret = mVcount;
-    mVerticesFloat.push_back(x);
-    mVerticesFloat.push_back(y);
-    mVerticesFloat.push_back(z);
-    mVcount++;
-    KdTreeNode *node = getNewNode(ret);
-    if ( mRoot )
-    {
-      mRoot->addFloat(node,X_AXIS,this);
-    }
-    else
-    {
-      mRoot = node;
-    }
-    return ret;
+	assert(!mUseDouble);
+	uint32_t ret = mVcount;
+	mVerticesFloat.push_back(x);
+	mVerticesFloat.push_back(y);
+	mVerticesFloat.push_back(z);
+	mVcount++;
+	KdTreeNode *node = getNewNode(ret);
+	if ( mRoot )
+	{
+	  mRoot->addFloat(node,X_AXIS,this);
+	}
+	else
+	{
+	  mRoot = node;
+	}
+	return ret;
   }
 
   KdTreeNode * getNewNode(uint32_t index)
   {
-    if ( mBundle == 0 )
-    {
-      mBundle = new KdTreeNodeBundle;
-    }
-    if ( mBundle->isFull() )
-    {
-      KdTreeNodeBundle *bundle = new KdTreeNodeBundle;
-      mBundle->mNext = bundle;
-      mBundle = bundle;
-    }
-    KdTreeNode *node = mBundle->getNextNode();
-    new ( node ) KdTreeNode(index);
-    return node;
+	if ( mBundle == 0 )
+	{
+	  mBundle = new KdTreeNodeBundle;
+	}
+	if ( mBundle->isFull() )
+	{
+	  KdTreeNodeBundle *bundle = new KdTreeNodeBundle;
+	  mBundle->mNext = bundle;
+	  mBundle = bundle;
+	}
+	KdTreeNode *node = mBundle->getNextNode();
+	new ( node ) KdTreeNode(index);
+	return node;
   }
 
   uint32_t getNearest(const double *pos,double radius,bool &_found) const // returns the nearest possible neighbor's index.
   {
-    assert( mUseDouble );
-    uint32_t ret = 0;
+	assert( mUseDouble );
+	uint32_t ret = 0;
 
-    _found = false;
-    KdTreeFindNode found[1];
-    uint32_t count = search(pos,radius,1,found);
-    if ( count )
-    {
-      KdTreeNode *node = found[0].mNode;
-      ret = node->getIndex();
-      _found = true;
-    }
-    return ret;
+	_found = false;
+	KdTreeFindNode found[1];
+	uint32_t count = search(pos,radius,1,found);
+	if ( count )
+	{
+	  KdTreeNode *node = found[0].mNode;
+	  ret = node->getIndex();
+	  _found = true;
+	}
+	return ret;
   }
 
   uint32_t getNearest(const float *pos,float radius,bool &_found) const // returns the nearest possible neighbor's index.
   {
-    assert( !mUseDouble );
-    uint32_t ret = 0;
+	assert( !mUseDouble );
+	uint32_t ret = 0;
 
-    _found = false;
-    KdTreeFindNode found[1];
-    uint32_t count = search(pos,radius,1,found);
-    if ( count )
-    {
-      KdTreeNode *node = found[0].mNode;
-      ret = node->getIndex();
-      _found = true;
-    }
-    return ret;
+	_found = false;
+	KdTreeFindNode found[1];
+	uint32_t count = search(pos,radius,1,found);
+	if ( count )
+	{
+	  KdTreeNode *node = found[0].mNode;
+	  ret = node->getIndex();
+	  _found = true;
+	}
+	return ret;
   }
 
   const double * getVerticesDouble(void) const
   {
-    assert( mUseDouble );
-    const double *ret = 0;
-    if ( !mVerticesDouble.empty() )
-    {
-      ret = &mVerticesDouble[0];
-    }
-    return ret;
+	assert( mUseDouble );
+	const double *ret = 0;
+	if ( !mVerticesDouble.empty() )
+	{
+	  ret = &mVerticesDouble[0];
+	}
+	return ret;
   }
 
   const float * getVerticesFloat(void) const
   {
-    assert( !mUseDouble );
-    const float * ret = 0;
-    if ( !mVerticesFloat.empty() )
-    {
-      ret = &mVerticesFloat[0];
-    }
-    return ret;
+	assert( !mUseDouble );
+	const float * ret = 0;
+	if ( !mVerticesFloat.empty() )
+	{
+	  ret = &mVerticesFloat[0];
+	}
+	return ret;
   }
 
   uint32_t getVcount(void) const { return mVcount; };
 
   void setUseDouble(bool useDouble)
   {
-    mUseDouble = useDouble;
+	mUseDouble = useDouble;
   }
 
 private:
@@ -2927,20 +2933,20 @@ class MyVertexIndex : public fm_VertexIndex
 public:
   MyVertexIndex(double granularity,bool snapToGrid)
   {
-    mDoubleGranularity = granularity;
-    mFloatGranularity  = (float)granularity;
-    mSnapToGrid        = snapToGrid;
-    mUseDouble         = true;
-    mKdTree.setUseDouble(true);
+	mDoubleGranularity = granularity;
+	mFloatGranularity  = (float)granularity;
+	mSnapToGrid        = snapToGrid;
+	mUseDouble         = true;
+	mKdTree.setUseDouble(true);
   }
 
   MyVertexIndex(float granularity,bool snapToGrid)
   {
-    mDoubleGranularity = granularity;
-    mFloatGranularity  = (float)granularity;
-    mSnapToGrid        = snapToGrid;
-    mUseDouble         = false;
-    mKdTree.setUseDouble(false);
+	mDoubleGranularity = granularity;
+	mFloatGranularity  = (float)granularity;
+	mSnapToGrid        = snapToGrid;
+	mUseDouble         = false;
+	mKdTree.setUseDouble(false);
   }
 
   virtual ~MyVertexIndex(void)
@@ -2951,203 +2957,203 @@ public:
 
   double snapToGrid(double p)
   {
-    double m = fmod(p,mDoubleGranularity);
-    p-=m;
-    return p;
+	double m = fmod(p,mDoubleGranularity);
+	p-=m;
+	return p;
   }
 
   float snapToGrid(float p)
   {
-    float m = fmodf(p,mFloatGranularity);
-    p-=m;
-    return p;
+	float m = fmodf(p,mFloatGranularity);
+	p-=m;
+	return p;
   }
 
   uint32_t    getIndex(const float *_p,bool &newPos)  // get index for a vector float
   {
-    uint32_t ret;
+	uint32_t ret;
 
-    if ( mUseDouble )
-    {
-      double p[3];
-      p[0] = _p[0];
-      p[1] = _p[1];
-      p[2] = _p[2];
-      return getIndex(p,newPos);
-    }
+	if ( mUseDouble )
+	{
+	  double p[3];
+	  p[0] = _p[0];
+	  p[1] = _p[1];
+	  p[2] = _p[2];
+	  return getIndex(p,newPos);
+	}
 
-    newPos = false;
+	newPos = false;
 
-    float p[3];
+	float p[3];
 
-    if ( mSnapToGrid )
-    {
-      p[0] = snapToGrid(_p[0]);
-      p[1] = snapToGrid(_p[1]);
-      p[2] = snapToGrid(_p[2]);
-    }
-    else
-    {
-      p[0] = _p[0];
-      p[1] = _p[1];
-      p[2] = _p[2];
-    }
+	if ( mSnapToGrid )
+	{
+	  p[0] = snapToGrid(_p[0]);
+	  p[1] = snapToGrid(_p[1]);
+	  p[2] = snapToGrid(_p[2]);
+	}
+	else
+	{
+	  p[0] = _p[0];
+	  p[1] = _p[1];
+	  p[2] = _p[2];
+	}
 
-    bool found;
-    ret = mKdTree.getNearest(p,mFloatGranularity,found);
-    if ( !found )
-    {
-      newPos = true;
-      ret = mKdTree.add(p[0],p[1],p[2]);
-    }
+	bool found;
+	ret = mKdTree.getNearest(p,mFloatGranularity,found);
+	if ( !found )
+	{
+	  newPos = true;
+	  ret = mKdTree.add(p[0],p[1],p[2]);
+	}
 
 
-    return ret;
+	return ret;
   }
 
   uint32_t    getIndex(const double *_p,bool &newPos)  // get index for a vector double
   {
-    uint32_t ret;
+	uint32_t ret;
 
-    if ( !mUseDouble )
-    {
-      float p[3];
-      p[0] = (float)_p[0];
-      p[1] = (float)_p[1];
-      p[2] = (float)_p[2];
-      return getIndex(p,newPos);
-    }
+	if ( !mUseDouble )
+	{
+	  float p[3];
+	  p[0] = (float)_p[0];
+	  p[1] = (float)_p[1];
+	  p[2] = (float)_p[2];
+	  return getIndex(p,newPos);
+	}
 
-    newPos = false;
+	newPos = false;
 
-    double p[3];
+	double p[3];
 
-    if ( mSnapToGrid )
-    {
-      p[0] = snapToGrid(_p[0]);
-      p[1] = snapToGrid(_p[1]);
-      p[2] = snapToGrid(_p[2]);
-    }
-    else
-    {
-      p[0] = _p[0];
-      p[1] = _p[1];
-      p[2] = _p[2];
-    }
+	if ( mSnapToGrid )
+	{
+	  p[0] = snapToGrid(_p[0]);
+	  p[1] = snapToGrid(_p[1]);
+	  p[2] = snapToGrid(_p[2]);
+	}
+	else
+	{
+	  p[0] = _p[0];
+	  p[1] = _p[1];
+	  p[2] = _p[2];
+	}
 
-    bool found;
-    ret = mKdTree.getNearest(p,mDoubleGranularity,found);
-    if ( !found )
-    {
-      newPos = true;
-      ret = mKdTree.add(p[0],p[1],p[2]);
-    }
+	bool found;
+	ret = mKdTree.getNearest(p,mDoubleGranularity,found);
+	if ( !found )
+	{
+	  newPos = true;
+	  ret = mKdTree.add(p[0],p[1],p[2]);
+	}
 
 
-    return ret;
+	return ret;
   }
 
   const float *   getVerticesFloat(void) const
   {
-    const float * ret = 0;
+	const float * ret = 0;
 
-    assert( !mUseDouble );
+	assert( !mUseDouble );
 
-    ret = mKdTree.getVerticesFloat();
+	ret = mKdTree.getVerticesFloat();
 
-    return ret;
+	return ret;
   }
 
   const double *  getVerticesDouble(void) const
   {
-    const double * ret = 0;
+	const double * ret = 0;
 
-    assert( mUseDouble );
+	assert( mUseDouble );
 
-    ret = mKdTree.getVerticesDouble();
+	ret = mKdTree.getVerticesDouble();
 
-    return ret;
+	return ret;
   }
 
   const float *   getVertexFloat(uint32_t index) const
   {
-    const float * ret  = 0;
-    assert( !mUseDouble );
+	const float * ret  = 0;
+	assert( !mUseDouble );
 #ifdef _DEBUG
-    uint32_t vcount = mKdTree.getVcount();
-    assert( index < vcount );
+	uint32_t vcount = mKdTree.getVcount();
+	assert( index < vcount );
 #endif
-    ret =  mKdTree.getVerticesFloat();
-    ret = &ret[index*3];
-    return ret;
+	ret =  mKdTree.getVerticesFloat();
+	ret = &ret[index*3];
+	return ret;
   }
 
   const double *   getVertexDouble(uint32_t index) const
   {
-    const double * ret = 0;
-    assert( mUseDouble );
+	const double * ret = 0;
+	assert( mUseDouble );
 #ifdef _DEBUG
-    uint32_t vcount = mKdTree.getVcount();
-    assert( index < vcount );
+	uint32_t vcount = mKdTree.getVcount();
+	assert( index < vcount );
 #endif
-    ret =  mKdTree.getVerticesDouble();
-    ret = &ret[index*3];
+	ret =  mKdTree.getVerticesDouble();
+	ret = &ret[index*3];
 
-    return ret;
+	return ret;
   }
 
   uint32_t    getVcount(void) const
   {
-    return mKdTree.getVcount();
+	return mKdTree.getVcount();
   }
 
   bool isDouble(void) const
   {
-    return mUseDouble;
+	return mUseDouble;
   }
 
 
   bool            saveAsObj(const char *fname,uint32_t tcount,uint32_t *indices)
   {
-    bool ret = false;
+	bool ret = false;
 
 
-    FILE *fph = fopen(fname,"wb");
-    if ( fph )
-    {
-      ret = true;
+	FILE *fph = fopen(fname,"wb");
+	if ( fph )
+	{
+	  ret = true;
 
-      uint32_t vcount    = getVcount();
-      if ( mUseDouble )
-      {
-        const double *v  = getVerticesDouble();
-        for (uint32_t i=0; i<vcount; i++)
-        {
-          fprintf(fph,"v %0.9f %0.9f %0.9f\r\n", (float)v[0], (float)v[1], (float)v[2] );
-          v+=3;
-        }
-      }
-      else
-      {
-        const float *v  = getVerticesFloat();
-        for (uint32_t i=0; i<vcount; i++)
-        {
-          fprintf(fph,"v %0.9f %0.9f %0.9f\r\n", v[0], v[1], v[2] );
-          v+=3;
-        }
-      }
+	  uint32_t vcount    = getVcount();
+	  if ( mUseDouble )
+	  {
+		const double *v  = getVerticesDouble();
+		for (uint32_t i=0; i<vcount; i++)
+		{
+		  fprintf(fph,"v %0.9f %0.9f %0.9f\r\n", (float)v[0], (float)v[1], (float)v[2] );
+		  v+=3;
+		}
+	  }
+	  else
+	  {
+		const float *v  = getVerticesFloat();
+		for (uint32_t i=0; i<vcount; i++)
+		{
+		  fprintf(fph,"v %0.9f %0.9f %0.9f\r\n", v[0], v[1], v[2] );
+		  v+=3;
+		}
+	  }
 
-      for (uint32_t i=0; i<tcount; i++)
-      {
-        uint32_t i1 = *indices++;
-        uint32_t i2 = *indices++;
-        uint32_t i3 = *indices++;
-        fprintf(fph,"f %d %d %d\r\n", i1+1, i2+1, i3+1 );
-      }
-      fclose(fph);
-    }
+	  for (uint32_t i=0; i<tcount; i++)
+	  {
+		uint32_t i1 = *indices++;
+		uint32_t i2 = *indices++;
+		uint32_t i3 = *indices++;
+		fprintf(fph,"f %d %d %d\r\n", i1+1, i2+1, i3+1 );
+	  }
+	  fclose(fph);
+	}
 
-    return ret;
+	return ret;
   }
 
 private:
@@ -3195,12 +3201,12 @@ REAL fm_computeBestFitAABB(uint32_t vcount,const REAL *points,uint32_t pstride,R
 
   for (uint32_t i=1; i<vcount; i++)
   {
-  	source+=pstride;
-  	const REAL *p = (const REAL *) source;
+	source+=pstride;
+	const REAL *p = (const REAL *) source;
 
-  	if ( p[0] < bmin[0] ) bmin[0] = p[0];
-  	if ( p[1] < bmin[1] ) bmin[1] = p[1];
-  	if ( p[2] < bmin[2] ) bmin[2] = p[2];
+	if ( p[0] < bmin[0] ) bmin[0] = p[0];
+	if ( p[1] < bmin[1] ) bmin[1] = p[1];
+	if ( p[2] < bmin[2] ) bmin[2] = p[2];
 
 		if ( p[0] > bmax[0] ) bmax[0] = p[0];
 		if ( p[1] > bmax[1] ) bmax[1] = p[1];
@@ -3323,7 +3329,7 @@ REAL  fm_computeMeshVolume(const REAL *vertices,uint32_t tcount,const uint32_t *
 
 	for (uint32_t i=0; i<tcount; i++,indices+=3)
 	{
-  	const REAL *p1 = &vertices[ indices[0]*3 ];
+	const REAL *p1 = &vertices[ indices[0]*3 ];
 		const REAL *p2 = &vertices[ indices[1]*3 ];
 		const REAL *p3 = &vertices[ indices[2]*3 ];
 		volume+=det(p1,p2,p3); // compute the volume of the tetrahedran relative to the origin.
@@ -3345,9 +3351,9 @@ const REAL * fm_getPoint(const REAL *points,uint32_t pstride,uint32_t index)
 
 
 bool fm_insideTriangle(REAL Ax, REAL Ay,
-                      REAL Bx, REAL By,
-                      REAL Cx, REAL Cy,
-                      REAL Px, REAL Py)
+					  REAL Bx, REAL By,
+					  REAL Cx, REAL Cy,
+					  REAL Px, REAL Py)
 
 {
   REAL ax, ay, bx, by, cx, cy, apx, apy, bpx, bpy, cpx, cpy;
@@ -3375,9 +3381,9 @@ REAL fm_areaPolygon2d(uint32_t pcount,const REAL *points,uint32_t pstride)
   REAL A=0.0f;
   for(int32_t p=n-1,q=0; q<n; p=q++)
   {
-    const REAL *p1 = fm_getPoint(points,pstride,p);
-    const REAL *p2 = fm_getPoint(points,pstride,q);
-    A+= p1[0]*p2[1] - p2[0]*p1[1];
+	const REAL *p1 = fm_getPoint(points,pstride,p);
+	const REAL *p2 = fm_getPoint(points,pstride,q);
+	A+= p1[0]*p2[1] - p2[0]*p1[1];
   }
   return A*0.5f;
 }
@@ -3393,23 +3399,23 @@ bool  fm_pointInsidePolygon2d(uint32_t pcount,const REAL *points,uint32_t pstrid
 
   for (uint32_t i=0; i<pcount; i++)
   {
-    const REAL *p1 = fm_getPoint(points,pstride,i);
-    const REAL *p2 = fm_getPoint(points,pstride,j);
+	const REAL *p1 = fm_getPoint(points,pstride,i);
+	const REAL *p2 = fm_getPoint(points,pstride,j);
 
-    REAL x1 = p1[xindex];
-    REAL y1 = p1[yindex];
+	REAL x1 = p1[xindex];
+	REAL y1 = p1[yindex];
 
-    REAL x2 = p2[xindex];
-    REAL y2 = p2[yindex];
+	REAL x2 = p2[xindex];
+	REAL y2 = p2[yindex];
 
-    if ( y1 < y && y2 >= y ||  y2 < y && y1 >= y )
-    {
-      if (x1+(y-y1)/(y2-y1)*(x2-x1)<x)
-      {
-        oddNodes = 1-oddNodes;
-      }
-    }
-    j = i;
+	if ( y1 < y && y2 >= y ||  y2 < y && y1 >= y )
+	{
+	  if (x1+(y-y1)/(y2-y1)*(x2-x1)<x)
+	  {
+		oddNodes = 1-oddNodes;
+	  }
+	}
+	j = i;
   }
 
   return oddNodes ? true : false;
@@ -3423,31 +3429,31 @@ uint32_t fm_consolidatePolygon(uint32_t pcount,const REAL *points,uint32_t pstri
 
   if ( pcount >= 3 )
   {
-    const REAL *prev = fm_getPoint(points,pstride,pcount-1);
-    const REAL *current = points;
-    const REAL *next    = fm_getPoint(points,pstride,1);
-    REAL *dest = _dest;
+	const REAL *prev = fm_getPoint(points,pstride,pcount-1);
+	const REAL *current = points;
+	const REAL *next    = fm_getPoint(points,pstride,1);
+	REAL *dest = _dest;
 
-    for (uint32_t i=0; i<pcount; i++)
-    {
+	for (uint32_t i=0; i<pcount; i++)
+	{
 
-      next = (i+1)==pcount ? points : next;
+	  next = (i+1)==pcount ? points : next;
 
-      if ( !fm_colinear(prev,current,next,epsilon) )
-      {
-        dest[0] = current[0];
-        dest[1] = current[1];
-        dest[2] = current[2];
+	  if ( !fm_colinear(prev,current,next,epsilon) )
+	  {
+		dest[0] = current[0];
+		dest[1] = current[1];
+		dest[2] = current[2];
 
-        dest+=3;
-        ret++;
-      }
+		dest+=3;
+		ret++;
+	  }
 
-      prev = current;
-      current+=3;
-      next+=3;
+	  prev = current;
+	  current+=3;
+	  next+=3;
 
-    }
+	}
   }
 
   return ret;
@@ -3466,28 +3472,28 @@ public:
   Rect3d(const T *bmin,const T *bmax)
   {
 
-    mMin[0] = bmin[0];
-    mMin[1] = bmin[1];
-    mMin[2] = bmin[2];
+	mMin[0] = bmin[0];
+	mMin[1] = bmin[1];
+	mMin[2] = bmin[2];
 
-    mMax[0] = bmax[0];
-    mMax[1] = bmax[1];
-    mMax[2] = bmax[2];
+	mMax[0] = bmax[0];
+	mMax[1] = bmax[1];
+	mMax[2] = bmax[2];
 
   }
 
   void SetMin(const T *bmin)
   {
-    mMin[0] = bmin[0];
-    mMin[1] = bmin[1];
-    mMin[2] = bmin[2];
+	mMin[0] = bmin[0];
+	mMin[1] = bmin[1];
+	mMin[2] = bmin[2];
   }
 
   void SetMax(const T *bmax)
   {
-    mMax[0] = bmax[0];
-    mMax[1] = bmax[1];
-    mMax[2] = bmax[2];
+	mMax[0] = bmax[0];
+	mMax[1] = bmax[1];
+	mMax[2] = bmax[2];
   }
 
 	void SetMin(T x,T y,T z)
@@ -3546,10 +3552,10 @@ void splitRect(uint32_t axis,
 }
 
 bool fm_computeSplitPlane(uint32_t vcount,
-                          const REAL *vertices,
-                          uint32_t /* tcount */,
-                          const uint32_t * /* indices */,
-                          REAL *plane)
+						  const REAL *vertices,
+						  uint32_t /* tcount */,
+						  const uint32_t * /* indices */,
+						  REAL *plane)
 {
 
   REAL sides[3];
@@ -3603,54 +3609,54 @@ bool fm_computeSplitPlane(uint32_t vcount,
 
   switch ( axis )
   {
-    case 0:
-      p2[1] = bmin[1];
-      p2[2] = bmin[2];
+	case 0:
+	  p2[1] = bmin[1];
+	  p2[2] = bmin[2];
 
-      if ( dz > dy )
-      {
-        p3[1] = bmax[1];
-        p3[2] = bmin[2];
-      }
-      else
-      {
-        p3[1] = bmin[1];
-        p3[2] = bmax[2];
-      }
+	  if ( dz > dy )
+	  {
+		p3[1] = bmax[1];
+		p3[2] = bmin[2];
+	  }
+	  else
+	  {
+		p3[1] = bmin[1];
+		p3[2] = bmax[2];
+	  }
 
-      break;
-    case 1:
-      p2[0] = bmin[0];
-      p2[2] = bmin[2];
+	  break;
+	case 1:
+	  p2[0] = bmin[0];
+	  p2[2] = bmin[2];
 
-      if ( dx > dz )
-      {
-        p3[0] = bmax[0];
-        p3[2] = bmin[2];
-      }
-      else
-      {
-        p3[0] = bmin[0];
-        p3[2] = bmax[2];
-      }
+	  if ( dx > dz )
+	  {
+		p3[0] = bmax[0];
+		p3[2] = bmin[2];
+	  }
+	  else
+	  {
+		p3[0] = bmin[0];
+		p3[2] = bmax[2];
+	  }
 
-      break;
-    case 2:
-      p2[0] = bmin[0];
-      p2[1] = bmin[1];
+	  break;
+	case 2:
+	  p2[0] = bmin[0];
+	  p2[1] = bmin[1];
 
-      if ( dx > dy )
-      {
-        p3[0] = bmax[0];
-        p3[1] = bmin[1];
-      }
-      else
-      {
-        p3[0] = bmin[0];
-        p3[1] = bmax[1];
-      }
+	  if ( dx > dy )
+	  {
+		p3[0] = bmax[0];
+		p3[1] = bmin[1];
+	  }
+	  else
+	  {
+		p3[0] = bmin[0];
+		p3[1] = bmax[1];
+	  }
 
-      break;
+	  break;
   }
 
   REAL tp1[3];
@@ -3764,25 +3770,25 @@ uint32_t  fm_copyUniqueVertices(uint32_t vcount,const REAL *input_vertices,REAL 
 
   for (uint32_t i=0; i<icount; i++)
   {
-    uint32_t index = *input_indices++;
+	uint32_t index = *input_indices++;
 
-    assert( index < vcount );
+	assert( index < vcount );
 
-    if ( reindex[index] == 0xFFFFFFFF )
-    {
-      *output_indices++ = ret;
-      reindex[index] = ret;
-      const REAL *pos = &vertices[index*3];
-      dest[0] = pos[0];
-      dest[1] = pos[1];
-      dest[2] = pos[2];
-      dest+=3;
-      ret++;
-    }
-    else
-    {
-      *output_indices++ = reindex[index];
-    }
+	if ( reindex[index] == 0xFFFFFFFF )
+	{
+	  *output_indices++ = ret;
+	  reindex[index] = ret;
+	  const REAL *pos = &vertices[index*3];
+	  dest[0] = pos[0];
+	  dest[1] = pos[1];
+	  dest[2] = pos[2];
+	  dest+=3;
+	  ret++;
+	}
+	else
+	{
+	  *output_indices++ = reindex[index];
+	}
   }
   free(vertices);
   free(reindex);
@@ -3795,31 +3801,31 @@ bool    fm_isMeshCoplanar(uint32_t tcount,const uint32_t *indices,const REAL *ve
 
   if ( tcount > 0 )
   {
-    uint32_t i1 = indices[0];
-    uint32_t i2 = indices[1];
-    uint32_t i3 = indices[2];
-    const REAL *p1 = &vertices[i1*3];
-    const REAL *p2 = &vertices[i2*3];
-    const REAL *p3 = &vertices[i3*3];
-    REAL plane[4];
-    plane[3] = fm_computePlane(p1,p2,p3,plane);
-    const uint32_t *scan = &indices[3];
-    for (uint32_t i=1; i<tcount; i++)
-    {
-      i1 = *scan++;
-      i2 = *scan++;
-      i3 = *scan++;
-      p1 = &vertices[i1*3];
-      p2 = &vertices[i2*3];
-      p3 = &vertices[i3*3];
-      REAL _plane[4];
-      _plane[3] = fm_computePlane(p1,p2,p3,_plane);
-      if ( !fm_samePlane(plane,_plane,0.01f,0.001f,doubleSided) )
-      {
-        ret = false;
-        break;
-      }
-    }
+	uint32_t i1 = indices[0];
+	uint32_t i2 = indices[1];
+	uint32_t i3 = indices[2];
+	const REAL *p1 = &vertices[i1*3];
+	const REAL *p2 = &vertices[i2*3];
+	const REAL *p3 = &vertices[i3*3];
+	REAL plane[4];
+	plane[3] = fm_computePlane(p1,p2,p3,plane);
+	const uint32_t *scan = &indices[3];
+	for (uint32_t i=1; i<tcount; i++)
+	{
+	  i1 = *scan++;
+	  i2 = *scan++;
+	  i3 = *scan++;
+	  p1 = &vertices[i1*3];
+	  p2 = &vertices[i2*3];
+	  p3 = &vertices[i3*3];
+	  REAL _plane[4];
+	  _plane[3] = fm_computePlane(p1,p2,p3,_plane);
+	  if ( !fm_samePlane(plane,_plane,0.01f,0.001f,doubleSided) )
+	  {
+		ret = false;
+		break;
+	  }
+	}
   }
   return ret;
 }
@@ -3832,14 +3838,14 @@ bool fm_samePlane(const REAL p1[4],const REAL p2[4],REAL normalEpsilon,REAL dEps
   REAL diff = (REAL) fabs(p1[3]-p2[3]);
   if ( diff < dEpsilon ) // if the plane -d  co-efficient is within our epsilon
   {
-    REAL dot = fm_dot(p1,p2); // compute the dot-product of the vector normals.
-    if ( doubleSided ) dot = (REAL)fabs(dot);
-    REAL dmin = 1 - normalEpsilon;
-    REAL dmax = 1 + normalEpsilon;
-    if ( dot >= dmin && dot <= dmax )
-    {
-      ret = true; // then the plane equation is for practical purposes identical.
-    }
+	REAL dot = fm_dot(p1,p2); // compute the dot-product of the vector normals.
+	if ( doubleSided ) dot = (REAL)fabs(dot);
+	REAL dmin = 1 - normalEpsilon;
+	REAL dmax = 1 + normalEpsilon;
+	if ( dot >= dmin && dot <= dmax )
+	{
+	  ret = true; // then the plane equation is for practical purposes identical.
+	}
   }
 
   return ret;
@@ -3886,203 +3892,203 @@ public:
 
   const uint32_t * tesselate(fm_VertexIndex *vindex,uint32_t tcount,const uint32_t *indices,float longEdge,uint32_t maxDepth,uint32_t &outcount)
   {
-    const uint32_t *ret = 0;
+	const uint32_t *ret = 0;
 
-    mMaxDepth = maxDepth;
-    mLongEdge  = longEdge*longEdge;
-    mLongEdgeD = mLongEdge;
-    mVertices = vindex;
+	mMaxDepth = maxDepth;
+	mLongEdge  = longEdge*longEdge;
+	mLongEdgeD = mLongEdge;
+	mVertices = vindex;
 
-    if ( mVertices->isDouble() )
-    {
-      uint32_t vcount = mVertices->getVcount();
-      double *vertices = (double *)malloc(sizeof(double)*vcount*3);
-      memcpy(vertices,mVertices->getVerticesDouble(),sizeof(double)*vcount*3);
+	if ( mVertices->isDouble() )
+	{
+	  uint32_t vcount = mVertices->getVcount();
+	  double *vertices = (double *)malloc(sizeof(double)*vcount*3);
+	  memcpy(vertices,mVertices->getVerticesDouble(),sizeof(double)*vcount*3);
 
-      for (uint32_t i=0; i<tcount; i++)
-      {
-        uint32_t i1 = *indices++;
-        uint32_t i2 = *indices++;
-        uint32_t i3 = *indices++;
+	  for (uint32_t i=0; i<tcount; i++)
+	  {
+		uint32_t i1 = *indices++;
+		uint32_t i2 = *indices++;
+		uint32_t i3 = *indices++;
 
-        const double *p1 = &vertices[i1*3];
-        const double *p2 = &vertices[i2*3];
-        const double *p3 = &vertices[i3*3];
+		const double *p1 = &vertices[i1*3];
+		const double *p2 = &vertices[i2*3];
+		const double *p3 = &vertices[i3*3];
 
-        tesselate(p1,p2,p3,0);
+		tesselate(p1,p2,p3,0);
 
-      }
-      free(vertices);
-    }
-    else
-    {
-      uint32_t vcount = mVertices->getVcount();
-      float *vertices = (float *)malloc(sizeof(float)*vcount*3);
-      memcpy(vertices,mVertices->getVerticesFloat(),sizeof(float)*vcount*3);
-
-
-      for (uint32_t i=0; i<tcount; i++)
-      {
-        uint32_t i1 = *indices++;
-        uint32_t i2 = *indices++;
-        uint32_t i3 = *indices++;
-
-        const float *p1 = &vertices[i1*3];
-        const float *p2 = &vertices[i2*3];
-        const float *p3 = &vertices[i3*3];
-
-        tesselate(p1,p2,p3,0);
-
-      }
-      free(vertices);
-    }
-
-    outcount = (uint32_t)(mIndices.size()/3);
-    ret = &mIndices[0];
+	  }
+	  free(vertices);
+	}
+	else
+	{
+	  uint32_t vcount = mVertices->getVcount();
+	  float *vertices = (float *)malloc(sizeof(float)*vcount*3);
+	  memcpy(vertices,mVertices->getVerticesFloat(),sizeof(float)*vcount*3);
 
 
-    return ret;
+	  for (uint32_t i=0; i<tcount; i++)
+	  {
+		uint32_t i1 = *indices++;
+		uint32_t i2 = *indices++;
+		uint32_t i3 = *indices++;
+
+		const float *p1 = &vertices[i1*3];
+		const float *p2 = &vertices[i2*3];
+		const float *p3 = &vertices[i3*3];
+
+		tesselate(p1,p2,p3,0);
+
+	  }
+	  free(vertices);
+	}
+
+	outcount = (uint32_t)(mIndices.size()/3);
+	ret = &mIndices[0];
+
+
+	return ret;
   }
 
   void tesselate(const float *p1,const float *p2,const float *p3,uint32_t recurse)
   {
-  	bool split = false;
-  	float l1,l2,l3;
+	bool split = false;
+	float l1,l2,l3;
 
-    l1 = l2 = l3 = 0;
+	l1 = l2 = l3 = 0;
 
-  	if ( recurse < mMaxDepth )
-  	{
-  	  l1 = fm_distanceSquared(p1,p2);
-    	l2 = fm_distanceSquared(p2,p3);
-    	l3 = fm_distanceSquared(p3,p1);
+	if ( recurse < mMaxDepth )
+	{
+	  l1 = fm_distanceSquared(p1,p2);
+		l2 = fm_distanceSquared(p2,p3);
+		l3 = fm_distanceSquared(p3,p1);
 
-  	  if (  l1 > mLongEdge || l2 > mLongEdge || l3 > mLongEdge )
-  	  	split = true;
+	  if (  l1 > mLongEdge || l2 > mLongEdge || l3 > mLongEdge )
+		split = true;
 
-    }
+	}
 
-    if ( split )
-  	{
-  		uint32_t edge;
+	if ( split )
+	{
+		uint32_t edge;
 
-  		if ( l1 >= l2 && l1 >= l3 )
-  			edge = 0;
-  		else if ( l2 >= l1 && l2 >= l3 )
-  			edge = 1;
-  		else
-  			edge = 2;
+		if ( l1 >= l2 && l1 >= l3 )
+			edge = 0;
+		else if ( l2 >= l1 && l2 >= l3 )
+			edge = 1;
+		else
+			edge = 2;
 
 			float splits[3];
 
-  		switch ( edge )
-  		{
-  			case 0:
-  				{
-            fm_lerp(p1,p2,splits,0.5f);
-            tesselate(p1,splits,p3, recurse+1 );
-            tesselate(splits,p2,p3, recurse+1 );
-  				}
-  				break;
-  			case 1:
-  				{
-            fm_lerp(p2,p3,splits,0.5f);
-            tesselate(p1,p2,splits, recurse+1 );
-            tesselate(p1,splits,p3, recurse+1 );
-  				}
-  				break;
-  			case 2:
-  				{
-  					fm_lerp(p3,p1,splits,0.5f);
-            tesselate(p1,p2,splits, recurse+1 );
-            tesselate(splits,p2,p3, recurse+1 );
-  				}
-  				break;
-  		}
-  	}
-  	else
-  	{
-      bool newp;
+		switch ( edge )
+		{
+			case 0:
+				{
+			fm_lerp(p1,p2,splits,0.5f);
+			tesselate(p1,splits,p3, recurse+1 );
+			tesselate(splits,p2,p3, recurse+1 );
+				}
+				break;
+			case 1:
+				{
+			fm_lerp(p2,p3,splits,0.5f);
+			tesselate(p1,p2,splits, recurse+1 );
+			tesselate(p1,splits,p3, recurse+1 );
+				}
+				break;
+			case 2:
+				{
+					fm_lerp(p3,p1,splits,0.5f);
+			tesselate(p1,p2,splits, recurse+1 );
+			tesselate(splits,p2,p3, recurse+1 );
+				}
+				break;
+		}
+	}
+	else
+	{
+	  bool newp;
 
-      uint32_t i1 = mVertices->getIndex(p1,newp);
-      uint32_t i2 = mVertices->getIndex(p2,newp);
-      uint32_t i3 = mVertices->getIndex(p3,newp);
+	  uint32_t i1 = mVertices->getIndex(p1,newp);
+	  uint32_t i2 = mVertices->getIndex(p2,newp);
+	  uint32_t i3 = mVertices->getIndex(p3,newp);
 
-      mIndices.push_back(i1);
-      mIndices.push_back(i2);
-      mIndices.push_back(i3);
-    }
+	  mIndices.push_back(i1);
+	  mIndices.push_back(i2);
+	  mIndices.push_back(i3);
+	}
 
   }
 
   void tesselate(const double *p1,const double *p2,const double *p3,uint32_t recurse)
   {
-  	bool split = false;
-  	double l1,l2,l3;
+	bool split = false;
+	double l1,l2,l3;
 
-    l1 = l2 = l3 = 0;
+	l1 = l2 = l3 = 0;
 
-  	if ( recurse < mMaxDepth )
-  	{
-  	  l1 = fm_distanceSquared(p1,p2);
-    	l2 = fm_distanceSquared(p2,p3);
-    	l3 = fm_distanceSquared(p3,p1);
+	if ( recurse < mMaxDepth )
+	{
+	  l1 = fm_distanceSquared(p1,p2);
+		l2 = fm_distanceSquared(p2,p3);
+		l3 = fm_distanceSquared(p3,p1);
 
-  	  if (  l1 > mLongEdgeD || l2 > mLongEdgeD || l3 > mLongEdgeD )
-  	  	split = true;
+	  if (  l1 > mLongEdgeD || l2 > mLongEdgeD || l3 > mLongEdgeD )
+		split = true;
 
-    }
+	}
 
-    if ( split )
-  	{
-  		uint32_t edge;
+	if ( split )
+	{
+		uint32_t edge;
 
-  		if ( l1 >= l2 && l1 >= l3 )
-  			edge = 0;
-  		else if ( l2 >= l1 && l2 >= l3 )
-  			edge = 1;
-  		else
-  			edge = 2;
+		if ( l1 >= l2 && l1 >= l3 )
+			edge = 0;
+		else if ( l2 >= l1 && l2 >= l3 )
+			edge = 1;
+		else
+			edge = 2;
 
 			double splits[3];
 
-  		switch ( edge )
-  		{
-  			case 0:
-  				{
-            fm_lerp(p1,p2,splits,0.5);
-            tesselate(p1,splits,p3, recurse+1 );
-            tesselate(splits,p2,p3, recurse+1 );
-  				}
-  				break;
-  			case 1:
-  				{
-            fm_lerp(p2,p3,splits,0.5);
-            tesselate(p1,p2,splits, recurse+1 );
-            tesselate(p1,splits,p3, recurse+1 );
-  				}
-  				break;
-  			case 2:
-  				{
-  					fm_lerp(p3,p1,splits,0.5);
-            tesselate(p1,p2,splits, recurse+1 );
-            tesselate(splits,p2,p3, recurse+1 );
-  				}
-  				break;
-  		}
-  	}
-  	else
-  	{
-      bool newp;
+		switch ( edge )
+		{
+			case 0:
+				{
+			fm_lerp(p1,p2,splits,0.5);
+			tesselate(p1,splits,p3, recurse+1 );
+			tesselate(splits,p2,p3, recurse+1 );
+				}
+				break;
+			case 1:
+				{
+			fm_lerp(p2,p3,splits,0.5);
+			tesselate(p1,p2,splits, recurse+1 );
+			tesselate(p1,splits,p3, recurse+1 );
+				}
+				break;
+			case 2:
+				{
+					fm_lerp(p3,p1,splits,0.5);
+			tesselate(p1,p2,splits, recurse+1 );
+			tesselate(splits,p2,p3, recurse+1 );
+				}
+				break;
+		}
+	}
+	else
+	{
+	  bool newp;
 
-      uint32_t i1 = mVertices->getIndex(p1,newp);
-      uint32_t i2 = mVertices->getIndex(p2,newp);
-      uint32_t i3 = mVertices->getIndex(p3,newp);
+	  uint32_t i1 = mVertices->getIndex(p1,newp);
+	  uint32_t i2 = mVertices->getIndex(p2,newp);
+	  uint32_t i3 = mVertices->getIndex(p3,newp);
 
-      mIndices.push_back(i1);
-      mIndices.push_back(i2);
-      mIndices.push_back(i3);
-    }
+	  mIndices.push_back(i1);
+	  mIndices.push_back(i2);
+	  mIndices.push_back(i3);
+	}
 
   }
 
@@ -4148,31 +4154,31 @@ bool fm_intersectRayAABB(const float MinB[3],const float MaxB[3],const float ori
   // Find candidate planes.
   for(uint32_t i=0;i<3;i++)
   {
-    if(origin[i] < MinB[i])
-    {
-      coord[i]	= MinB[i];
-      Inside		= false;
+	if(origin[i] < MinB[i])
+	{
+	  coord[i]	= MinB[i];
+	  Inside		= false;
 
-      // Calculate T distances to candidate planes
-      if(IR(dir[i]))	MaxT[i] = (MinB[i] - origin[i]) / dir[i];
-    }
-    else if(origin[i] > MaxB[i])
-    {
-      coord[i]	= MaxB[i];
-      Inside		= false;
+	  // Calculate T distances to candidate planes
+	  if(IR(dir[i]))	MaxT[i] = (MinB[i] - origin[i]) / dir[i];
+	}
+	else if(origin[i] > MaxB[i])
+	{
+	  coord[i]	= MaxB[i];
+	  Inside		= false;
 
-      // Calculate T distances to candidate planes
-      if(IR(dir[i]))	MaxT[i] = (MaxB[i] - origin[i]) / dir[i];
-    }
+	  // Calculate T distances to candidate planes
+	  if(IR(dir[i]))	MaxT[i] = (MaxB[i] - origin[i]) / dir[i];
+	}
   }
 
   // Ray origin inside bounding box
   if(Inside)
   {
-    coord[0] = origin[0];
-    coord[1] = origin[1];
-    coord[2] = origin[2];
-    return true;
+	coord[0] = origin[0];
+	coord[1] = origin[1];
+	coord[2] = origin[2];
+	return true;
   }
 
   // Get largest of the maxT's for final choice of intersection
@@ -4185,15 +4191,15 @@ bool fm_intersectRayAABB(const float MinB[3],const float MaxB[3],const float ori
 
   for(uint32_t i=0;i<3;i++)
   {
-    if(i!=WhichPlane)
-    {
-      coord[i] = origin[i] + MaxT[WhichPlane] * dir[i];
+	if(i!=WhichPlane)
+	{
+	  coord[i] = origin[i] + MaxT[WhichPlane] * dir[i];
 #ifdef RAYAABB_EPSILON
-      if(coord[i] < MinB[i] - RAYAABB_EPSILON || coord[i] > MaxB[i] + RAYAABB_EPSILON)	return false;
+	  if(coord[i] < MinB[i] - RAYAABB_EPSILON || coord[i] > MaxB[i] + RAYAABB_EPSILON)	return false;
 #else
-      if(coord[i] < MinB[i] || coord[i] > MaxB[i])	return false;
+	  if(coord[i] < MinB[i] || coord[i] > MaxB[i])	return false;
 #endif
-    }
+	}
   }
   return true;	// ray hits box
 }
@@ -4209,15 +4215,15 @@ bool fm_intersectLineSegmentAABB(const float bmin[3],const float bmax[3],const f
   float dist = fm_normalize(dir);
   if ( dist > RAYAABB_EPSILON )
   {
-    ret = fm_intersectRayAABB(bmin,bmax,p1,dir,intersect);
-    if ( ret )
-    {
-      float d = fm_distanceSquared(p1,intersect);
-      if ( d  > (dist*dist) )
-      {
-        ret = false;
-      }
-    }
+	ret = fm_intersectRayAABB(bmin,bmax,p1,dir,intersect);
+	if ( ret )
+	{
+	  float d = fm_distanceSquared(p1,intersect);
+	  if ( d  > (dist*dist) )
+	  {
+		ret = false;
+	  }
+	}
   }
   return ret;
 }
@@ -4254,23 +4260,23 @@ void computeNormal(uint32_t index,REAL *normals,uint32_t nstride,const REAL *nor
 }
 
 void fm_computeMeanNormals(uint32_t vcount,       // the number of vertices
-                           const REAL *vertices,     // the base address of the vertex position data.
-                           uint32_t vstride,      // the stride between position data.
-                           REAL *normals,            // the base address  of the destination for mean vector normals
-                           uint32_t nstride,      // the stride between normals
-                           uint32_t tcount,       // the number of triangles
-                           const uint32_t *indices)     // the triangle indices
+						   const REAL *vertices,     // the base address of the vertex position data.
+						   uint32_t vstride,      // the stride between position data.
+						   REAL *normals,            // the base address  of the destination for mean vector normals
+						   uint32_t nstride,      // the stride between normals
+						   uint32_t tcount,       // the number of triangles
+						   const uint32_t *indices)     // the triangle indices
 {
 
   // Step #1 : Zero out the vertex normals
   char *dest = (char *)normals;
   for (uint32_t i=0; i<vcount; i++)
   {
-    REAL *n = (REAL *)dest;
-    n[0] = 0;
-    n[1] = 0;
-    n[2] = 0;
-    dest+=nstride;
+	REAL *n = (REAL *)dest;
+	n[0] = 0;
+	n[1] = 0;
+	n[2] = 0;
+	dest+=nstride;
   }
 
   // Step #2 : Compute the face normals and accumulate them
@@ -4278,20 +4284,20 @@ void fm_computeMeanNormals(uint32_t vcount,       // the number of vertices
   for (uint32_t i=0; i<tcount; i++)
   {
 
-    uint32_t i1 = *scan++;
-    uint32_t i2 = *scan++;
-    uint32_t i3 = *scan++;
+	uint32_t i1 = *scan++;
+	uint32_t i2 = *scan++;
+	uint32_t i3 = *scan++;
 
-    const REAL *p1 = computePos(i1,vertices,vstride);
-    const REAL *p2 = computePos(i2,vertices,vstride);
-    const REAL *p3 = computePos(i3,vertices,vstride);
+	const REAL *p1 = computePos(i1,vertices,vstride);
+	const REAL *p2 = computePos(i2,vertices,vstride);
+	const REAL *p3 = computePos(i3,vertices,vstride);
 
-    REAL normal[3];
-    fm_computePlane(p3,p2,p1,normal);
+	REAL normal[3];
+	fm_computePlane(p3,p2,p1,normal);
 
-    computeNormal(i1,normals,nstride,normal);
-    computeNormal(i2,normals,nstride,normal);
-    computeNormal(i3,normals,nstride,normal);
+	computeNormal(i1,normals,nstride,normal);
+	computeNormal(i2,normals,nstride,normal);
+	computeNormal(i3,normals,nstride,normal);
   }
 
 
@@ -4299,9 +4305,9 @@ void fm_computeMeanNormals(uint32_t vcount,       // the number of vertices
   dest = (char *)normals;
   for (uint32_t i=0; i<vcount; i++)
   {
-    REAL *n = (REAL *)dest;
-    fm_normalize(n);
-    dest+=nstride;
+	REAL *n = (REAL *)dest;
+	fm_normalize(n);
+	dest+=nstride;
   }
 
 }
@@ -4460,11 +4466,11 @@ void fm_computeBestFitCapsule(uint32_t vcount,const REAL *points,uint32_t pstrid
 
   int32_t axis = 0;
   if ( sides[0] > sides[1] && sides[0] > sides[2] )
-    axis = 0;
+	axis = 0;
   else if ( sides[1] > sides[0] && sides[1] > sides[2] )
-    axis = 1;
+	axis = 1;
   else 
-    axis = 2;
+	axis = 2;
 
   REAL localTransform[16];
 
@@ -4473,84 +4479,84 @@ void fm_computeBestFitCapsule(uint32_t vcount,const REAL *points,uint32_t pstrid
 
   switch ( axis )
   {
-    case 0:
-      {
-        fm_eulerMatrix(0,0,FM_PI/2,localTransform);
-        fm_matrixMultiply(localTransform,omatrix,matrix);
+	case 0:
+	  {
+		fm_eulerMatrix(0,0,FM_PI/2,localTransform);
+		fm_matrixMultiply(localTransform,omatrix,matrix);
 
-        const uint8_t *scan = (const uint8_t *)points;
-        for (uint32_t i=0; i<vcount; i++)
-        {
-          const REAL *p = (const REAL *)scan;
-          REAL t[3];
-          fm_inverseRT(omatrix,p,t);
-          REAL dist = t[1]*t[1]+t[2]*t[2];
-          if ( dist > maxDist )
-          {
-            maxDist = dist;
-          }
-          REAL l = (REAL) fabs(t[0]);
-          if ( l > maxLen )
-          {
-            maxLen = l;
-          }
-          scan+=pstride;
-        }
-      }
-      height = sides[0];
-      break;
-    case 1:
-      {
-        fm_eulerMatrix(0,FM_PI/2,0,localTransform);
-        fm_matrixMultiply(localTransform,omatrix,matrix);
+		const uint8_t *scan = (const uint8_t *)points;
+		for (uint32_t i=0; i<vcount; i++)
+		{
+		  const REAL *p = (const REAL *)scan;
+		  REAL t[3];
+		  fm_inverseRT(omatrix,p,t);
+		  REAL dist = t[1]*t[1]+t[2]*t[2];
+		  if ( dist > maxDist )
+		  {
+			maxDist = dist;
+		  }
+		  REAL l = (REAL) fabs(t[0]);
+		  if ( l > maxLen )
+		  {
+			maxLen = l;
+		  }
+		  scan+=pstride;
+		}
+	  }
+	  height = sides[0];
+	  break;
+	case 1:
+	  {
+		fm_eulerMatrix(0,FM_PI/2,0,localTransform);
+		fm_matrixMultiply(localTransform,omatrix,matrix);
 
-        const uint8_t *scan = (const uint8_t *)points;
-        for (uint32_t i=0; i<vcount; i++)
-        {
-          const REAL *p = (const REAL *)scan;
-          REAL t[3];
-          fm_inverseRT(omatrix,p,t);
-          REAL dist = t[0]*t[0]+t[2]*t[2];
-          if ( dist > maxDist )
-          {
-            maxDist = dist;
-          }
-          REAL l = (REAL) fabs(t[1]);
-          if ( l > maxLen )
-          {
-            maxLen = l;
-          }
-          scan+=pstride;
-        }
-      }
-      height = sides[1];
-      break;
-    case 2:
-      {
-        fm_eulerMatrix(FM_PI/2,0,0,localTransform);
-        fm_matrixMultiply(localTransform,omatrix,matrix);
+		const uint8_t *scan = (const uint8_t *)points;
+		for (uint32_t i=0; i<vcount; i++)
+		{
+		  const REAL *p = (const REAL *)scan;
+		  REAL t[3];
+		  fm_inverseRT(omatrix,p,t);
+		  REAL dist = t[0]*t[0]+t[2]*t[2];
+		  if ( dist > maxDist )
+		  {
+			maxDist = dist;
+		  }
+		  REAL l = (REAL) fabs(t[1]);
+		  if ( l > maxLen )
+		  {
+			maxLen = l;
+		  }
+		  scan+=pstride;
+		}
+	  }
+	  height = sides[1];
+	  break;
+	case 2:
+	  {
+		fm_eulerMatrix(FM_PI/2,0,0,localTransform);
+		fm_matrixMultiply(localTransform,omatrix,matrix);
 
-        const uint8_t *scan = (const uint8_t *)points;
-        for (uint32_t i=0; i<vcount; i++)
-        {
-          const REAL *p = (const REAL *)scan;
-          REAL t[3];
-          fm_inverseRT(omatrix,p,t);
-          REAL dist = t[0]*t[0]+t[1]*t[1];
-          if ( dist > maxDist )
-          {
-            maxDist = dist;
-          }
-          REAL l = (REAL) fabs(t[2]);
-          if ( l > maxLen )
-          {
-            maxLen = l;
-          }
-          scan+=pstride;
-        }
-      }
-      height = sides[2];
-      break;
+		const uint8_t *scan = (const uint8_t *)points;
+		for (uint32_t i=0; i<vcount; i++)
+		{
+		  const REAL *p = (const REAL *)scan;
+		  REAL t[3];
+		  fm_inverseRT(omatrix,p,t);
+		  REAL dist = t[0]*t[0]+t[1]*t[1];
+		  if ( dist > maxDist )
+		  {
+			maxDist = dist;
+		  }
+		  REAL l = (REAL) fabs(t[2]);
+		  if ( l > maxLen )
+		  {
+			maxLen = l;
+		  }
+		  scan+=pstride;
+		}
+	  }
+	  height = sides[2];
+	  break;
   }
   radius = (REAL)sqrt(maxDist);
   height = (maxLen*2)-(radius*2);
@@ -4582,152 +4588,152 @@ typedef std::vector< TU32 >  TU32Vector;
 class CTriangulator
 {
 public:
-    ///     Default constructor
-    CTriangulator();
+	///     Default constructor
+	CTriangulator();
 
-    ///     Default destructor
-    virtual ~CTriangulator();
+	///     Default destructor
+	virtual ~CTriangulator();
 
-    ///     Triangulates the contour
-    void triangulate(TU32Vector &indices);
+	///     Triangulates the contour
+	void triangulate(TU32Vector &indices);
 
-    ///     Returns the given point in the triangulator array
-    inline TVec get(const TU32 id) { return mPoints[id]; }
+	///     Returns the given point in the triangulator array
+	inline TVec get(const TU32 id) { return mPoints[id]; }
 
-    virtual void reset(void)
-    {
-        mInputPoints.clear();
-        mPoints.clear();
-        mIndices.clear();
-    }
+	virtual void reset(void)
+	{
+		mInputPoints.clear();
+		mPoints.clear();
+		mIndices.clear();
+	}
 
-    virtual void addPoint(double x,double y,double z)
-    {
-        TVec v(x,y,z);
-        // update bounding box...
-        if ( mInputPoints.empty() )
-        {
-            mMin = v;
-            mMax = v;
-        }
-        else
-        {
-            if ( x < mMin.x ) mMin.x = x;
-            if ( y < mMin.y ) mMin.y = y;
-            if ( z < mMin.z ) mMin.z = z;
+	virtual void addPoint(double x,double y,double z)
+	{
+		TVec v(x,y,z);
+		// update bounding box...
+		if ( mInputPoints.empty() )
+		{
+			mMin = v;
+			mMax = v;
+		}
+		else
+		{
+			if ( x < mMin.x ) mMin.x = x;
+			if ( y < mMin.y ) mMin.y = y;
+			if ( z < mMin.z ) mMin.z = z;
 
-            if ( x > mMax.x ) mMax.x = x;
-            if ( y > mMax.y ) mMax.y = y;
-            if ( z > mMax.z ) mMax.z = z;
-        }
-        mInputPoints.push_back(v);
-    }
+			if ( x > mMax.x ) mMax.x = x;
+			if ( y > mMax.y ) mMax.y = y;
+			if ( z > mMax.z ) mMax.z = z;
+		}
+		mInputPoints.push_back(v);
+	}
 
-    // Triangulation happens in 2d.  We could inverse transform the polygon around the normal direction, or we just use the two most signficant axes
-    // Here we find the two longest axes and use them to triangulate.  Inverse transforming them would introduce more doubleing point error and isn't worth it.
-    virtual uint32_t * triangulate(uint32_t &tcount,double epsilon)
-    {
-        uint32_t *ret = 0;
-        tcount = 0;
-        mEpsilon = epsilon;
+	// Triangulation happens in 2d.  We could inverse transform the polygon around the normal direction, or we just use the two most signficant axes
+	// Here we find the two longest axes and use them to triangulate.  Inverse transforming them would introduce more doubleing point error and isn't worth it.
+	virtual uint32_t * triangulate(uint32_t &tcount,double epsilon)
+	{
+		uint32_t *ret = 0;
+		tcount = 0;
+		mEpsilon = epsilon;
 
-        if ( !mInputPoints.empty() )
-        {
-            mPoints.clear();
+		if ( !mInputPoints.empty() )
+		{
+			mPoints.clear();
 
-          double dx = mMax.x - mMin.x; // locate the first, second and third longest edges and store them in i1, i2, i3
-          double dy = mMax.y - mMin.y;
-          double dz = mMax.z - mMin.z;
+		  double dx = mMax.x - mMin.x; // locate the first, second and third longest edges and store them in i1, i2, i3
+		  double dy = mMax.y - mMin.y;
+		  double dz = mMax.z - mMin.z;
 
-          uint32_t i1,i2,i3;
+		  uint32_t i1,i2,i3;
 
-          if ( dx > dy && dx > dz )
-          {
-              i1 = 0;
-              if ( dy > dz )
-              {
-                  i2 = 1;
-                  i3 = 2;
-              }
-              else
-              {
-                  i2 = 2;
-                  i3 = 1;
-              }
-          }
-          else if ( dy > dx && dy > dz )
-          {
-              i1 = 1;
-              if ( dx > dz )
-              {
-                  i2 = 0;
-                  i3 = 2;
-              }
-              else
-              {
-                  i2 = 2;
-                  i3 = 0;
-              }
-          }
-          else
-          {
-              i1 = 2;
-              if ( dx > dy )
-              {
-                  i2 = 0;
-                  i3 = 1;
-              }
-              else
-              {
-                  i2 = 1;
-                  i3 = 0;
-              }
-          }
+		  if ( dx > dy && dx > dz )
+		  {
+			  i1 = 0;
+			  if ( dy > dz )
+			  {
+				  i2 = 1;
+				  i3 = 2;
+			  }
+			  else
+			  {
+				  i2 = 2;
+				  i3 = 1;
+			  }
+		  }
+		  else if ( dy > dx && dy > dz )
+		  {
+			  i1 = 1;
+			  if ( dx > dz )
+			  {
+				  i2 = 0;
+				  i3 = 2;
+			  }
+			  else
+			  {
+				  i2 = 2;
+				  i3 = 0;
+			  }
+		  }
+		  else
+		  {
+			  i1 = 2;
+			  if ( dx > dy )
+			  {
+				  i2 = 0;
+				  i3 = 1;
+			  }
+			  else
+			  {
+				  i2 = 1;
+				  i3 = 0;
+			  }
+		  }
 
-          uint32_t pcount = (uint32_t)mInputPoints.size();
-          const double *points = &mInputPoints[0].x;
-          for (uint32_t i=0; i<pcount; i++)
-          {
-            TVec v( points[i1], points[i2], points[i3] );
-            mPoints.push_back(v);
-            points+=3;
-          }
+		  uint32_t pcount = (uint32_t)mInputPoints.size();
+		  const double *points = &mInputPoints[0].x;
+		  for (uint32_t i=0; i<pcount; i++)
+		  {
+			TVec v( points[i1], points[i2], points[i3] );
+			mPoints.push_back(v);
+			points+=3;
+		  }
 
-          mIndices.clear();
-          triangulate(mIndices);
-          tcount = (uint32_t)mIndices.size()/3;
-          if ( tcount )
-          {
-              ret = &mIndices[0];
-          }
-        }
-        return ret;
-    }
+		  mIndices.clear();
+		  triangulate(mIndices);
+		  tcount = (uint32_t)mIndices.size()/3;
+		  if ( tcount )
+		  {
+			  ret = &mIndices[0];
+		  }
+		}
+		return ret;
+	}
 
-    virtual const double * getPoint(uint32_t index)
-    {
-        return &mInputPoints[index].x;
-    }
+	virtual const double * getPoint(uint32_t index)
+	{
+		return &mInputPoints[index].x;
+	}
 
 
 private:
-    double                  mEpsilon;
-    TVec                   mMin;
-    TVec                   mMax;
-    TVecVector             mInputPoints;
-    TVecVector             mPoints;
-    TU32Vector             mIndices;
+	double                  mEpsilon;
+	TVec                   mMin;
+	TVec                   mMax;
+	TVecVector             mInputPoints;
+	TVecVector             mPoints;
+	TU32Vector             mIndices;
 
-    ///     Tests if a point is inside the given triangle
-    bool _insideTriangle(const TVec& A, const TVec& B, const TVec& C,const TVec& P);
+	///     Tests if a point is inside the given triangle
+	bool _insideTriangle(const TVec& A, const TVec& B, const TVec& C,const TVec& P);
 
-    ///     Returns the area of the contour
-    double _area();
+	///     Returns the area of the contour
+	double _area();
 
-    bool _snip(int32_t u, int32_t v, int32_t w, int32_t n, int32_t *V);
+	bool _snip(int32_t u, int32_t v, int32_t w, int32_t n, int32_t *V);
 
-    ///     Processes the triangulation
-    void _process(TU32Vector &indices);
+	///     Processes the triangulation
+	void _process(TU32Vector &indices);
 
 };
 
@@ -4744,54 +4750,54 @@ CTriangulator::~CTriangulator()
 ///     Triangulates the contour
 void CTriangulator::triangulate(TU32Vector &indices)
 {
-    _process(indices);
+	_process(indices);
 }
 
 ///     Processes the triangulation
 void CTriangulator::_process(TU32Vector &indices)
 {
-    const int32_t n = (const int32_t)mPoints.size();
-    if (n < 3)
-        return;
-    int32_t *V = (int32_t *)malloc(sizeof(int32_t)*n);
+	const int32_t n = (const int32_t)mPoints.size();
+	if (n < 3)
+		return;
+	int32_t *V = (int32_t *)malloc(sizeof(int32_t)*n);
 
 	bool flipped = false;
 
-    if (0.0f < _area())
-    {
-        for (int32_t v = 0; v < n; v++)
-            V[v] = v;
-    }
-    else
-    {
+	if (0.0f < _area())
+	{
+		for (int32_t v = 0; v < n; v++)
+			V[v] = v;
+	}
+	else
+	{
 		flipped = true;
-        for (int32_t v = 0; v < n; v++)
-            V[v] = (n - 1) - v;
-    }
+		for (int32_t v = 0; v < n; v++)
+			V[v] = (n - 1) - v;
+	}
 
-    int32_t nv = n;
-    int32_t count = 2 * nv;
-    for (int32_t m = 0, v = nv - 1; nv > 2;)
-    {
-        if (0 >= (count--))
-            return;
+	int32_t nv = n;
+	int32_t count = 2 * nv;
+	for (int32_t m = 0, v = nv - 1; nv > 2;)
+	{
+		if (0 >= (count--))
+			return;
 
-        int32_t u = v;
-        if (nv <= u)
-            u = 0;
-        v = u + 1;
-        if (nv <= v)
-            v = 0;
-        int32_t w = v + 1;
-        if (nv <= w)
-            w = 0;
+		int32_t u = v;
+		if (nv <= u)
+			u = 0;
+		v = u + 1;
+		if (nv <= v)
+			v = 0;
+		int32_t w = v + 1;
+		if (nv <= w)
+			w = 0;
 
-        if (_snip(u, v, w, nv, V))
-        {
-            int32_t a, b, c, s, t;
-            a = V[u];
-            b = V[v];
-            c = V[w];
+		if (_snip(u, v, w, nv, V))
+		{
+			int32_t a, b, c, s, t;
+			a = V[u];
+			b = V[v];
+			c = V[w];
 			if ( flipped )
 			{
 				indices.push_back(a);
@@ -4804,72 +4810,72 @@ void CTriangulator::_process(TU32Vector &indices)
 				indices.push_back(b);
 				indices.push_back(a);
 			}
-            m++;
-            for (s = v, t = v + 1; t < nv; s++, t++)
-                V[s] = V[t];
-            nv--;
-            count = 2 * nv;
-        }
-    }
+			m++;
+			for (s = v, t = v + 1; t < nv; s++, t++)
+				V[s] = V[t];
+			nv--;
+			count = 2 * nv;
+		}
+	}
 
-    free(V);
+	free(V);
 }
 
 ///     Returns the area of the contour
 double CTriangulator::_area()
 {
-    int32_t n = (uint32_t)mPoints.size();
-    double A = 0.0f;
-    for (int32_t p = n - 1, q = 0; q < n; p = q++)
-    {
-        const TVec &pval = mPoints[p];
-        const TVec &qval = mPoints[q];
-        A += pval.x * qval.y - qval.x * pval.y;
-    }
+	int32_t n = (uint32_t)mPoints.size();
+	double A = 0.0f;
+	for (int32_t p = n - 1, q = 0; q < n; p = q++)
+	{
+		const TVec &pval = mPoints[p];
+		const TVec &qval = mPoints[q];
+		A += pval.x * qval.y - qval.x * pval.y;
+	}
 	A*=0.5f;
-    return A;
+	return A;
 }
 
 bool CTriangulator::_snip(int32_t u, int32_t v, int32_t w, int32_t n, int32_t *V)
 {
-    int32_t p;
+	int32_t p;
 
-    const TVec &A = mPoints[ V[u] ];
-    const TVec &B = mPoints[ V[v] ];
-    const TVec &C = mPoints[ V[w] ];
+	const TVec &A = mPoints[ V[u] ];
+	const TVec &B = mPoints[ V[v] ];
+	const TVec &C = mPoints[ V[w] ];
 
-    if (mEpsilon > (((B.x - A.x) * (C.y - A.y)) - ((B.y - A.y) * (C.x - A.x))) )
-        return false;
+	if (mEpsilon > (((B.x - A.x) * (C.y - A.y)) - ((B.y - A.y) * (C.x - A.x))) )
+		return false;
 
-    for (p = 0; p < n; p++)
-    {
-        if ((p == u) || (p == v) || (p == w))
-            continue;
-        const TVec &P = mPoints[ V[p] ];
-        if (_insideTriangle(A, B, C, P))
-            return false;
-    }
-    return true;
+	for (p = 0; p < n; p++)
+	{
+		if ((p == u) || (p == v) || (p == w))
+			continue;
+		const TVec &P = mPoints[ V[p] ];
+		if (_insideTriangle(A, B, C, P))
+			return false;
+	}
+	return true;
 }
 
 ///     Tests if a point is inside the given triangle
 bool CTriangulator::_insideTriangle(const TVec& A, const TVec& B, const TVec& C,const TVec& P)
 {
-    double ax, ay, bx, by, cx, cy, apx, apy, bpx, bpy, cpx, cpy;
-    double cCROSSap, bCROSScp, aCROSSbp;
+	double ax, ay, bx, by, cx, cy, apx, apy, bpx, bpy, cpx, cpy;
+	double cCROSSap, bCROSScp, aCROSSbp;
 
-    ax = C.x - B.x;  ay = C.y - B.y;
-    bx = A.x - C.x;  by = A.y - C.y;
-    cx = B.x - A.x;  cy = B.y - A.y;
-    apx = P.x - A.x;  apy = P.y - A.y;
-    bpx = P.x - B.x;  bpy = P.y - B.y;
-    cpx = P.x - C.x;  cpy = P.y - C.y;
+	ax = C.x - B.x;  ay = C.y - B.y;
+	bx = A.x - C.x;  by = A.y - C.y;
+	cx = B.x - A.x;  cy = B.y - A.y;
+	apx = P.x - A.x;  apy = P.y - A.y;
+	bpx = P.x - B.x;  bpy = P.y - B.y;
+	cpx = P.x - C.x;  cpy = P.y - C.y;
 
-    aCROSSbp = ax * bpy - ay * bpx;
-    cCROSSap = cx * apy - cy * apx;
-    bCROSScp = bx * cpy - by * cpx;
+	aCROSSbp = ax * bpy - ay * bpx;
+	cCROSSap = cx * apy - cy * apx;
+	bCROSScp = bx * cpy - by * cpx;
 
-    return ((aCROSSbp >= 0.0f) && (bCROSScp >= 0.0f) && (cCROSSap >= 0.0f));
+	return ((aCROSSbp >= 0.0f) && (bCROSScp >= 0.0f) && (cCROSSap >= 0.0f));
 }
 
 class Triangulate : public fm_Triangulate
@@ -4877,128 +4883,128 @@ class Triangulate : public fm_Triangulate
 public:
   Triangulate(void)
   {
-    mPointsFloat = 0;
-    mPointsDouble = 0;
+	mPointsFloat = 0;
+	mPointsDouble = 0;
   }
 
   virtual ~Triangulate(void)
   {
-    reset();
+	reset();
   }
   void reset(void)
   {
-    free(mPointsFloat);
-    free(mPointsDouble);
-    mPointsFloat = 0;
-    mPointsDouble = 0;
+	free(mPointsFloat);
+	free(mPointsDouble);
+	mPointsFloat = 0;
+	mPointsDouble = 0;
   }
 
   virtual const double *       triangulate3d(uint32_t pcount,
-                                             const double *_points,
-                                             uint32_t vstride,
-                                             uint32_t &tcount,
-                                             bool consolidate,
-                                             double epsilon)
+											 const double *_points,
+											 uint32_t vstride,
+											 uint32_t &tcount,
+											 bool consolidate,
+											 double epsilon)
   {
-    reset();
+	reset();
 
-    double *points = (double *)malloc(sizeof(double)*pcount*3);
-    if ( consolidate )
-    {
-      pcount = fm_consolidatePolygon(pcount,_points,vstride,points,1-epsilon);
-    }
-    else
-    {
-      double *dest = points;
-      for (uint32_t i=0; i<pcount; i++)
-      {
-        const double *src = fm_getPoint(_points,vstride,i);
-        dest[0] = src[0];
-        dest[1] = src[1];
-        dest[2] = src[2];
-        dest+=3;
-      }
-      vstride = sizeof(double)*3;
-    }
+	double *points = (double *)malloc(sizeof(double)*pcount*3);
+	if ( consolidate )
+	{
+	  pcount = fm_consolidatePolygon(pcount,_points,vstride,points,1-epsilon);
+	}
+	else
+	{
+	  double *dest = points;
+	  for (uint32_t i=0; i<pcount; i++)
+	  {
+		const double *src = fm_getPoint(_points,vstride,i);
+		dest[0] = src[0];
+		dest[1] = src[1];
+		dest[2] = src[2];
+		dest+=3;
+	  }
+	  vstride = sizeof(double)*3;
+	}
 
-    if ( pcount >= 3 )
-    {
-      CTriangulator ct;
-      for (uint32_t i=0; i<pcount; i++)
-      {
-        const double *src = fm_getPoint(points,vstride,i);
-        ct.addPoint( src[0], src[1], src[2] );
-      }
-      uint32_t _tcount;
-      uint32_t *indices = ct.triangulate(_tcount,epsilon);
-      if ( indices )
-      {
-        tcount = _tcount;
-        mPointsDouble = (double *)malloc(sizeof(double)*tcount*3*3);
-        double *dest = mPointsDouble;
-        for (uint32_t i=0; i<tcount; i++)
-        {
-          uint32_t i1 = indices[i*3+0];
-          uint32_t i2 = indices[i*3+1];
-          uint32_t i3 = indices[i*3+2];
-          const double *p1 = ct.getPoint(i1);
-          const double *p2 = ct.getPoint(i2);
-          const double *p3 = ct.getPoint(i3);
+	if ( pcount >= 3 )
+	{
+	  CTriangulator ct;
+	  for (uint32_t i=0; i<pcount; i++)
+	  {
+		const double *src = fm_getPoint(points,vstride,i);
+		ct.addPoint( src[0], src[1], src[2] );
+	  }
+	  uint32_t _tcount;
+	  uint32_t *indices = ct.triangulate(_tcount,epsilon);
+	  if ( indices )
+	  {
+		tcount = _tcount;
+		mPointsDouble = (double *)malloc(sizeof(double)*tcount*3*3);
+		double *dest = mPointsDouble;
+		for (uint32_t i=0; i<tcount; i++)
+		{
+		  uint32_t i1 = indices[i*3+0];
+		  uint32_t i2 = indices[i*3+1];
+		  uint32_t i3 = indices[i*3+2];
+		  const double *p1 = ct.getPoint(i1);
+		  const double *p2 = ct.getPoint(i2);
+		  const double *p3 = ct.getPoint(i3);
 
-          dest[0] = p1[0];
-          dest[1] = p1[1];
-          dest[2] = p1[2];
+		  dest[0] = p1[0];
+		  dest[1] = p1[1];
+		  dest[2] = p1[2];
 
-          dest[3] = p2[0];
-          dest[4] = p2[1];
-          dest[5] = p2[2];
+		  dest[3] = p2[0];
+		  dest[4] = p2[1];
+		  dest[5] = p2[2];
 
-          dest[6] = p3[0];
-          dest[7] = p3[1];
-          dest[8] = p3[2];
-          dest+=9;
-        }
-      }
-    }
-    free(points);
+		  dest[6] = p3[0];
+		  dest[7] = p3[1];
+		  dest[8] = p3[2];
+		  dest+=9;
+		}
+	  }
+	}
+	free(points);
 
-    return mPointsDouble;
+	return mPointsDouble;
   }
 
   virtual const float  *       triangulate3d(uint32_t pcount,
-                                             const float  *points,
-                                             uint32_t vstride,
-                                             uint32_t &tcount,
-                                             bool consolidate,
-                                             float epsilon)
+											 const float  *points,
+											 uint32_t vstride,
+											 uint32_t &tcount,
+											 bool consolidate,
+											 float epsilon)
   {
-    reset();
+	reset();
 
-    double *temp = (double *)malloc(sizeof(double)*pcount*3);
-    double *dest = temp;
-    for (uint32_t i=0; i<pcount; i++)
-    {
-      const float *p = fm_getPoint(points,vstride,i);
-      dest[0] = p[0];
-      dest[1] = p[1];
-      dest[2] = p[2];
-      dest+=3;
-    }
-    const double *results = triangulate3d(pcount,temp,sizeof(double)*3,tcount,consolidate,epsilon);
-    if ( results )
-    {
-      uint32_t fcount = tcount*3*3;
-      mPointsFloat = (float *)malloc(sizeof(float)*tcount*3*3);
-      for (uint32_t i=0; i<fcount; i++)
-      {
-        mPointsFloat[i] = (float) results[i];
-      }
-      free(mPointsDouble);
-      mPointsDouble = 0;
-    }
-    free(temp);
+	double *temp = (double *)malloc(sizeof(double)*pcount*3);
+	double *dest = temp;
+	for (uint32_t i=0; i<pcount; i++)
+	{
+	  const float *p = fm_getPoint(points,vstride,i);
+	  dest[0] = p[0];
+	  dest[1] = p[1];
+	  dest[2] = p[2];
+	  dest+=3;
+	}
+	const double *results = triangulate3d(pcount,temp,sizeof(double)*3,tcount,consolidate,epsilon);
+	if ( results )
+	{
+	  uint32_t fcount = tcount*3*3;
+	  mPointsFloat = (float *)malloc(sizeof(float)*tcount*3*3);
+	  for (uint32_t i=0; i<fcount; i++)
+	  {
+		mPointsFloat[i] = (float) results[i];
+	  }
+	  free(mPointsDouble);
+	  mPointsDouble = 0;
+	}
+	free(temp);
 
-    return mPointsFloat;
+	return mPointsFloat;
   }
 
 private:

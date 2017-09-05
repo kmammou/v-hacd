@@ -154,8 +154,8 @@ double fm_dot(const double p1[3],const double p2[3]);
 void  fm_cross(float cross[3],const float a[3],const float b[3]);
 void  fm_cross(double cross[3],const double a[3],const double b[3]);
 
-void  fm_computeNormalVector(float n[3],const float p1[3],const float p2[3]); // as P2-P1 normalized.
-void  fm_computeNormalVector(double n[3],const double p1[3],const double p2[3]); // as P2-P1 normalized.
+float  fm_computeNormalVector(float n[3],const float p1[3],const float p2[3]); // as P2-P1 normalized.
+double  fm_computeNormalVector(double n[3],const double p1[3],const double p2[3]); // as P2-P1 normalized.
 
 bool  fm_computeWindingOrder(const float p1[3],const float p2[3],const float p3[3]); // returns true if the triangle is clockwise.
 bool  fm_computeWindingOrder(const double p1[3],const double p2[3],const double p3[3]); // returns true if the triangle is clockwise.
@@ -229,18 +229,20 @@ float fm_solveZ(const float plane[4],float x,float y); // solve for Z given this
 double fm_solveZ(const double plane[4],double x,double y); // solve for Z given this plane equation and the other two components.
 
 bool  fm_computeBestFitPlane(uint32_t vcount,     // number of input data points
-                     const float *points,     // starting address of points array.
-                     uint32_t vstride,    // stride between input points.
-                     const float *weights,    // *optional point weighting values.
-                     uint32_t wstride,    // weight stride for each vertex.
-                     float plane[4]);
+	const float *points,     // starting address of points array.
+	uint32_t vstride,    // stride between input points.
+	const float *weights,    // *optional point weighting values.
+	uint32_t wstride,    // weight stride for each vertex.
+	float plane[4],		// Best fit plane equation
+	float center[3]);  // Best fit weighted center of input points
 
 bool  fm_computeBestFitPlane(uint32_t vcount,     // number of input data points
-                     const double *points,     // starting address of points array.
-                     uint32_t vstride,    // stride between input points.
-                     const double *weights,    // *optional point weighting values.
-                     uint32_t wstride,    // weight stride for each vertex.
-                     double plane[4]);
+	const double *points,     // starting address of points array.
+	uint32_t vstride,    // stride between input points.
+	const double *weights,    // *optional point weighting values.
+	uint32_t wstride,    // weight stride for each vertex.
+	double plane[4],
+	double center[3]); 
 
 bool  fm_computeCentroid(uint32_t vcount,     // number of input data points
 						 const float *points,     // starting address of points array.
@@ -320,23 +322,23 @@ enum PlaneTriResult
 };
 
 PlaneTriResult fm_planeTriIntersection(const float plane[4],    // the plane equation in Ax+By+Cz+D format
-                                    const float *triangle, // the source triangle.
-                                    uint32_t tstride,  // stride in bytes of the input and output *vertices*
-                                    float        epsilon,  // the co-planer epsilon value.
-                                    float       *front,    // the triangle in front of the
-                                    uint32_t &fcount,  // number of vertices in the 'front' triangle
-                                    float       *back,     // the triangle in back of the plane
-                                    uint32_t &bcount); // the number of vertices in the 'back' triangle.
+									const float *triangle, // the source triangle.
+									uint32_t tstride,  // stride in bytes of the input and output *vertices*
+									float        epsilon,  // the co-planer epsilon value.
+									float       *front,    // the triangle in front of the
+									uint32_t &fcount,  // number of vertices in the 'front' triangle
+									float       *back,     // the triangle in back of the plane
+									uint32_t &bcount); // the number of vertices in the 'back' triangle.
 
 
 PlaneTriResult fm_planeTriIntersection(const double plane[4],    // the plane equation in Ax+By+Cz+D format
-                                    const double *triangle, // the source triangle.
-                                    uint32_t tstride,  // stride in bytes of the input and output *vertices*
-                                    double        epsilon,  // the co-planer epsilon value.
-                                    double       *front,    // the triangle in front of the
-                                    uint32_t &fcount,  // number of vertices in the 'front' triangle
-                                    double       *back,     // the triangle in back of the plane
-                                    uint32_t &bcount); // the number of vertices in the 'back' triangle.
+									const double *triangle, // the source triangle.
+									uint32_t tstride,  // stride in bytes of the input and output *vertices*
+									double        epsilon,  // the co-planer epsilon value.
+									double       *front,    // the triangle in front of the
+									uint32_t &fcount,  // number of vertices in the 'front' triangle
+									double       *back,     // the triangle in back of the plane
+									uint32_t &bcount); // the number of vertices in the 'back' triangle.
 
 
 void fm_intersectPointPlane(const float p1[3],const float p2[3],float *split,const float plane[4]);
@@ -404,18 +406,18 @@ class fm_Triangulate
 {
 public:
   virtual const double *       triangulate3d(uint32_t pcount,
-                                             const double *points,
-                                             uint32_t vstride,
-                                             uint32_t &tcount,
-                                             bool consolidate,
-                                             double epsilon) = 0;
+											 const double *points,
+											 uint32_t vstride,
+											 uint32_t &tcount,
+											 bool consolidate,
+											 double epsilon) = 0;
 
   virtual const float  *       triangulate3d(uint32_t pcount,
-                                             const float  *points,
-                                             uint32_t vstride,
-                                             uint32_t &tcount,
-                                             bool consolidate,
-                                             float epsilon) = 0;
+											 const float  *points,
+											 uint32_t vstride,
+											 uint32_t &tcount,
+											 bool consolidate,
+											 float epsilon) = 0;
 };
 
 fm_Triangulate * fm_createTriangulate(void);
@@ -483,20 +485,20 @@ fm_Tesselate * fm_createTesselate(void);
 void           fm_releaseTesselate(fm_Tesselate *t);
 
 void fm_computeMeanNormals(uint32_t vcount,       // the number of vertices
-                           const float *vertices,     // the base address of the vertex position data.
-                           uint32_t vstride,      // the stride between position data.
-                           float *normals,            // the base address  of the destination for mean vector normals
-                           uint32_t nstride,      // the stride between normals
-                           uint32_t tcount,       // the number of triangles
-                           const uint32_t *indices);     // the triangle indices
+						   const float *vertices,     // the base address of the vertex position data.
+						   uint32_t vstride,      // the stride between position data.
+						   float *normals,            // the base address  of the destination for mean vector normals
+						   uint32_t nstride,      // the stride between normals
+						   uint32_t tcount,       // the number of triangles
+						   const uint32_t *indices);     // the triangle indices
 
 void fm_computeMeanNormals(uint32_t vcount,       // the number of vertices
-                           const double *vertices,     // the base address of the vertex position data.
-                           uint32_t vstride,      // the stride between position data.
-                           double *normals,            // the base address  of the destination for mean vector normals
-                           uint32_t nstride,      // the stride between normals
-                           uint32_t tcount,       // the number of triangles
-                           const uint32_t *indices);     // the triangle indices
+						   const double *vertices,     // the base address of the vertex position data.
+						   uint32_t vstride,      // the stride between position data.
+						   double *normals,            // the base address  of the destination for mean vector normals
+						   uint32_t nstride,      // the stride between normals
+						   uint32_t tcount,       // the number of triangles
+						   const uint32_t *indices);     // the triangle indices
 
 
 bool fm_isValidTriangle(const float *p1,const float *p2,const float *p3,float epsilon=0.00001f);
