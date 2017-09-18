@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "wavefront.h"
-#include "FloatMath.h"
 
 /*!
 **
@@ -922,10 +921,7 @@ bool WavefrontObj::saveObj(const char *fname,uint32_t vcount,const float *vertic
 	return ret;
 }
 
-void WavefrontObj::deepCopyScale(WavefrontObj &dest,
-								float scaleFactor,
-								bool centerMesh,
-								uint32_t tessellateInputMesh) 
+void WavefrontObj::deepCopyScale(WavefrontObj &dest, float scaleFactor,bool centerMesh)
 {
 	dest.releaseMesh();
 	dest.mVertexCount = mVertexCount;
@@ -982,68 +978,14 @@ void WavefrontObj::deepCopyScale(WavefrontObj &dest,
 			adjustY = bmin[1]; // (bmin[1] + bmax[1])*0.5f;
 			adjustZ = (bmin[2] + bmax[2])*0.5f;
 		}
+
+
 		dest.mVertices = new float[mVertexCount * 3];
 		for (uint32_t i = 0; i < mVertexCount; i++)
 		{
 			dest.mVertices[i * 3 + 0] = (mVertices[i * 3 + 0]-adjustX) * scaleFactor;
 			dest.mVertices[i * 3 + 1] = (mVertices[i * 3 + 1]-adjustY) * scaleFactor;
 			dest.mVertices[i * 3 + 2] = (mVertices[i * 3 + 2]-adjustZ) * scaleFactor;
-		}
-		// if we are going to tessellate the input mesh..
-
-		if (tessellateInputMesh > 1)
-		{
-			// Compute the diagonal length of the input mesh
-			float bmin[3];
-			float bmax[3];
-			FLOAT_MATH::fm_initMinMax(bmin, bmax);
-			for (uint32_t i = 0; i < dest.mVertexCount; i++)
-			{
-				const float *p = &dest.mVertices[i * 3];
-				FLOAT_MATH::fm_minmax(p, bmin, bmax);
-			}
-			float diagonalLength = FLOAT_MATH::fm_distance(bmin, bmax);
-			// Populate the vertex index system with vertices and save the indices
-			FLOAT_MATH::fm_VertexIndex *vindex = FLOAT_MATH::fm_createVertexIndex(0.0f, false);
-			std::vector< uint32_t > indices;
-			for (uint32_t i = 0; i < dest.mTriCount; i++)
-			{
-				uint32_t i1 = dest.mIndices[i * 3 + 0];
-				uint32_t i2 = dest.mIndices[i * 3 + 1];
-				uint32_t i3 = dest.mIndices[i * 3 + 2];
-
-				const float *p1 = &dest.mVertices[i1 * 3];
-				const float *p2 = &dest.mVertices[i2 * 3];
-				const float *p3 = &dest.mVertices[i3 * 3];
-
-				bool newPos;
-				i1 = vindex->getIndex(p1, newPos);
-				i2 = vindex->getIndex(p2, newPos);
-				i3 = vindex->getIndex(p3, newPos);
-				indices.push_back(i1);
-				indices.push_back(i2);
-				indices.push_back(i3);
-			}
-			// The tessellation distance is the diagonal length divided by the tesselation factor
-			float tessellationDistance = diagonalLength / float(tessellateInputMesh);
-
-			FLOAT_MATH::fm_Tesselate *tess = FLOAT_MATH::fm_createTesselate();
-			uint32_t outcount;
-			const uint32_t *newIndices = tess->tesselate(vindex, dest.mTriCount, &indices[0], tessellationDistance, 8, outcount);
-
-			delete[]dest.mIndices;
-			delete[]dest.mVertices;
-
-			dest.mIndices = new uint32_t[outcount * 3];
-			dest.mTriCount = outcount; // new number of triangles..
-			memcpy(dest.mIndices, newIndices, outcount * 3 * sizeof(uint32_t));
-
-			dest.mVertexCount = vindex->getVcount();
-			dest.mVertices = new float[dest.mVertexCount * 3];
-			memcpy(dest.mVertices, vindex->getVerticesFloat(), sizeof(float)*dest.mVertexCount * 3);
-
-			FLOAT_MATH::fm_releaseVertexIndex(vindex);
-			FLOAT_MATH::fm_releaseTesselate(tess);
 		}
 	}
 }

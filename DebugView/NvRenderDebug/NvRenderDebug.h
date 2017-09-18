@@ -17,16 +17,21 @@
 /**
 \brief This defines the version number of the API.  If the API changes in anyway, this version number needs to be bumped.
 */
-#define RENDER_DEBUG_VERSION 1009
+#define RENDER_DEBUG_VERSION 1010
 /**
 \brief This defines the version number for the communications layer.  If the format or layout of any packets change in a way that will not be backwards compatible, this needs to be bumped
 */
-#define RENDER_DEBUG_COMM_VERSION 1009
+#define RENDER_DEBUG_COMM_VERSION 1010
 /**
 \brief The default port number for RenderDebug client/server connections.  You can change this if you wish, but you must make sure both your client and server code uses the new port number.
 */
 #define RENDER_DEBUG_PORT 5525
 
+namespace nvidia
+{
+	class NvAllocatorCallback;
+	class NvErrorCallback;
+}
 
 namespace RENDER_DEBUG
 {
@@ -897,7 +902,7 @@ public:
 			dllName = "RenderDebug_x86.dll";
 			versionNumber = RENDER_DEBUG_VERSION;
 			runMode = RM_LOCAL;
-			recordFileName = nullptr; //"RenderDebug.rec";
+			recordFileName = NULL; //"RenderDebug.rec";
 			errorCode = 0;
 			echoFileLocally = false;
 			hostName = "localhost";
@@ -973,12 +978,12 @@ public:
 		/**
 		\brief This is an optional callback interface to vector all memory allocations performed back to the application.
 		*/
-		void *allocatorCallback;
+		nvidia::NvAllocatorCallback *allocatorCallback;
 
 		/**
 		\brief This is an optional callback interface to vector all warning and error messages back to the application
 		*/
-		void		*errorCallback;
+		nvidia::NvErrorCallback		*errorCallback;
 
 		/**
 		\brief This is an optional filename to record all commands received from the remote connection. This is a debugging feature only.

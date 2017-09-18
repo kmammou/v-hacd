@@ -109,15 +109,6 @@ public:
 		bool	m_projectHullVertices;
     };
 
-	class Constraint
-	{
-	public:
-		uint32_t	mHullA;					// Convex Hull A index
-		uint32_t	mHullB;					// Convex Hull B index
-		double		mConstraintPoint[3];	// The point of intersection between the two convex hulls
-		double		mConstraintOrientation[4]; // the orientation of the constraint as a quaternion
-	};
-
     virtual void Cancel() = 0;
     virtual bool Compute(const float* const points,
         const uint32_t countPoints,
@@ -143,27 +134,6 @@ public:
 	// Will compute the center of mass of the convex hull decomposition results and return it
 	// in 'centerOfMass'.  Returns false if the center of mass could not be computed.
 	virtual bool ComputeCenterOfMass(double centerOfMass[3]) const = 0;
-
-	// Will analyze the HACD results and compute the constraints solutions.
-	// It will analyze the point at which any two convex hulls touch each other and 
-	// return the total number of constraint pairs found
-	virtual uint32_t ComputeConstraints(void) = 0;
-
-	// Returns a pointer to the list of constraints generated and the 'constraintCount'
-	// Returns a null pointer if 'ComputeConstraints' has not yet been called or
-	// no constraints were found.
-	virtual const Constraint *GetConstraints(uint32_t &constraintCount) const = 0;
-
-	// Returns the number of collision pairs which need to be filtered.
-	// These are convex hulls that overlap in their rest pose but are not constrained
-	// to each other.  These will generate potentially bad collision contacts which 
-	// prevent the objects from coming to rest.
-	// Use these pairs to exclude those collisions
-	// If it returns a null pointer, then no collision pair filters are required (or constraints haven't been generated yet)
-	// collisionFilterPairCount will be assigned the number of pairs to filter.
-	// The return value will be pairs of integer; example 3,4 meaning body 3 and body 4 should not collide
-	virtual const uint32_t *GetCollisionFilterPairs(uint32_t &collisionPairFilterCount) const = 0;
-
 
 	// In synchronous mode (non-multi-threaded) the state is always 'ready'
 	// In asynchronous mode, this returns true if the background thread is not still actively computing

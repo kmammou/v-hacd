@@ -1,9 +1,19 @@
 #include "NvRenderDebug.h"
 #include <stdio.h>
 
+#if NV_SIGNED_LIBRARY
+#undef NV_SIGNED_LIBRARY
+#endif
+
 #ifdef _MSC_VER
 
 #include <windows.h>
+
+#ifdef NV_SIGNED_LIBRARY
+#include "nvSecureLoadLibrary.h"
+#endif
+
+
 
 namespace RENDER_DEBUG
 {
@@ -15,7 +25,11 @@ RENDER_DEBUG::RenderDebug *createRenderDebug(RenderDebug::Desc &desc)
 	UINT errorMode = 0;
 	errorMode = SEM_FAILCRITICALERRORS;
 	UINT oldErrorMode = SetErrorMode(errorMode);
+#ifdef NV_SIGNED_LIBRARY
+	HMODULE module = nvLoadLibraryExA(desc.dllName,0,true);
+#else
 	HMODULE module = LoadLibraryA(desc.dllName);
+#endif
 	SetErrorMode(oldErrorMode);
 	if ( module )
 	{

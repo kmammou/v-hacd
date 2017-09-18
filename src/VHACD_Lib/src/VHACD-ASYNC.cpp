@@ -296,53 +296,6 @@ public:
 		return ret;
 	}
 
-	// Will analyze the HACD results and compute the constraints solutions.
-	// It will analyze the point at which any two convex hulls touch each other and 
-	// return the total number of constraint pairs found
-	virtual uint32_t ComputeConstraints(void) final
-	{
-		uint32_t ret = 0;
-		if (mVHACD && IsReady())
-		{
-			ret = mVHACD->ComputeConstraints();
-		}
-		return ret;
-	}
-
-	// Returns a pointer to the list of constraints generated and the 'constraintCount'
-	// Returns a null pointer if 'ComputeConstraints' has not yet been called or
-	// no constraints were found.
-	virtual const Constraint *GetConstraints(uint32_t &constraintCount) const final
-	{
-		const Constraint * ret = nullptr;
-		if (mVHACD && IsReady())
-		{
-			ret = mVHACD->GetConstraints(constraintCount);
-		}
-		return ret;
-	}
-
-	// Returns the number of collision pairs which need to be filtered.
-	// These are convex hulls that overlap in their rest pose but are not constrained
-	// to each other.  These will generate potentially bad collision contacts which 
-	// prevent the objects from coming to rest.
-	// Use these pairs to exclude those collisions
-	// If it returns a null pointer, then no collision pair filters are required (or constraints haven't been generated yet)
-	// collisionFilterPairCount will be assigned the number of pairs to filter.
-	// The return value will be pairs of integer; example 3,4 meaning body 3 and body 4 should not collide
-	virtual const uint32_t *GetCollisionFilterPairs(uint32_t &collisionPairFilterCount) const
-	{
-		const uint32_t *ret = nullptr;
-		collisionPairFilterCount = 0;
-		if (mVHACD && IsReady())
-		{
-			ret = mVHACD->GetCollisionFilterPairs(collisionPairFilterCount);
-		}
-
-
-		return ret;
-	}
-
 private:
 	double							*mVertices{ nullptr };
 	uint32_t						*mIndices{ nullptr };
