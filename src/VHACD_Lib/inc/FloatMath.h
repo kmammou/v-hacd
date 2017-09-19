@@ -244,15 +244,30 @@ bool  fm_computeBestFitPlane(uint32_t vcount,     // number of input data points
 	double plane[4],
 	double center[3]); 
 
+// Computes the average center of a set of data points
 bool  fm_computeCentroid(uint32_t vcount,     // number of input data points
 						 const float *points,     // starting address of points array.
-						 uint32_t vstride,    // stride between input points.
 						 float *center);
 
 bool  fm_computeCentroid(uint32_t vcount,     // number of input data points
 						 const double *points,     // starting address of points array.
-						 uint32_t vstride,    // stride between input points.
 						 double *center);
+
+// Compute centroid of a triangle mesh; takes area of each triangle into account
+// weighted average
+bool  fm_computeCentroid(uint32_t vcount,     // number of input data points
+						const float *points,     // starting address of points array.
+						uint32_t triangleCount,
+						const uint32_t *indices,
+						float *center);
+
+// Compute centroid of a triangle mesh; takes area of each triangle into account
+// weighted average
+bool  fm_computeCentroid(uint32_t vcount,     // number of input data points
+	const double *points,     // starting address of points array.
+	uint32_t triangleCount,
+	const uint32_t *indices,
+	double *center);
 
 
 float  fm_computeBestFitAABB(uint32_t vcount,const float *points,uint32_t pstride,float bmin[3],float bmax[3]); // returns the diagonal distance
@@ -341,8 +356,8 @@ PlaneTriResult fm_planeTriIntersection(const double plane[4],    // the plane eq
 									uint32_t &bcount); // the number of vertices in the 'back' triangle.
 
 
-void fm_intersectPointPlane(const float p1[3],const float p2[3],float *split,const float plane[4]);
-void fm_intersectPointPlane(const double p1[3],const double p2[3],double *split,const double plane[4]);
+bool fm_intersectPointPlane(const float p1[3],const float p2[3],float *split,const float plane[4]);
+bool fm_intersectPointPlane(const double p1[3],const double p2[3],double *split,const double plane[4]);
 
 PlaneTriResult fm_getSidePlane(const float p[3],const float plane[4],float epsilon);
 PlaneTriResult fm_getSidePlane(const double p[3],const double plane[4],double epsilon);
@@ -503,6 +518,7 @@ void fm_computeMeanNormals(uint32_t vcount,       // the number of vertices
 
 bool fm_isValidTriangle(const float *p1,const float *p2,const float *p3,float epsilon=0.00001f);
 bool fm_isValidTriangle(const double *p1,const double *p2,const double *p3,double epsilon=0.00001f);
+
 
 }; // end of namespace
 

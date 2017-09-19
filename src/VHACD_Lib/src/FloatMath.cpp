@@ -6,7 +6,6 @@
 #include <float.h>
 #include "FloatMath.h"
 #include <vector>
-#include <malloc.h>
 
 #define REAL float
 

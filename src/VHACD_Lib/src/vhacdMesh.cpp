@@ -19,6 +19,7 @@
 
 #include "btConvexHullComputer.h"
 #include "vhacdMesh.h"
+#include "FloatMath.h"
 #include <fstream>
 #include <iosfwd>
 #include <iostream>
@@ -40,6 +41,15 @@ Vec3<double>& Mesh::ComputeCenter(void)
 	const size_t nV = GetNPoints();
 	if (nV)
 	{
+		double center[3];
+		uint32_t pcount = uint32_t(GetNPoints());
+		const double *points = GetPoints();
+		uint32_t tcount = uint32_t(GetNTriangles());
+		const uint32_t *indices = (const uint32_t *)GetTriangles();
+		FLOAT_MATH::fm_computeCentroid(pcount, points, tcount, indices, center);
+		m_center.X() = center[0];
+		m_center.Y() = center[1];
+		m_center.Z() = center[2];
 		m_minBB = GetPoint(0);
 		m_maxBB = GetPoint(0);
 		for (size_t v = 1; v < nV; v++)
@@ -70,9 +80,6 @@ Vec3<double>& Mesh::ComputeCenter(void)
 				m_maxBB.Z() = p.Z();
 			}
 		}
-		m_center.X() = (m_maxBB.X() - m_minBB.X())*0.5 + m_minBB.X();
-		m_center.Y() = (m_maxBB.Y() - m_minBB.Y())*0.5 + m_minBB.Y();
-		m_center.Z() = (m_maxBB.Z() - m_minBB.Z())*0.5 + m_minBB.Z();
 	}
 	return m_center;
 }

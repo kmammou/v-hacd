@@ -7,8 +7,6 @@
 // a quaternion is a 'float *' to 4 floats representing a quaternion x,y,z,w
 //
 
-#pragma warning(disable:4996)
-
 namespace FLOAT_MATH
 {
 
@@ -1777,10 +1775,19 @@ IntersectResult fm_intersectLineSegments2dTime(const REAL *a1,const REAL *a2,con
 
 
 // assumes that the points are on opposite sides of the plane!
-void fm_intersectPointPlane(const REAL *p1,const REAL *p2,REAL *split,const REAL *plane)
+bool fm_intersectPointPlane(const REAL *p1,const REAL *p2,REAL *split,const REAL *plane)
 {
 
   REAL dp1 = fm_distToPlane(plane,p1);
+  REAL dp2 = fm_distToPlane(plane, p2);
+  if (dp1 <= 0 && dp2 <= 0)
+  {
+	  return false;
+  }
+  if (dp1 >= 0 && dp2 >= 0)
+  {
+	  return false;
+  }
 
   REAL dir[3];
 
@@ -1797,6 +1804,7 @@ void fm_intersectPointPlane(const REAL *p1,const REAL *p2,REAL *split,const REAL
   split[1] = (dir[1]*t)+p1[1];
   split[2] = (dir[2]*t)+p1[2];
 
+  return true;
 }
 
 PlaneTriResult fm_getSidePlane(const REAL *p,const REAL *plane,REAL epsilon)
@@ -3408,7 +3416,7 @@ bool  fm_pointInsidePolygon2d(uint32_t pcount,const REAL *points,uint32_t pstrid
 	REAL x2 = p2[xindex];
 	REAL y2 = p2[yindex];
 
-	if ( y1 < y && y2 >= y ||  y2 < y && y1 >= y )
+	if ( (y1 < y && y2 >= y) ||  (y2 < y && y1 >= y) )
 	{
 	  if (x1+(y-y1)/(y2-y1)*(x2-x1)<x)
 	  {
@@ -3835,6 +3843,15 @@ bool fm_samePlane(const REAL p1[4],const REAL p2[4],REAL normalEpsilon,REAL dEps
 {
   bool ret = false;
 
+#if 0
+  if (p1[0] == p2[0] &&
+	  p1[1] == p2[1] &&
+	  p1[2] == p2[2] &&
+	  p1[3] == p2[3])
+  {
+	  ret = true;
+  }
+#else
   REAL diff = (REAL) fabs(p1[3]-p2[3]);
   if ( diff < dEpsilon ) // if the plane -d  co-efficient is within our epsilon
   {
@@ -3847,7 +3864,7 @@ bool fm_samePlane(const REAL p1[4],const REAL p2[4],REAL normalEpsilon,REAL dEps
 	  ret = true; // then the plane equation is for practical purposes identical.
 	}
   }
-
+#endif
   return ret;
 }
 
@@ -5095,7 +5112,6 @@ void  fm_multiplyQuat(const REAL *left,const REAL *right,REAL *quat)
 
 bool  fm_computeCentroid(uint32_t vcount,     // number of input data points
 						 const REAL *points,     // starting address of points array.
-						 uint32_t vstride,    // stride between input points.
 						 REAL *center)
 
 {
@@ -5105,14 +5121,13 @@ bool  fm_computeCentroid(uint32_t vcount,     // number of input data points
 		center[0] = 0;
 		center[1] = 0;
 		center[2] = 0;
-		const char *scan = (const char *)points;
+		const REAL *p = points;
 		for (uint32_t i=0; i<vcount; i++)
 		{
-			const REAL *p = (const REAL *)scan;
 			center[0]+=p[0];
 			center[1]+=p[1];
 			center[2]+=p[2];
-			scan+=vstride;
+			p += 3;
 		}
 		REAL recip = 1.0f / (REAL)vcount;
 		center[0]*=recip;
@@ -5122,6 +5137,64 @@ bool  fm_computeCentroid(uint32_t vcount,     // number of input data points
 	}
 	return ret;
 }
+
+bool  fm_computeCentroid(uint32_t vcount,     // number of input data points
+	const REAL *points,     // starting address of points array.
+	uint32_t triCount,
+	const uint32_t *indices,
+	REAL *center)
+
+{
+	bool ret = false;
+	if (vcount)
+	{
+		center[0] = 0;
+		center[1] = 0;
+		center[2] = 0;
+
+		REAL numerator[3] = { 0, 0, 0 };
+		REAL denomintaor = 0;
+
+		for (uint32_t i = 0; i < triCount; i++)
+		{
+			uint32_t i1 = indices[i * 3 + 0];
+			uint32_t i2 = indices[i * 3 + 1];
+			uint32_t i3 = indices[i * 3 + 2];
+
+			const REAL *p1 = &points[i1 * 3];
+			const REAL *p2 = &points[i2 * 3];
+			const REAL *p3 = &points[i3 * 3];
+
+			// Compute the sum of the three positions
+			REAL sum[3];
+			sum[0] = p1[0] + p2[0] + p3[0];
+			sum[1] = p1[1] + p2[1] + p3[1];
+			sum[2] = p1[2] + p2[2] + p3[2];
+
+			// Compute the average of the three positions
+			sum[0] = sum[0] / 3;
+			sum[1] = sum[1] / 3;
+			sum[2] = sum[2] / 3;
+
+			// Compute the area of this triangle
+			REAL area = fm_computeArea(p1, p2, p3);
+
+			numerator[0]+= (sum[0] * area);
+			numerator[1]+= (sum[1] * area);
+			numerator[2]+= (sum[2] * area);
+
+			denomintaor += area;
+
+		}
+		REAL recip = 1 / denomintaor;
+		center[0] = numerator[0] * recip;
+		center[1] = numerator[1] * recip;
+		center[2] = numerator[2] * recip;
+		ret = true;
+	}
+	return ret;
+}
+
 
 #ifndef TEMPLATE_VEC3
 #define TEMPLATE_VEC3
