@@ -136,16 +136,16 @@ inline int32_t FindMinimumElement(const float* const d, float* const m, const in
 #ifndef OCL_SOURCE_FROM_FILE
 const char* oclProgramSource = "\
 __kernel void ComputePartialVolumes(__global short4 * voxels,                    \
-                                    const    int32_t      numVoxels,                 \
+                                    const    int      numVoxels,                 \
                                     const    float4   plane,                     \
                                     const    float4   minBB,                     \
                                     const    float4   scale,                     \
                                     __local  uint4 *  localPartialVolumes,       \
                                     __global uint4 *  partialVolumes)            \
 {                                                                                \
-    int32_t localId = get_local_id(0);                                               \
-    int32_t groupSize = get_local_size(0);                                           \
-    int32_t i0 = get_global_id(0) << 2;                                              \
+    int localId = get_local_id(0);                                               \
+    int groupSize = get_local_size(0);                                           \
+    int i0 = get_global_id(0) << 2;                                              \
     float4 voxel;                                                                \
     uint4  v;                                                                    \
     voxel = convert_float4(voxels[i0]);                                          \
@@ -158,7 +158,7 @@ __kernel void ComputePartialVolumes(__global short4 * voxels,                   
     v.s3 = (dot(plane, mad(scale, voxel, minBB)) >= 0.0f) * (i0 + 3 < numVoxels);\
     localPartialVolumes[localId] = v;                                            \
     barrier(CLK_LOCAL_MEM_FENCE);                                                \
-    for (int32_t i = groupSize >> 1; i > 0; i >>= 1)                                 \
+    for (int i = groupSize >> 1; i > 0; i >>= 1)                                 \
     {                                                                            \
         if (localId < i)                                                         \
         {                                                                        \
@@ -172,13 +172,13 @@ __kernel void ComputePartialVolumes(__global short4 * voxels,                   
     }                                                                            \
 }                                                                                \
 __kernel void ComputePartialSums(__global uint4 * data,                          \
-                                 const    int32_t     dataSize,                      \
+                                 const    int     dataSize,                      \
                                  __local  uint4 * partialSums)                   \
 {                                                                                \
-    int32_t globalId  = get_global_id(0);                                            \
-    int32_t localId   = get_local_id(0);                                             \
-    int32_t groupSize = get_local_size(0);                                           \
-    int32_t i;                                                                       \
+    int globalId  = get_global_id(0);                                            \
+    int localId   = get_local_id(0);                                             \
+    int groupSize = get_local_size(0);                                           \
+    int i;                                                                       \
     if (globalId < dataSize)                                                     \
     {                                                                            \
         partialSums[localId] = data[globalId];                                   \
@@ -765,7 +765,7 @@ void VHACD::ComputeBestClippingPlane(const PrimitiveSet* inputPSet, const double
             error |= clSetKernelArg(m_oclKernelComputeSum[i], 2, sizeof(uint32_t) * 4 * m_oclWorkGroupSize, NULL);
             if (error != CL_SUCCESS) {
                 if (params.m_logger) {
-                    params.m_logger->Log("Couldn't kernel atguments \n");
+                    params.m_logger->Log("Couldn't kernel arguments \n");
                 }
                 SetCancel(true);
             }
