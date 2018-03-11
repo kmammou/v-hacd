@@ -10,7 +10,7 @@ def cmake(platform_dir, src_dir, arg):
     os.chdir(platform_dir)				# go to platform directory
     cmd = "cmake " + arg + " ../" + src_dir
     print("cmd")
-    subprocess.call(cmd)						# run cmake
+    subprocess.call(cmd, shell=True)						# run cmake
 
 def clean(platform_dir):
     if os.path.exists(platform_dir):
