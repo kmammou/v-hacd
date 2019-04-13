@@ -31,6 +31,23 @@ A second approach consists in computing an exact convex decomposition of a surfa
 1. Modify the options as desired and select "OK."
 1. Note that the processing may take some time.  Increasing voxel resolution will particularly increase runtime.
 
+# Parameters 
+| Parameter name | Description | Default value | Range |
+| ------------- | ------------- | ------------- | ---- |
+| resolution | maximum number of voxels generated during the voxelization stage	| 100,000 | 10,000-64,000,000 |
+| depth |	maximum number of clipping stages. During each split stage, all the model parts (with a concavity higher than the user defined threshold) are clipped according the "best" clipping plane | 20 | 1-32 |
+| concavity |	maximum concavity |	0.0025 | 0.0-1.0 |
+| planeDownsampling |	controls the granularity of the search for the "best" clipping plane | 4 | 1-16 |
+| convexhullDownsampling | controls the precision of the convex-hull generation process during the clipping plane selection stage | 4 | 1-16 |
+| alpha | controls the bias toward clipping along symmetry planes | 0.05 | 0.0-1.0 |
+| beta | controls the bias toward clipping along revolution axes | 0.05 | 0.0-1.0 |
+| gamma |	maximum allowed concavity during the merge stage | 0.00125 | 0.0-1.0 |
+| pca |	enable/disable normalizing the mesh before applying the convex decomposition | 0 | 0-1 |
+| mode | 0: voxel-based approximate convex decomposition, 1: tetrahedron-based approximate convex decomposition | 0 | 0-1 |
+| maxNumVerticesPerCH |	controls the maximum number of triangles per convex-hull | 64 | 4-1024 |
+| minVolumePerCH | controls the adaptive sampling of the generated convex-hulls | 0.0001 | 0.0-0.01 |
+
+
 # More approximate convex decomposition results
 ![V-HACD Results (1/4)](https://raw.githubusercontent.com/kmammou/v-hacd/master/doc/snapshots_1.png)
 ![V-HACD Results (2/4)](https://raw.githubusercontent.com/kmammou/v-hacd/master/doc/snapshots_2.png)
