@@ -14,6 +14,13 @@ A second approach consists in computing an exact convex decomposition of a surfa
 
 # Installing the Package
 
+## Blender 2.8x
+
+A 2.8x port of the blender addon tool can be found here: https://github.com/andyp123/blender_vhacd, please go there and follow the instructions provided in that repository. 
+The in-repo included 2.7x version of the tool will not function for Blender 2.8+.
+
+## Blender 2.7x
+
 1. Clone this Github repository
 1. You may either rebuild the binaries for your machine or use the provided binaries.  Here we will assume that you will use the provided binaries in the v-hacd/bin directory.
 1. Copy the Python script in v-hacd/add-ons/blender/object_vhacd.py to your Blender addons directory.  For Blender 2.78 this directory will be "Blender Foundation/Blender/2.78/scripts/addons/".  You're at the right place if you see other scripts prefixed with object\_.
