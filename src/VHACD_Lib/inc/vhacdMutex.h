@@ -71,7 +71,8 @@
 #include <pthread.h>
 #endif
 
-#if defined(__APPLE__)
+// PTHREAD_MUTEX_RECURSIVE_NP isn't available in musl
+#if defined(__APPLE__) || !defined(__GLIBC__)
 #define PTHREAD_MUTEX_RECURSIVE_NP PTHREAD_MUTEX_RECURSIVE
 #endif
 
