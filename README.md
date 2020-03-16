@@ -54,6 +54,25 @@ The in-repo included 2.7x version of the tool will not function for Blender 2.8+
 | maxNumVerticesPerCH |	controls the maximum number of triangles per convex-hull | 64 | 4-1024 |
 | minVolumePerCH | controls the adaptive sampling of the generated convex-hulls | 0.0001 | 0.0-0.01 |
 
+# Using V-HACD inside PyBullet
+
+[PyBullet](https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA) is an easy to use Python module for physics simulation for robotics, games, visual effects and machine learning, with a focus on sim-to-real transfer. From version 2.6.7, PyBullet includes V-HACD embedded:
+
+```
+pip3 install pybullet --upgrade --user
+
+#now in a script you can use
+
+import pybullet as p
+import pybullet_data as pd
+import os
+
+p.connect(p.DIRECT)
+name_in = os.path.join(pd.getDataPath(), "duck.obj")
+name_out = "duck_vhacd2.obj"
+name_log = "log.txt"
+p.vhacd(name_in, name_out, name_log, alpha=0.04,resolution=50000 )
+```
 
 # More approximate convex decomposition results
 ![V-HACD Results (1/4)](https://raw.githubusercontent.com/kmammou/v-hacd/master/doc/snapshots_1.png)
