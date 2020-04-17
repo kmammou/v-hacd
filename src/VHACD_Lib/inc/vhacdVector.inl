@@ -39,10 +39,11 @@ namespace VHACD
         return m_data[2];
     }
     template <typename T> 
-    inline  void Vec3<T>::Normalize()
+    inline  T Vec3<T>::Normalize()
     {
         T n = sqrt(m_data[0]*m_data[0]+m_data[1]*m_data[1]+m_data[2]*m_data[2]);
         if (n != 0.0) (*this) /= n;
+		return n;
     }
     template <typename T> 
     inline  T Vec3<T>::GetNorm() const 

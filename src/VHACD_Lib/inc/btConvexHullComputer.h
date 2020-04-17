@@ -26,6 +26,9 @@ private:
     btScalar compute(const void* coords, bool doubleCoords, int32_t stride, int32_t count, btScalar shrink, btScalar shrinkClamp);
 
 public:
+	btConvexHullComputer(void)
+	{
+	}
     class Edge {
     private:
         int32_t next;

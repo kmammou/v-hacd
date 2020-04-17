@@ -15,8 +15,11 @@
 #pragma once
 #ifndef VHACD_VOLUME_H
 #define VHACD_VOLUME_H
+
 #include "vhacdMesh.h"
 #include "vhacdVector.h"
+#include "../public/VHACD.h"
+
 #include <assert.h>
 
 #ifdef _MSC_VER
@@ -26,11 +29,14 @@
 
 namespace VHACD {
 
+class RaycastMesh;
+
 enum VOXEL_VALUE {
     PRIMITIVE_UNDEFINED = 0,
-    PRIMITIVE_OUTSIDE_SURFACE = 1,
-    PRIMITIVE_INSIDE_SURFACE = 2,
-    PRIMITIVE_ON_SURFACE = 3
+    PRIMITIVE_OUTSIDE_SURFACE_TOWALK = 1,
+    PRIMITIVE_OUTSIDE_SURFACE = 2,
+    PRIMITIVE_INSIDE_SURFACE = 3,
+    PRIMITIVE_ON_SURFACE = 4
 };
 
 struct Voxel {
@@ -39,7 +45,8 @@ public:
     short m_data;
 };
 
-class PrimitiveSet {
+class PrimitiveSet 
+{
 public:
     virtual ~PrimitiveSet(){};
     virtual PrimitiveSet* Create() const = 0;
@@ -61,12 +68,22 @@ public:
     virtual void ComputeConvexHull(Mesh& meshCH, const size_t sampling = 1) const = 0;
     virtual void ComputeBB() = 0;
     virtual void ComputePrincipalAxes() = 0;
-    virtual void AlignToPrincipalAxes() = 0;
-    virtual void RevertAlignToPrincipalAxes() = 0;
     virtual void Convert(Mesh& mesh, const VOXEL_VALUE value) const = 0;
     const Mesh& GetConvexHull() const { return m_convexHull; };
     Mesh& GetConvexHull() { return m_convexHull; };
+
+    bool isFirstIteration(void) const
+    {
+        return mIsFirstIteration;
+    }
+
+    void setIsFirstIteration(bool state)
+    {
+        mIsFirstIteration = state;
+    }
+
 private:
+    bool mIsFirstIteration{false};
     Mesh m_convexHull;
 };
 
@@ -91,24 +108,28 @@ public:
     const Vec3<double>& GetMinBB() const { return m_minBB; }
     const double& GetScale() const { return m_scale; }
     const double& GetUnitVolume() const { return m_unitVolume; }
+
     Vec3<double> GetPoint(Vec3<short> voxel) const
     {
         return Vec3<double>(voxel[0] * m_scale + m_minBB[0],
             voxel[1] * m_scale + m_minBB[1],
             voxel[2] * m_scale + m_minBB[2]);
     }
+
     Vec3<double> GetPoint(const Voxel& voxel) const
     {
         return Vec3<double>(voxel.m_coord[0] * m_scale + m_minBB[0],
             voxel.m_coord[1] * m_scale + m_minBB[1],
             voxel.m_coord[2] * m_scale + m_minBB[2]);
     }
+
     Vec3<double> GetPoint(Vec3<double> voxel) const
     {
         return Vec3<double>(voxel[0] * m_scale + m_minBB[0],
             voxel[1] * m_scale + m_minBB[1],
             voxel[2] * m_scale + m_minBB[2]);
     }
+
     void GetPoints(const Voxel& voxel, Vec3<double>* const pts) const;
     void ComputeConvexHull(Mesh& meshCH, const size_t sampling = 1) const;
     void Clip(const Plane& plane, PrimitiveSet* const positivePart, PrimitiveSet* const negativePart) const;
@@ -147,155 +168,103 @@ private:
     Vec3<double> m_barycenterPCA;
 };
 
-struct Tetrahedron {
-public:
-    Vec3<double> m_pts[4];
-    unsigned char m_data;
-};
-
 //!
-class TetrahedronSet : public PrimitiveSet {
-    friend class Volume;
-
-public:
-    //! Destructor.
-    ~TetrahedronSet(void);
-    //! Constructor.
-    TetrahedronSet();
-
-    const size_t GetNPrimitives() const { return m_tetrahedra.Size(); }
-    const size_t GetNPrimitivesOnSurf() const { return m_numTetrahedraOnSurface; }
-    const size_t GetNPrimitivesInsideSurf() const { return m_numTetrahedraInsideSurface; }
-    const Vec3<double>& GetMinBB() const { return m_minBB; }
-    const Vec3<double>& GetMaxBB() const { return m_maxBB; }
-    const Vec3<double>& GetBarycenter() const { return m_barycenter; }
-    const double GetEigenValue(AXIS axis) const { return m_D[axis][axis]; }
-    const double GetSacle() const { return m_scale; }
-    const double ComputeVolume() const;
-    const double ComputeMaxVolumeError() const;
-    void ComputeConvexHull(Mesh& meshCH, const size_t sampling = 1) const;
-    void ComputePrincipalAxes();
-    void AlignToPrincipalAxes();
-    void RevertAlignToPrincipalAxes();
-    void Clip(const Plane& plane, PrimitiveSet* const positivePart, PrimitiveSet* const negativePart) const;
-    void Intersect(const Plane& plane, SArray<Vec3<double> >* const positivePts,
-        SArray<Vec3<double> >* const negativePts, const size_t sampling) const;
-    void ComputeExteriorPoints(const Plane& plane, const Mesh& mesh,
-        SArray<Vec3<double> >* const exteriorPts) const;
-    void ComputeClippedVolumes(const Plane& plane, double& positiveVolume, double& negativeVolume) const;
-    void SelectOnSurface(PrimitiveSet* const onSurfP) const;
-    void ComputeBB();
-    void Convert(Mesh& mesh, const VOXEL_VALUE value) const;
-    inline bool Add(Tetrahedron& tetrahedron);
-    PrimitiveSet* Create() const
-    {
-        return new TetrahedronSet();
-    }
-    static const double EPS;
-
-private:
-    void AddClippedTetrahedra(const Vec3<double> (&pts)[10], const int32_t nPts);
-
-    size_t m_numTetrahedraOnSurface;
-    size_t m_numTetrahedraInsideSurface;
-    double m_scale;
-    Vec3<double> m_minBB;
-    Vec3<double> m_maxBB;
-    Vec3<double> m_barycenter;
-    SArray<Tetrahedron, 8> m_tetrahedra;
-    double m_Q[3][3];
-    double m_D[3][3];
-};
-
-//!
-class Volume {
+class Volume 
+{
 public:
     //! Destructor.
     ~Volume(void);
 
     //! Constructor.
-    Volume();
+    Volume(const IVHACD::Parameters& params);
 
     //! Voxelize
-    template <class T>
-    void Voxelize(const T* const points, const uint32_t stridePoints, const uint32_t nPoints,
-        const int32_t* const triangles, const uint32_t strideTriangles, const uint32_t nTriangles,
-        const size_t dim, const Vec3<double>& barycenter, const double (&rot)[3][3]);
+    void Voxelize(const double* const points, const uint32_t nPoints,
+        const int32_t* const triangles, const uint32_t nTriangles,
+        const size_t dim,FillMode fillMode,RaycastMesh *raycastMesh);
+
+	void SetVoxel(const size_t i, const size_t j, const size_t k,unsigned char value)
+	{
+		assert(i < m_dim[0] || i >= 0);
+		assert(j < m_dim[0] || j >= 0);
+		assert(k < m_dim[0] || k >= 0);
+        m_data[k + j * m_dim[2] + i * m_dim[1] * m_dim[2]] = value;
+	}
+
     unsigned char& GetVoxel(const size_t i, const size_t j, const size_t k)
     {
         assert(i < m_dim[0] || i >= 0);
         assert(j < m_dim[0] || j >= 0);
         assert(k < m_dim[0] || k >= 0);
-        return m_data[i + j * m_dim[0] + k * m_dim[0] * m_dim[1]];
+        return m_data[k + j * m_dim[2] + i * m_dim[1] * m_dim[2]];
     }
+
     const unsigned char& GetVoxel(const size_t i, const size_t j, const size_t k) const
     {
         assert(i < m_dim[0] || i >= 0);
         assert(j < m_dim[0] || j >= 0);
         assert(k < m_dim[0] || k >= 0);
-        return m_data[i + j * m_dim[0] + k * m_dim[0] * m_dim[1]];
+        return m_data[k + j * m_dim[2] + i * m_dim[1] * m_dim[2]];
     }
-    const size_t GetNPrimitivesOnSurf() const { return m_numVoxelsOnSurface; }
-    const size_t GetNPrimitivesInsideSurf() const { return m_numVoxelsInsideSurface; }
+
+    const size_t GetNPrimitivesOnSurf() const 
+	{ 
+		return m_numVoxelsOnSurface; 
+	}
+
+    const size_t GetNPrimitivesInsideSurf() const 
+	{ 
+		return m_numVoxelsInsideSurface; 
+	}
+
     void Convert(Mesh& mesh, const VOXEL_VALUE value) const;
     void Convert(VoxelSet& vset) const;
-    void Convert(TetrahedronSet& tset) const;
     void AlignToPrincipalAxes(double (&rot)[3][3]) const;
 
+    const IVHACD::Parameters& m_params;
+	Vec3<double> m_minBB;
+	Vec3<double> m_maxBB;
+	double m_scale;
+	size_t m_dim[3]; //>! dim
+	size_t m_numVoxelsOnSurface;
+	size_t m_numVoxelsInsideSurface;
+	size_t m_numVoxelsOutsideSurface;
+	unsigned char* m_data;
+
 private:
-    void FillOutsideSurface(const size_t i0, const size_t j0, const size_t k0, const size_t i1,
+    void MarkOutsideSurface(const size_t i0, const size_t j0, const size_t k0, const size_t i1,
         const size_t j1, const size_t k1);
+    void FillOutsideSurface();
+
     void FillInsideSurface();
-    template <class T>
-    void ComputeBB(const T* const points, const uint32_t stridePoints, const uint32_t nPoints,
-        const Vec3<double>& barycenter, const double (&rot)[3][3]);
+
+    void ComputeBB(const double* const points,const uint32_t nPoints);
+
     void Allocate();
     void Free();
 
-    Vec3<double> m_minBB;
-    Vec3<double> m_maxBB;
-    double m_scale;
-    size_t m_dim[3]; //>! dim
-    size_t m_numVoxelsOnSurface;
-    size_t m_numVoxelsInsideSurface;
-    size_t m_numVoxelsOutsideSurface;
-    unsigned char* m_data;
 };
+
+void raycastFill(Volume *v,RaycastMesh *raycastMesh);
+
 int32_t TriBoxOverlap(const Vec3<double>& boxcenter, const Vec3<double>& boxhalfsize, const Vec3<double>& triver0,
     const Vec3<double>& triver1, const Vec3<double>& triver2);
-template <class T>
-inline void ComputeAlignedPoint(const T* const points, const uint32_t idx, const Vec3<double>& barycenter,
-    const double (&rot)[3][3], Vec3<double>& pt){};
-template <>
-inline void ComputeAlignedPoint<float>(const float* const points, const uint32_t idx, const Vec3<double>& barycenter, const double (&rot)[3][3], Vec3<double>& pt)
+
+inline void ComputeAlignedPoint(const double* const points, const uint32_t idx,Vec3<double>& pt)
 {
-    double x = points[idx + 0] - barycenter[0];
-    double y = points[idx + 1] - barycenter[1];
-    double z = points[idx + 2] - barycenter[2];
-    pt[0] = rot[0][0] * x + rot[1][0] * y + rot[2][0] * z;
-    pt[1] = rot[0][1] * x + rot[1][1] * y + rot[2][1] * z;
-    pt[2] = rot[0][2] * x + rot[1][2] * y + rot[2][2] * z;
+	pt[0] = points[idx+0];
+	pt[1] = points[idx+1];
+	pt[2] = points[idx+2];
 }
-template <>
-inline void ComputeAlignedPoint<double>(const double* const points, const uint32_t idx, const Vec3<double>& barycenter, const double (&rot)[3][3], Vec3<double>& pt)
-{
-    double x = points[idx + 0] - barycenter[0];
-    double y = points[idx + 1] - barycenter[1];
-    double z = points[idx + 2] - barycenter[2];
-    pt[0] = rot[0][0] * x + rot[1][0] * y + rot[2][0] * z;
-    pt[1] = rot[0][1] * x + rot[1][1] * y + rot[2][1] * z;
-    pt[2] = rot[0][2] * x + rot[1][2] * y + rot[2][2] * z;
-}
-template <class T>
-void Volume::ComputeBB(const T* const points, const uint32_t stridePoints, const uint32_t nPoints,
-    const Vec3<double>& barycenter, const double (&rot)[3][3])
+
+inline void Volume::ComputeBB(const double* const points, const uint32_t nPoints)
 {
     Vec3<double> pt;
-    ComputeAlignedPoint(points, 0, barycenter, rot, pt);
+    ComputeAlignedPoint(points, 0, pt);
     m_maxBB = pt;
     m_minBB = pt;
     for (uint32_t v = 1; v < nPoints; ++v) {
-        ComputeAlignedPoint(points, v * stridePoints, barycenter, rot, pt);
+        ComputeAlignedPoint(points, v * 3, pt);
         for (int32_t i = 0; i < 3; ++i) {
             if (pt[i] < m_minBB[i])
                 m_minBB[i] = pt[i];
@@ -304,31 +273,37 @@ void Volume::ComputeBB(const T* const points, const uint32_t stridePoints, const
         }
     }
 }
-template <class T>
-void Volume::Voxelize(const T* const points, const uint32_t stridePoints, const uint32_t nPoints,
-    const int32_t* const triangles, const uint32_t strideTriangles, const uint32_t nTriangles,
-    const size_t dim, const Vec3<double>& barycenter, const double (&rot)[3][3])
+
+inline void Volume::Voxelize(const double* const points,const uint32_t nPoints,
+    const int32_t* const triangles,const uint32_t nTriangles,
+    const size_t dim,FillMode fillMode,RaycastMesh *raycastMesh)
 {
     if (nPoints == 0) {
         return;
     }
-    ComputeBB(points, stridePoints, nPoints, barycenter, rot);
+    ComputeBB(points, nPoints);
 
     double d[3] = { m_maxBB[0] - m_minBB[0], m_maxBB[1] - m_minBB[1], m_maxBB[2] - m_minBB[2] };
     double r;
-    if (d[0] > d[1] && d[0] > d[2]) {
+    // Equal comparison is important here to avoid taking the last branch when d[0] == d[1] with d[2] being the smallest dimension.
+    // That would lead to dimensions in i and j to be a lot bigger than expected and make the
+    // amount of voxels in the volume totally unmanageable.
+    if (d[0] >= d[1] && d[0] >= d[2]) 
+    {
         r = d[0];
         m_dim[0] = dim;
         m_dim[1] = 2 + static_cast<size_t>(dim * d[1] / d[0]);
         m_dim[2] = 2 + static_cast<size_t>(dim * d[2] / d[0]);
     }
-    else if (d[1] > d[0] && d[1] > d[2]) {
+    else if (d[1] >= d[0] && d[1] >= d[2]) 
+    {
         r = d[1];
         m_dim[1] = dim;
         m_dim[0] = 2 + static_cast<size_t>(dim * d[0] / d[1]);
         m_dim[2] = 2 + static_cast<size_t>(dim * d[2] / d[1]);
     }
-    else {
+    else 
+    {
         r = d[2];
         m_dim[2] = dim;
         m_dim[0] = 2 + static_cast<size_t>(dim * d[0] / d[2]);
@@ -350,12 +325,14 @@ void Volume::Voxelize(const T* const points, const uint32_t stridePoints, const 
     Vec3<double> boxcenter;
     Vec3<double> pt;
     const Vec3<double> boxhalfsize(0.5, 0.5, 0.5);
-    for (size_t t = 0, ti = 0; t < nTriangles; ++t, ti += strideTriangles) {
+    for (size_t t = 0, ti = 0; t < nTriangles; ++t, ti += 3) 
+	{
         Vec3<int32_t> tri(triangles[ti + 0],
             triangles[ti + 1],
             triangles[ti + 2]);
-        for (int32_t c = 0; c < 3; ++c) {
-            ComputeAlignedPoint(points, tri[c] * stridePoints, barycenter, rot, pt);
+        for (int32_t c = 0; c < 3; ++c) 
+		{
+            ComputeAlignedPoint(points, tri[c] * 3,pt);
             p[c][0] = (pt[0] - m_minBB[0]) * invScale;
             p[c][1] = (pt[1] - m_minBB[1]) * invScale;
             p[c][2] = (pt[2] - m_minBB[2]) * invScale;
@@ -364,12 +341,14 @@ void Volume::Voxelize(const T* const points, const uint32_t stridePoints, const 
             k = static_cast<size_t>(p[c][2] + 0.5);
             assert(i < m_dim[0] && i >= 0 && j < m_dim[1] && j >= 0 && k < m_dim[2] && k >= 0);
 
-            if (c == 0) {
+            if (c == 0) 
+			{
                 i0 = i1 = i;
                 j0 = j1 = j;
                 k0 = k1 = k;
             }
-            else {
+            else 
+			{
                 if (i < i0)
                     i0 = i;
                 if (j < j0)
@@ -396,15 +375,19 @@ void Volume::Voxelize(const T* const points, const uint32_t stridePoints, const 
             ++j1;
         if (k1 < m_dim[2])
             ++k1;
-        for (size_t i = i0; i < i1; ++i) {
+        for (size_t i = i0; i < i1; ++i) 
+		{
             boxcenter[0] = (double)i;
-            for (size_t j = j0; j < j1; ++j) {
+            for (size_t j = j0; j < j1; ++j) 
+			{
                 boxcenter[1] = (double)j;
-                for (size_t k = k0; k < k1; ++k) {
+                for (size_t k = k0; k < k1; ++k) 
+				{
                     boxcenter[2] = (double)k;
                     int32_t res = TriBoxOverlap(boxcenter, boxhalfsize, p[0], p[1], p[2]);
                     unsigned char& value = GetVoxel(i, j, k);
-                    if (res == 1 && value == PRIMITIVE_UNDEFINED) {
+                    if (res == 1 && value == PRIMITIVE_UNDEFINED) 
+					{
                         value = PRIMITIVE_ON_SURFACE;
                         ++m_numVoxelsOnSurface;
                     }
@@ -412,13 +395,41 @@ void Volume::Voxelize(const T* const points, const uint32_t stridePoints, const 
             }
         }
     }
-    FillOutsideSurface(0, 0, 0, m_dim[0], m_dim[1], 1);
-    FillOutsideSurface(0, 0, m_dim[2] - 1, m_dim[0], m_dim[1], m_dim[2]);
-    FillOutsideSurface(0, 0, 0, m_dim[0], 1, m_dim[2]);
-    FillOutsideSurface(0, m_dim[1] - 1, 0, m_dim[0], m_dim[1], m_dim[2]);
-    FillOutsideSurface(0, 0, 0, 1, m_dim[1], m_dim[2]);
-    FillOutsideSurface(m_dim[0] - 1, 0, 0, m_dim[0], m_dim[1], m_dim[2]);
-    FillInsideSurface();
+	if ( fillMode == FillMode::SURFACE_ONLY ) 
+	{
+		const size_t i0 = m_dim[0];
+		const size_t j0 = m_dim[1];
+		const size_t k0 = m_dim[2];
+		for (size_t i = 0; i < i0; ++i)
+		{
+			for (size_t j = 0; j < j0; ++j)
+			{
+				for (size_t k = 0; k < k0; ++k)
+				{
+					const unsigned char& voxel = GetVoxel(i, j, k);
+					if (voxel != PRIMITIVE_ON_SURFACE)
+					{
+						SetVoxel(i,j,k,PRIMITIVE_OUTSIDE_SURFACE);
+					}
+				}
+			}
+		}
+	}
+	else if ( fillMode == FillMode::FLOOD_FILL )
+	{
+        MarkOutsideSurface(0, 0, 0, m_dim[0], m_dim[1], 1);
+        MarkOutsideSurface(0, 0, m_dim[2] - 1, m_dim[0], m_dim[1], m_dim[2]);
+        MarkOutsideSurface(0, 0, 0, m_dim[0], 1, m_dim[2]);
+        MarkOutsideSurface(0, m_dim[1] - 1, 0, m_dim[0], m_dim[1], m_dim[2]);
+        MarkOutsideSurface(0, 0, 0, 1, m_dim[1], m_dim[2]);
+        MarkOutsideSurface(m_dim[0] - 1, 0, 0, m_dim[0], m_dim[1], m_dim[2]);
+        FillOutsideSurface();
+		FillInsideSurface();
+	}
+	else if ( fillMode == FillMode::RAYCAST_FILL )
+	{
+		raycastFill(this,raycastMesh);
+	}
 }
 }
 

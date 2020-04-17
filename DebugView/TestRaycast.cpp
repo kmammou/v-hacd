@@ -122,7 +122,8 @@ public:
 					floatToDoubleVert(point, to);
 					double hitLocation[3];
 					double hitDistance;
-					if (rm->raycast(from,to,from,hitLocation,&hitDistance))
+					double faceSign;
+					if (rm->raycast(from,to,hitDistance,faceSign,hitLocation))
 					{
 						float hit[3];
 						doubleToFloatVert(hitLocation, hit);

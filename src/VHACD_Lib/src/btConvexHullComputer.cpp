@@ -1759,10 +1759,13 @@ void btConvexHullInternal::merge(IntermediateHull& h0, IntermediateHull& h1)
     }
 }
 
-static bool pointCmp(const btConvexHullInternal::Point32& p, const btConvexHullInternal::Point32& q)
+struct pointCmp
 {
-    return (p.y < q.y) || ((p.y == q.y) && ((p.x < q.x) || ((p.x == q.x) && (p.z < q.z))));
-}
+    inline bool operator()(const btConvexHullInternal::Point32& p, const btConvexHullInternal::Point32& q) const
+    {
+        return (p.y < q.y) || ((p.y == q.y) && ((p.x < q.x) || ((p.x == q.x) && (p.z < q.z))));
+    }
+};
 
 void btConvexHullInternal::compute(const void* coords, bool doubleCoords, int32_t stride, int32_t count)
 {
@@ -1840,7 +1843,7 @@ void btConvexHullInternal::compute(const void* coords, bool doubleCoords, int32_
             points[i].index = i;
         }
     }
-    points.quickSort(pointCmp);
+    points.quickSort(pointCmp());
 
     vertexPool.reset();
     vertexPool.setArraySize(count);

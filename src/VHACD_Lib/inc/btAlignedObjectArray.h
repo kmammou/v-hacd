@@ -17,7 +17,7 @@ subject to the following restrictions:
 #define BT_OBJECT_ARRAY__
 
 #include "btAlignedAllocator.h"
-#include "btScalar.h" // has definitions like SIMD_FORCE_INLINE
+#include "btScalar.h" // has definitions like inline
 
 ///If the platform doesn't support placement new, you can disable BT_USE_PLACEMENT_NEW
 ///then the btAlignedObjectArray doesn't support objects with virtual methods, and non-trivial constructors/destructors
@@ -53,22 +53,22 @@ class btAlignedObjectArray {
 
 #ifdef BT_ALLOW_ARRAY_COPY_OPERATOR
 public:
-    SIMD_FORCE_INLINE btAlignedObjectArray<T>& operator=(const btAlignedObjectArray<T>& other)
+    inline btAlignedObjectArray<T>& operator=(const btAlignedObjectArray<T>& other)
     {
         copyFromArray(other);
         return *this;
     }
 #else //BT_ALLOW_ARRAY_COPY_OPERATOR
 private:
-    SIMD_FORCE_INLINE btAlignedObjectArray<T>& operator=(const btAlignedObjectArray<T>& other);
+    inline btAlignedObjectArray<T>& operator=(const btAlignedObjectArray<T>& other);
 #endif //BT_ALLOW_ARRAY_COPY_OPERATOR
 
 protected:
-    SIMD_FORCE_INLINE int32_t allocSize(int32_t size)
+    inline int32_t allocSize(int32_t size)
     {
         return (size ? size * 2 : 1);
     }
-    SIMD_FORCE_INLINE void copy(int32_t start, int32_t end, T* dest) const
+    inline void copy(int32_t start, int32_t end, T* dest) const
     {
         int32_t i;
         for (i = start; i < end; ++i)
@@ -79,7 +79,7 @@ protected:
 #endif //BT_USE_PLACEMENT_NEW
     }
 
-    SIMD_FORCE_INLINE void init()
+    inline void init()
     {
         //PCK: added this line
         m_ownsMemory = true;
@@ -87,7 +87,7 @@ protected:
         m_size = 0;
         m_capacity = 0;
     }
-    SIMD_FORCE_INLINE void destroy(int32_t first, int32_t last)
+    inline void destroy(int32_t first, int32_t last)
     {
         int32_t i;
         for (i = first; i < last; i++) {
@@ -95,14 +95,14 @@ protected:
         }
     }
 
-    SIMD_FORCE_INLINE void* allocate(int32_t size)
+    inline void* allocate(int32_t size)
     {
         if (size)
             return m_allocator.allocate(size);
         return 0;
     }
 
-    SIMD_FORCE_INLINE void deallocate()
+    inline void deallocate()
     {
         if (m_data) {
             //PCK: enclosed the deallocation in this block
@@ -135,33 +135,33 @@ public:
     }
 
     /// return the number of elements in the array
-    SIMD_FORCE_INLINE int32_t size() const
+    inline int32_t size() const
     {
         return m_size;
     }
 
-    SIMD_FORCE_INLINE const T& at(int32_t n) const
+    inline const T& at(int32_t n) const
     {
         btAssert(n >= 0);
         btAssert(n < size());
         return m_data[n];
     }
 
-    SIMD_FORCE_INLINE T& at(int32_t n)
+    inline T& at(int32_t n)
     {
         btAssert(n >= 0);
         btAssert(n < size());
         return m_data[n];
     }
 
-    SIMD_FORCE_INLINE const T& operator[](int32_t n) const
+    inline const T& operator[](int32_t n) const
     {
         btAssert(n >= 0);
         btAssert(n < size());
         return m_data[n];
     }
 
-    SIMD_FORCE_INLINE T& operator[](int32_t n)
+    inline T& operator[](int32_t n)
     {
         btAssert(n >= 0);
         btAssert(n < size());
@@ -169,7 +169,7 @@ public:
     }
 
     ///clear the array, deallocated memory. Generally it is better to use array.resize(0), to reduce performance overhead of run-time memory (de)allocations.
-    SIMD_FORCE_INLINE void clear()
+    inline void clear()
     {
         destroy(0, size());
 
@@ -178,7 +178,7 @@ public:
         init();
     }
 
-    SIMD_FORCE_INLINE void pop_back()
+    inline void pop_back()
     {
         btAssert(m_size > 0);
         m_size--;
@@ -187,7 +187,7 @@ public:
 
     ///resize changes the number of elements in the array. If the new size is larger, the new elements will be constructed using the optional second argument.
     ///when the new number of elements is smaller, the destructor will be called, but memory will not be freed, to reduce performance overhead of run-time memory (de)allocations.
-    SIMD_FORCE_INLINE void resize(int32_t newsize, const T& fillData = T())
+    inline void resize(int32_t newsize, const T& fillData = T())
     {
         int32_t curSize = size();
 
@@ -210,7 +210,7 @@ public:
         m_size = newsize;
     }
 
-    SIMD_FORCE_INLINE T& expandNonInitializing()
+    inline T& expandNonInitializing()
     {
         int32_t sz = size();
         if (sz == capacity()) {
@@ -221,7 +221,7 @@ public:
         return m_data[sz];
     }
 
-    SIMD_FORCE_INLINE T& expand(const T& fillValue = T())
+    inline T& expand(const T& fillValue = T())
     {
         int32_t sz = size();
         if (sz == capacity()) {
@@ -235,7 +235,7 @@ public:
         return m_data[sz];
     }
 
-    SIMD_FORCE_INLINE void push_back(const T& _Val)
+    inline void push_back(const T& _Val)
     {
         int32_t sz = size();
         if (sz == capacity()) {
@@ -252,12 +252,12 @@ public:
     }
 
     /// return the pre-allocated (reserved) elements, this is at least as large as the total number of elements,see size() and reserve()
-    SIMD_FORCE_INLINE int32_t capacity() const
+    inline int32_t capacity() const
     {
         return m_capacity;
     }
 
-    SIMD_FORCE_INLINE void reserve(int32_t _Count)
+    inline void reserve(int32_t _Count)
     { // determine new minimum length of allocated storage
         if (capacity() < _Count) { // not enough room, reallocate
             T* s = (T*)allocate(_Count);

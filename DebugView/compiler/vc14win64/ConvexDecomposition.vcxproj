@@ -129,16 +129,22 @@
 		</ClCompile>
 		<ClCompile Include="..\..\TestRaycast.cpp">
 		</ClCompile>
+		<ClCompile Include="..\..\VoxelizeMesh.cpp">
+		</ClCompile>
 		<ClCompile Include="..\..\wavefront.cpp">
 		</ClCompile>
 		<ClInclude Include="..\..\TestHACD.h">
 		</ClInclude>
 		<ClInclude Include="..\..\TestRaycast.h">
 		</ClInclude>
+		<ClInclude Include="..\..\VoxelizeMesh.h">
+		</ClInclude>
 		<ClInclude Include="..\..\wavefront.h">
 		</ClInclude>
 	</ItemGroup>
 	<ItemGroup>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\aabbtree.h">
+		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\btAlignedAllocator.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\btAlignedObjectArray.h">
@@ -152,6 +158,8 @@
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\btVector3.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\FloatMath.h">
+		</ClInclude>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\SimpleJobSystem.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdCircularList.h">
 		</ClInclude>
@@ -181,11 +189,15 @@
 		</ClInclude>
 	</ItemGroup>
 	<ItemGroup>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\aabbtree.cpp">
+		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\btAlignedAllocator.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\btConvexHullComputer.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\FloatMath.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\SimpleJobSystem.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD-ASYNC.cpp">
 		</ClCompile>

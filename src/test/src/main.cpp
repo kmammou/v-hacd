@@ -33,7 +33,6 @@
 #endif // _CRTDBG_MAP_ALLOC
 
 #include "VHACD.h"
-#include "oclHelper.h"
 
 using namespace VHACD;
 using namespace std;
@@ -95,8 +94,6 @@ struct Material {
     };
 };
 struct Parameters {
-    unsigned int m_oclPlatformID;
-    unsigned int m_oclDeviceID;
     string m_fileNameIn;
     string m_fileNameOut;
     string m_fileNameLog;
@@ -105,8 +102,6 @@ struct Parameters {
     Parameters(void)
     {
         m_run = true;
-        m_oclPlatformID = 0;
-        m_oclDeviceID = 0;
         m_fileNameIn = "";
         m_fileNameOut = "output.wrl";
         m_fileNameLog = "log.txt";
@@ -125,9 +120,6 @@ void ComputeRandomColor(Material& mat);
 void Usage(const Parameters& params);
 void ParseParameters(int argc, char* argv[], Parameters& params);
 
-#ifdef CL_VERSION_1_1
-bool InitOCL(const unsigned int oclPlatformID, const unsigned int oclDeviceID, OCLHelper& oclHelper, std::ostringstream& msg);
-#endif // CL_VERSION_1_1
 
 int main(int argc, char* argv[])
 {
@@ -146,28 +138,6 @@ int main(int argc, char* argv[])
         }
 
         std::ostringstream msg;
-#ifdef CL_VERSION_1_1
-        msg << "+ OpenCL (ON)" << std::endl;
-        OCLHelper oclHelper;
-        if (params.m_paramsVHACD.m_oclAcceleration) {
-            bool res = InitOCL(params.m_oclPlatformID,
-                params.m_oclDeviceID,
-                oclHelper,
-                msg);
-            if (!res) {
-                myLogger.Log(msg.str().c_str());
-                return -1;
-            }
-        }
-#else //CL_VERSION_1_1
-        msg << "+ OpenCL (OFF)" << std::endl;
-#endif //CL_VERSION_1_1
-
-#ifdef _OPENMP
-        msg << "+ OpenMP (ON)" << std::endl;
-#else
-        msg << "+ OpenMP (OFF)" << std::endl;
-#endif
         msg << "+ Parameters" << std::endl;
         msg << "\t input                                       " << params.m_fileNameIn << endl;
         msg << "\t resolution                                  " << params.m_paramsVHACD.m_resolution << endl;
@@ -177,14 +147,11 @@ int main(int argc, char* argv[])
         msg << "\t alpha                                       " << params.m_paramsVHACD.m_alpha << endl;
         msg << "\t beta                                        " << params.m_paramsVHACD.m_beta << endl;
         msg << "\t maxhulls                                    " << params.m_paramsVHACD.m_maxConvexHulls << endl;
-        msg << "\t pca                                         " << params.m_paramsVHACD.m_pca << endl;
-        msg << "\t mode                                        " << params.m_paramsVHACD.m_mode << endl;
         msg << "\t max. vertices per convex-hull               " << params.m_paramsVHACD.m_maxNumVerticesPerCH << endl;
         msg << "\t min. volume to add vertices to convex-hulls " << params.m_paramsVHACD.m_minVolumePerCH << endl;
         msg << "\t convex-hull approximation                   " << params.m_paramsVHACD.m_convexhullApproximation << endl;
-        msg << "\t OpenCL acceleration                         " << params.m_paramsVHACD.m_oclAcceleration << endl;
-        msg << "\t OpenCL platform ID                          " << params.m_oclPlatformID << endl;
-        msg << "\t OpenCL device ID                            " << params.m_oclDeviceID << endl;
+        msg << "\t project hull vertices                       " << params.m_paramsVHACD.m_projectHullVertices << endl;
+        msg << "\t async ACD                                   " << params.m_paramsVHACD.m_asyncACD << endl;
         msg << "\t output                                      " << params.m_fileNameOut << endl;
         msg << "\t log                                         " << params.m_fileNameLog << endl;
         msg << "+ Load mesh" << std::endl;
@@ -215,14 +182,6 @@ int main(int argc, char* argv[])
         // run V-HACD
         IVHACD* interfaceVHACD = CreateVHACD();
 
-#ifdef CL_VERSION_1_1
-        if (params.m_paramsVHACD.m_oclAcceleration) {
-            bool res = interfaceVHACD->OCLInit(oclHelper.GetDevice(), &myLogger);
-            if (!res) {
-                params.m_paramsVHACD.m_oclAcceleration = false;
-            }
-        }
-#endif //CL_VERSION_1_1
         bool res = interfaceVHACD->Compute(&points[0], (unsigned int)points.size() / 3,
             (const uint32_t *)&triangles[0], (unsigned int)triangles.size() / 3, params.m_paramsVHACD);
 
@@ -282,14 +241,6 @@ int main(int argc, char* argv[])
             myLogger.Log("Decomposition cancelled by user!\n");
         }
 
-#ifdef CL_VERSION_1_1
-        if (params.m_paramsVHACD.m_oclAcceleration) {
-            bool res = interfaceVHACD->OCLRelease(&myLogger);
-            if (!res) {
-                assert(-1);
-            }
-        }
-#endif //CL_VERSION_1_1
 
         interfaceVHACD->Clean();
         interfaceVHACD->Release();
@@ -318,15 +269,13 @@ void Usage(const Parameters& params)
     msg << "       --alpha                     Controls the bias toward clipping along symmetry planes (default=0.05, range=0.0-1.0)" << endl;
     msg << "       --beta                      Controls the bias toward clipping along revolution axes (default=0.05, range=0.0-1.0)" << endl;
     msg << "       --gamma                     Controls the maximum allowed concavity during the merge stage (default=0.00125, range=0.0-1.0)" << endl;
-    msg << "       --delta                     Controls the bias toward maximaxing local concavity (default=0.05, range=0.0-1.0)" << endl;
-    msg << "       --pca                       Enable/disable normalizing the mesh before applying the convex decomposition (default=0, range={0,1})" << endl;
-    msg << "       --mode                      0: voxel-based approximate convex decomposition, 1: tetrahedron-based approximate convex decomposition (default=0, range={0,1})" << endl;
+    msg << "       --delta                     Controls the bias toward maximizing local concavity (default=0.05, range=0.0-1.0)" << endl;
     msg << "       --maxNumVerticesPerCH       Controls the maximum number of triangles per convex-hull (default=64, range=4-1024)" << endl;
     msg << "       --minVolumePerCH            Controls the adaptive sampling of the generated convex-hulls (default=0.0001, range=0.0-0.01)" << endl;
     msg << "       --convexhullApproximation   Enable/disable approximation when computing convex-hulls (default=1, range={0,1})" << endl;
-    msg << "       --oclAcceleration           Enable/disable OpenCL acceleration (default=0, range={0,1})" << endl;
-    msg << "       --oclPlatformID             OpenCL platform id (default=0, range=0-# OCL platforms)" << endl;
-    msg << "       --oclDeviceID               OpenCL device id (default=0, range=0-# OCL devices)" << endl;
+    msg << "       --fillmode                  Set the voxel fillmode, valid options are: FLOOD_FILL, SURFACE_ONLY, RAYCAST_FILL" << endl;
+    msg << "       --projecthullvertices       Whether or not to project convex hull points onto the source mesh. (default=1, range={0,1})" << endl;
+    msg << "       --asyncacd                  Whether or not to perform the ACD operation in paralell. (default=1, range={0,1})" << endl;
     msg << "       --help                      Print usage" << endl
         << endl;
     msg << "Examples:" << endl;
@@ -380,14 +329,6 @@ void ParseParameters(int argc, char* argv[], Parameters& params)
             if (++i < argc)
                 params.m_paramsVHACD.m_maxConvexHulls = atoi(argv[i]);
         }
-        else if (!strcmp(argv[i], "--pca")) {
-            if (++i < argc)
-                params.m_paramsVHACD.m_pca = atoi(argv[i]);
-        }
-        else if (!strcmp(argv[i], "--mode")) {
-            if (++i < argc)
-                params.m_paramsVHACD.m_mode = atoi(argv[i]);
-        }
         else if (!strcmp(argv[i], "--maxNumVerticesPerCH")) {
             if (++i < argc)
                 params.m_paramsVHACD.m_maxNumVerticesPerCH = atoi(argv[i]);
@@ -396,21 +337,39 @@ void ParseParameters(int argc, char* argv[], Parameters& params)
             if (++i < argc)
                 params.m_paramsVHACD.m_minVolumePerCH = atof(argv[i]);
         }
+        else if (!strcmp(argv[i], "--fillmode")) {
+            if (++i < argc)
+            {
+                const char *fillMode = argv[i];
+                if ( strcmp(fillMode,"FLOOD_FILL") == 0 )
+                {
+                    params.m_paramsVHACD.m_fillMode = VHACD::FillMode::FLOOD_FILL;
+                }
+                else if (strcmp(fillMode, "SURFACE_ONLY") == 0)
+                {
+                    params.m_paramsVHACD.m_fillMode = VHACD::FillMode::SURFACE_ONLY;
+                }
+                else if (strcmp(fillMode, "RAYCAST_FILL") == 0)
+                {
+                    params.m_paramsVHACD.m_fillMode = VHACD::FillMode::SURFACE_ONLY;
+                }
+                else
+                {
+                    printf("Unknown fillmode: %s; must be one of the following FLOOD_FILL, SURFACE_ONLY, RAYCAST_FILL\n", fillMode);
+                }
+            }
+        }
         else if (!strcmp(argv[i], "--convexhullApproximation")) {
             if (++i < argc)
                 params.m_paramsVHACD.m_convexhullApproximation = atoi(argv[i]);
         }
-        else if (!strcmp(argv[i], "--oclAcceleration")) {
+        else if (!strcmp(argv[i], "--projecthullvertices")) {
             if (++i < argc)
-                params.m_paramsVHACD.m_oclAcceleration = atoi(argv[i]);
+                params.m_paramsVHACD.m_projectHullVertices = atoi(argv[i]) ? true : false;
         }
-        else if (!strcmp(argv[i], "--oclPlatformID")) {
+        else if (!strcmp(argv[i], "--asyncacd")) {
             if (++i < argc)
-                params.m_oclPlatformID = atoi(argv[i]);
-        }
-        else if (!strcmp(argv[i], "--oclDeviceID")) {
-            if (++i < argc)
-                params.m_oclDeviceID = atoi(argv[i]);
+                params.m_paramsVHACD.m_asyncACD = atoi(argv[i]) ? true : false;
         }
         else if (!strcmp(argv[i], "--help")) {
             params.m_run = false;
@@ -421,43 +380,6 @@ void ParseParameters(int argc, char* argv[], Parameters& params)
     params.m_paramsVHACD.m_convexhullDownsampling = (params.m_paramsVHACD.m_convexhullDownsampling < 1) ? 1 : params.m_paramsVHACD.m_convexhullDownsampling;
 }
 
-#ifdef CL_VERSION_1_1
-bool InitOCL(const unsigned int oclPlatformID, const unsigned int oclDeviceID, OCLHelper& oclHelper, std::ostringstream& msg)
-{
-
-    bool res = true;
-    vector<string> info;
-    res = oclHelper.GetPlatformsInfo(info, "\t\t");
-    if (!res)
-        return res;
-
-    const size_t numPlatforms = info.size();
-    msg << "\t Number of OpenCL platforms: " << numPlatforms << endl;
-    for (size_t i = 0; i < numPlatforms; ++i) {
-        msg << "\t OpenCL platform [" << i << "]" << endl;
-        msg << info[i];
-    }
-    msg << "\t Using OpenCL platform [" << oclPlatformID << "]" << endl;
-    res = oclHelper.InitPlatform(oclPlatformID);
-    if (!res)
-        return res;
-
-    info.clear();
-    res = oclHelper.GetDevicesInfo(info, "\t\t");
-    if (!res)
-        return res;
-
-    const size_t numDevices = info.size();
-    msg << "\t Number of OpenCL devices: " << numDevices << endl;
-    for (size_t i = 0; i < numDevices; ++i) {
-        msg << "\t OpenCL device [" << i << "]" << endl;
-        msg << info[i];
-    }
-    msg << "\t Using OpenCL device [" << oclDeviceID << "]" << endl;
-    res = oclHelper.InitDevice(oclDeviceID);
-    return res;
-}
-#endif // CL_VERSION_1_1
 void GetFileExtension(const string& fileName, string& fileExtension)
 {
     size_t lastDotPosition = fileName.find_last_of(".");

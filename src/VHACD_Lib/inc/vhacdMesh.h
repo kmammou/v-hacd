@@ -64,10 +64,35 @@ struct Material {
 //! Triangular mesh data structure
 class Mesh {
 public:
-    void AddPoint(const Vec3<double>& pt) { m_points.PushBack(pt); };
-    void SetPoint(size_t index, const Vec3<double>& pt) { m_points[index] = pt; };
-    const Vec3<double>& GetPoint(size_t index) const { return m_points[index]; };
-    Vec3<double>& GetPoint(size_t index) { return m_points[index]; };
+    void AddPoint(const Vec3<double>& pt) 
+	{ 
+		m_points.PushBack(pt); 
+	};
+
+    void SetPoint(size_t index, const Vec3<double>& pt) 
+	{ 
+		m_points[index] = pt; 
+	};
+
+    const Vec3<double>& GetPoint(size_t index) const 
+	{ 
+		return m_points[index]; 
+	};
+
+    Vec3<double>& GetPoint(size_t index) 
+	{ 
+		return m_points[index]; 
+	};
+
+	Vec3<float> GetPointFloat(size_t index) 
+	{
+		Vec3<double> &p = m_points[index];
+	    Vec3<float> ret;
+		ret[0] = float(p[0]);
+		ret[1] = float(p[1]);
+		ret[2] = float(p[2]);
+		return ret;
+	};
     size_t GetNPoints() const { return m_points.Size(); };
     double* GetPoints() { return (double*)m_points.Data(); } // ugly
     const double* const GetPoints() const { return (double*)m_points.Data(); } // ugly

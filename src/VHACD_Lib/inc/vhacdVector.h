@@ -31,7 +31,7 @@ public:
     const T& X() const;
     const T& Y() const;
     const T& Z() const;
-    void Normalize();
+    T Normalize();
     T GetNorm() const;
     void operator=(const Vec3& rhs);
     void operator+=(const Vec3& rhs);

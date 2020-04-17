@@ -41,6 +41,9 @@
 		<ClCompile Include="..\..\TestRaycast.cpp">
 			<Filter>ConvexDecomposition</Filter>
 		</ClCompile>
+		<ClCompile Include="..\..\VoxelizeMesh.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
 		<ClCompile Include="..\..\wavefront.cpp">
 			<Filter>ConvexDecomposition</Filter>
 		</ClCompile>
@@ -48,6 +51,9 @@
 			<Filter>ConvexDecomposition</Filter>
 		</ClInclude>
 		<ClInclude Include="..\..\TestRaycast.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\VoxelizeMesh.h">
 			<Filter>ConvexDecomposition</Filter>
 		</ClInclude>
 		<ClInclude Include="..\..\wavefront.h">
@@ -63,6 +69,9 @@
 		</Filter>
 	</ItemGroup>
 	<ItemGroup>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\aabbtree.h">
+			<Filter>VHADC_lib\inc</Filter>
+		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\btAlignedAllocator.h">
 			<Filter>VHADC_lib\inc</Filter>
 		</ClInclude>
@@ -82,6 +91,9 @@
 			<Filter>VHADC_lib\inc</Filter>
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\FloatMath.h">
+			<Filter>VHADC_lib\inc</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\SimpleJobSystem.h">
 			<Filter>VHADC_lib\inc</Filter>
 		</ClInclude>
 		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdCircularList.h">
@@ -132,6 +144,9 @@
 		</Filter>
 	</ItemGroup>
 	<ItemGroup>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\aabbtree.cpp">
+			<Filter>VHADC_lib\src</Filter>
+		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\btAlignedAllocator.cpp">
 			<Filter>VHADC_lib\src</Filter>
 		</ClCompile>
@@ -139,6 +154,9 @@
 			<Filter>VHADC_lib\src</Filter>
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\FloatMath.cpp">
+			<Filter>VHADC_lib\src</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\SimpleJobSystem.cpp">
 			<Filter>VHADC_lib\src</Filter>
 		</ClCompile>
 		<ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD-ASYNC.cpp">

@@ -18,25 +18,25 @@ subject to the following restrictions:
 #include "btScalar.h"
 
 template <class T>
-SIMD_FORCE_INLINE const T& btMin(const T& a, const T& b)
+inline const T& btMin(const T& a, const T& b)
 {
     return a < b ? a : b;
 }
 
 template <class T>
-SIMD_FORCE_INLINE const T& btMax(const T& a, const T& b)
+inline const T& btMax(const T& a, const T& b)
 {
     return a > b ? a : b;
 }
 
 template <class T>
-SIMD_FORCE_INLINE const T& btClamped(const T& a, const T& lb, const T& ub)
+inline const T& btClamped(const T& a, const T& lb, const T& ub)
 {
     return a < lb ? lb : (ub < a ? ub : a);
 }
 
 template <class T>
-SIMD_FORCE_INLINE void btSetMin(T& a, const T& b)
+inline void btSetMin(T& a, const T& b)
 {
     if (b < a) {
         a = b;
@@ -44,7 +44,7 @@ SIMD_FORCE_INLINE void btSetMin(T& a, const T& b)
 }
 
 template <class T>
-SIMD_FORCE_INLINE void btSetMax(T& a, const T& b)
+inline void btSetMax(T& a, const T& b)
 {
     if (a < b) {
         a = b;
@@ -52,7 +52,7 @@ SIMD_FORCE_INLINE void btSetMax(T& a, const T& b)
 }
 
 template <class T>
-SIMD_FORCE_INLINE void btClamp(T& a, const T& lb, const T& ub)
+inline void btClamp(T& a, const T& lb, const T& ub)
 {
     if (a < lb) {
         a = lb;
