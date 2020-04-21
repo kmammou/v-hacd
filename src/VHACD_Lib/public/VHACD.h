@@ -42,8 +42,13 @@
 // * However this feature was not actually being used, so it was removed to improve performance
 // * during the voxelization stage.
 // *
-// * Some of the voxelization steps were made to run in parallel to improve overall performance as well.
-// * This change was made by engineers at Epic.
+// * Optimizations made to the voxelization step by Danny Couture at Epic include:
+// * -Fix a comparison bug in VHACD Volume::Voxelize causing the number of
+// *   voxels to explode when x == y and z < x.
+// * - Rewrite voxel flood fill algorithm toward cache friendliness and get
+// *      rid of extra data structure causing high memory usage on large voxels.
+// * - Make the data ordering in vhacdVolume GetVoxel more cache friendly
+// *   toward loops iterating over(i, j, k) in that order.
 // *
 // * During the voxelization phase, the original implementation would attempt to voxelize the input mesh
 // * multiple times until it hit some target number of voxels. This step was not needed, as the number of
