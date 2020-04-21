@@ -640,7 +640,7 @@ void VHACD::ComputeACD(const Parameters& params)
 	depth++;
     // Create a 16 thread job system, will divvy up the ACD work across 16 different threads in hopes
     // of achieving maximum parallelism
-    simplejobsystem::SimpleJobSystem *sjs = params.m_asyncACD ? simplejobsystem::SimpleJobSystem::create(16) : nullptr;
+    simplejobsystem::SimpleJobSystem *sjs = params.m_asyncACD ? simplejobsystem::SimpleJobSystem::create(16,params.m_taskRunner) : nullptr;
 
     while (sub++ < depth && inputParts.Size() > 0) 
 	{

@@ -6,6 +6,7 @@
 // It's just a very simple way to distribute a meaningful amount of
 // 'work' across <n> number of threads.
 #include <stdint.h>
+#include "VHACD.h"
 
 #ifdef _MSC_VER
 #    define SJS_ABI __cdecl
@@ -25,7 +26,7 @@ class SimpleJobSystem
 public:
 	// Create in instance of the SimpleJobSystem with the number of threads specified.
 	// More threads than available cores is not particularly beneficial.
-	static SimpleJobSystem * create(uint32_t maxThreads);
+	static SimpleJobSystem * create(uint32_t maxThreads,VHACD::IVHACD::IUserTaskRunner *taskRunner);
 
 	// Add a job to the queue of jobs to be performed, does not actually start the job yet.
 	virtual void addJob(void *userPtr,SJS_jobCallback callback) = 0;

@@ -47,7 +47,7 @@
 			<FloatingPointModel>Fast</FloatingPointModel>
 			<AdditionalOptions>/W4</AdditionalOptions>
 			<Optimization>Disabled</Optimization>
-			<AdditionalIncludeDirectories>./../../../src/VHACD_Lib/public;./../../../src/VHACD_Lib/inc;./../../NvRenderDebug;./../../PhysXFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>./../../../src/VHACD_Lib/public;./../../../src/VHACD_Lib/inc;./../../NvRenderDebug;./../../SkeletonRig;./../../PhysicsDOM;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE=1;_CRT_SECURE_NO_DEPRECATE;OPEN_SOURCE=1;_DEBUG;_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<WarningLevel>Level3</WarningLevel>
 			<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -85,7 +85,7 @@
 			<FloatingPointModel>Fast</FloatingPointModel>
 			<AdditionalOptions>/W4</AdditionalOptions>
 			<Optimization>MaxSpeed</Optimization>
-			<AdditionalIncludeDirectories>./../../../src/VHACD_Lib/public;./../../../src/VHACD_Lib/inc;./../../NvRenderDebug;./../../PhysXFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>./../../../src/VHACD_Lib/public;./../../../src/VHACD_Lib/inc;./../../NvRenderDebug;./../../SkeletonRig;./../../PhysicsDOM;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE=1;_CRT_SECURE_NO_DEPRECATE;OPEN_SOURCE=1;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<WarningLevel>Level3</WarningLevel>
 			<RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -117,13 +117,47 @@
 		</ClCompile>
 	</ItemGroup>
 	<ItemGroup>
-		<ClInclude Include="..\..\PhysXFramework\NvPhysXFramework.h">
+		<ClInclude Include="..\..\SkeletonRig\SkeletonRig.h">
 		</ClInclude>
-		<ClCompile Include="..\..\PhysXFramework\NvPhysXFrameworkBinding.cpp">
+		<ClCompile Include="..\..\SkeletonRig\SkeletonRigBinding.cpp">
 		</ClCompile>
 	</ItemGroup>
 	<ItemGroup>
+		<ClInclude Include="..\..\PhysicsDOM\NvPhysicsDOM.h">
+		</ClInclude>
+		<ClInclude Include="..\..\PhysicsDOM\PhysicsDOM.h">
+		</ClInclude>
+		<ClInclude Include="..\..\PhysicsDOM\PhysicsDOMDef.h">
+		</ClInclude>
+		<ClInclude Include="..\..\PhysicsDOM\PhysicsDOMHelper.h">
+		</ClInclude>
+		<ClInclude Include="..\..\PhysicsDOM\PhysicsDOMInterface.h">
+		</ClInclude>
+		<ClCompile Include="..\..\PhysicsDOM\NvPhysicsDOMBinding.cpp">
+		</ClCompile>
+	</ItemGroup>
+	<ItemGroup>
+		<ClCompile Include="..\..\DisplayURDF.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\FastXml.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\ImportDAE.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\ImportSTL.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\ImportURDF.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\InParser.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\InspectXml.cpp">
+		</ClCompile>
 		<ClCompile Include="..\..\main.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\MeshBuilder.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\MeshFactory.cpp">
+		</ClCompile>
+		<ClCompile Include="..\..\StringHelper.cpp">
 		</ClCompile>
 		<ClCompile Include="..\..\TestHACD.cpp">
 		</ClCompile>
@@ -133,9 +167,31 @@
 		</ClCompile>
 		<ClCompile Include="..\..\wavefront.cpp">
 		</ClCompile>
+		<ClInclude Include="..\..\DisplayURDF.h">
+		</ClInclude>
+		<ClInclude Include="..\..\FastXml.h">
+		</ClInclude>
+		<ClInclude Include="..\..\ImportDAE.h">
+		</ClInclude>
+		<ClInclude Include="..\..\ImportSTL.h">
+		</ClInclude>
+		<ClInclude Include="..\..\ImportURDF.h">
+		</ClInclude>
+		<ClInclude Include="..\..\InParser.h">
+		</ClInclude>
+		<ClInclude Include="..\..\InspectXml.h">
+		</ClInclude>
+		<ClInclude Include="..\..\MeshBuilder.h">
+		</ClInclude>
+		<ClInclude Include="..\..\MeshFactory.h">
+		</ClInclude>
+		<ClInclude Include="..\..\StringHelper.h">
+		</ClInclude>
 		<ClInclude Include="..\..\TestHACD.h">
 		</ClInclude>
 		<ClInclude Include="..\..\TestRaycast.h">
+		</ClInclude>
+		<ClInclude Include="..\..\URDF_DOM.h">
 		</ClInclude>
 		<ClInclude Include="..\..\VoxelizeMesh.h">
 		</ClInclude>

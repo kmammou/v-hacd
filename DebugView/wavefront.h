@@ -49,13 +49,19 @@ public:
 
 	uint32_t loadObj(const uint8_t *data,uint32_t dlen);
 	uint32_t loadOFF(const uint8_t *data, uint32_t dlen);
+	uint32_t loadSTL(const uint8_t *data, uint32_t dlen);
+	uint32_t loadDAE(const uint8_t *data, uint32_t dlen);
+
 	uint32_t loadObj(const char *fname); // load a wavefront obj returns number of triangles that were loaded.  Data is persists until the class is destructed.
 	uint32_t loadOFF(const char *fname);
+
+	// save the mesh as C++ code; just vertices and indices; really simple
+	void saveCPP(const char *fname);
 
 	void releaseMesh(void);
 
 
-	void deepCopyScale(WavefrontObj &dest, float scaleFactor,bool centerMesh);
+	void deepCopyScale(WavefrontObj &dest, float scaleFactor,bool centerMesh,uint32_t tessellateInputMesh);
 
 	bool saveObj(const char *fname);
 

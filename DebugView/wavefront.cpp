@@ -8,6 +8,10 @@
 #include <vector>
 
 #include "wavefront.h"
+#include "FloatMath.h"
+#include "ImportSTL.h"
+#include "ImportDAE.h"
+#include "InParser.h"
 
 /*!
 **
@@ -57,462 +61,11 @@ namespace WAVEFRONT
 {
 
 /*******************************************************************/
-/******************** InParser.h  ********************************/
-/*******************************************************************/
-class InPlaceParserInterface
-{
-public:
-	virtual uint32_t ParseLine(uint32_t lineno,uint32_t argc,const char **argv) =0;  // return TRUE to continue parsing, return FALSE to abort parsing process
-};
-
-enum SeparatorType
-{
-	ST_DATA,        // is data
-	ST_HARD,        // is a hard separator
-	ST_SOFT,        // is a soft separator
-	ST_EOS          // is a comment symbol, and everything past this character should be ignored
-};
-
-class InPlaceParser
-{
-public:
-	InPlaceParser(void)
-	{
-		Init();
-	}
-
-	InPlaceParser(char *data,uint32_t len)
-	{
-		Init();
-		SetSourceData(data,len);
-	}
-
-	InPlaceParser(const char *fname)
-	{
-		Init();
-		SetFile(fname);
-	}
-
-	~InPlaceParser(void);
-
-	void Init(void)
-	{
-		mQuoteChar = 34;
-		mData = 0;
-		mLen  = 0;
-		mMyAlloc = false;
-		for (uint32_t i=0; i<256; i++)
-		{
-			mHard[i] = ST_DATA;
-			mHardString[i*2] = (char)i;
-			mHardString[i*2+1] = 0;
-		}
-		mHard[0]  = ST_EOS;
-		mHard[32] = ST_SOFT;
-		mHard[9]  = ST_SOFT;
-		mHard[13] = ST_SOFT;
-		mHard[10] = ST_SOFT;
-	}
-
-	void SetFile(const char *fname); // use this file as source data to parse.
-
-	void SetSourceData(char *data,uint32_t len)
-	{
-		mData = data;
-		mLen  = len;
-		mMyAlloc = false;
-	};
-
-	uint32_t  Parse(InPlaceParserInterface *callback); // returns true if entire file was parsed, false if it aborted for some reason
-
-	uint32_t ProcessLine(uint32_t lineno,char *line,InPlaceParserInterface *callback);
-
-	const char ** GetArglist(char *source,uint32_t &count); // convert source string into an arg list, this is a destructive parse.
-
-	void SetHardSeparator(char c) // add a hard separator
-	{
-		mHard[c] = ST_HARD;
-	}
-
-	void SetHard(char c) // add a hard separator
-	{
-		mHard[c] = ST_HARD;
-	}
-
-
-	void SetCommentSymbol(char c) // comment character, treated as 'end of string'
-	{
-		mHard[c] = ST_EOS;
-	}
-
-	void ClearHardSeparator(char c)
-	{
-		mHard[c] = ST_DATA;
-	}
-
-
-	void DefaultSymbols(void); // set up default symbols for hard seperator and comment symbol of the '#' character.
-
-	bool EOS(char c)
-	{
-		if ( mHard[c] == ST_EOS )
-		{
-			return true;
-		}
-		return false;
-	}
-
-	void SetQuoteChar(char c)
-	{
-		mQuoteChar = c;
-	}
-
-private:
-
-
-	inline char * AddHard(uint32_t &argc,const char **argv,char *foo);
-	inline bool   IsHard(char c);
-	inline char * SkipSpaces(char *foo);
-	inline bool   IsWhiteSpace(char c);
-	inline bool   IsNonSeparator(char c); // non seperator,neither hard nor soft
-
-	bool   mMyAlloc; // whether or not *I* allocated the buffer and am responsible for deleting it.
-	char  *mData;  // ascii data to parse.
-	uint32_t    mLen;   // length of data
-	SeparatorType  mHard[256];
-	char   mHardString[256*2];
-	char           mQuoteChar;
-};
-
-/*******************************************************************/
-/******************** InParser.cpp  ********************************/
-/*******************************************************************/
-void InPlaceParser::SetFile(const char *fname)
-{
-	if ( mMyAlloc )
-	{
-		free(mData);
-	}
-	mData = 0;
-	mLen  = 0;
-	mMyAlloc = false;
-
-	FILE *fph = fopen(fname,"rb");
-	if ( fph )
-	{
-		fseek(fph,0L,SEEK_END);
-		mLen = ftell(fph);
-		fseek(fph,0L,SEEK_SET);
-		if ( mLen )
-		{
-			mData = (char *) malloc(sizeof(char)*(mLen+1));
-			size_t ok = fread(mData, mLen, 1, fph);
-			if ( !ok )
-			{
-				free(mData);
-				mData = 0;
-			}
-			else
-			{
-				mData[mLen] = 0; // zero byte terminate end of file marker.
-				mMyAlloc = true;
-			}
-		}
-		fclose(fph);
-	}
-
-}
-
-InPlaceParser::~InPlaceParser(void)
-{
-	if ( mMyAlloc )
-	{
-		free(mData);
-	}
-}
-
-#define MAXARGS 512
-
-bool InPlaceParser::IsHard(char c)
-{
-	return mHard[c] == ST_HARD;
-}
-
-char * InPlaceParser::AddHard(uint32_t &argc,const char **argv,char *foo)
-{
-	while ( IsHard(*foo) )
-	{
-		const char *hard = &mHardString[*foo*2];
-		if ( argc < MAXARGS )
-		{
-			argv[argc++] = hard;
-		}
-		foo++;
-	}
-	return foo;
-}
-
-bool   InPlaceParser::IsWhiteSpace(char c)
-{
-	return mHard[c] == ST_SOFT;
-}
-
-char * InPlaceParser::SkipSpaces(char *foo)
-{
-	while ( !EOS(*foo) && IsWhiteSpace(*foo) ) foo++;
-	return foo;
-}
-
-bool InPlaceParser::IsNonSeparator(char c)
-{
-	if ( !IsHard(c) && !IsWhiteSpace(c) && c != 0 ) return true;
-	return false;
-}
-
-
-uint32_t InPlaceParser::ProcessLine(uint32_t lineno,char *line,InPlaceParserInterface *callback)
-{
-	uint32_t ret = 0;
-
-	const char *argv[MAXARGS];
-	uint32_t argc = 0;
-
-	char *foo = line;
-
-	while ( !EOS(*foo) && argc < MAXARGS )
-	{
-
-		foo = SkipSpaces(foo); // skip any leading spaces
-
-		if ( EOS(*foo) ) break;
-
-		if ( *foo == mQuoteChar ) // if it is an open quote
-		{
-			foo++;
-			if ( argc < MAXARGS )
-			{
-				argv[argc++] = foo;
-			}
-			while ( !EOS(*foo) && *foo != mQuoteChar ) foo++;
-			if ( !EOS(*foo) )
-			{
-				*foo = 0; // replace close quote with zero byte EOS
-				foo++;
-			}
-		}
-		else
-		{
-
-			foo = AddHard(argc,argv,foo); // add any hard separators, skip any spaces
-
-			if ( IsNonSeparator(*foo) )  // add non-hard argument.
-			{
-				bool quote  = false;
-				if ( *foo == mQuoteChar )
-				{
-					foo++;
-					quote = true;
-				}
-
-				if ( argc < MAXARGS )
-				{
-					argv[argc++] = foo;
-				}
-
-				if ( quote )
-				{
-					while (*foo && *foo != mQuoteChar ) foo++;
-					if ( *foo ) *foo = 32;
-				}
-
-				// continue..until we hit an eos ..
-				while ( !EOS(*foo) ) // until we hit EOS
-				{
-					if ( IsWhiteSpace(*foo) ) // if we hit a space, stomp a zero byte, and exit
-					{
-						*foo = 0;
-						foo++;
-						break;
-					}
-					else if ( IsHard(*foo) ) // if we hit a hard separator, stomp a zero byte and store the hard separator argument
-					{
-						const char *hard = &mHardString[*foo*2];
-						*foo = 0;
-						if ( argc < MAXARGS )
-						{
-							argv[argc++] = hard;
-						}
-						foo++;
-						break;
-					}
-					foo++;
-				} // end of while loop...
-			}
-		}
-	}
-
-	if ( argc )
-	{
-		ret = callback->ParseLine(lineno, argc, argv );
-	}
-
-	return ret;
-}
-
-uint32_t  InPlaceParser::Parse(InPlaceParserInterface *callback) // returns true if entire file was parsed, false if it aborted for some reason
-{
-	assert( callback );
-	if ( !mData ) return 0;
-
-	uint32_t ret = 0;
-
-	uint32_t lineno = 0;
-
-	char *foo   = mData;
-	char *begin = foo;
-
-
-	while ( *foo )
-	{
-		if ( *foo == 10 || *foo == 13 )
-		{
-			lineno++;
-			*foo = 0;
-
-			if ( *begin ) // if there is any data to parse at all...
-			{
-				uint32_t v = ProcessLine(lineno,begin,callback);
-				if ( v ) ret = v;
-			}
-
-			foo++;
-			if ( *foo == 10 ) foo++; // skip line feed, if it is in the carraige-return line-feed format...
-			begin = foo;
-		}
-		else
-		{
-			foo++;
-		}
-	}
-
-	lineno++; // lasst line.
-
-	uint32_t v = ProcessLine(lineno,begin,callback);
-	if ( v ) ret = v;
-	return ret;
-}
-
-
-void InPlaceParser::DefaultSymbols(void)
-{
-	SetHardSeparator(',');
-	SetHardSeparator('(');
-	SetHardSeparator(')');
-	SetHardSeparator('=');
-	SetHardSeparator('[');
-	SetHardSeparator(']');
-	SetHardSeparator('{');
-	SetHardSeparator('}');
-	SetCommentSymbol('#');
-}
-
-
-const char ** InPlaceParser::GetArglist(char *line,uint32_t &count) // convert source string into an arg list, this is a destructive parse.
-{
-	const char **ret = 0;
-
-	static const char *argv[MAXARGS];
-	uint32_t argc = 0;
-
-	char *foo = line;
-
-	while ( !EOS(*foo) && argc < MAXARGS )
-	{
-
-		foo = SkipSpaces(foo); // skip any leading spaces
-
-		if ( EOS(*foo) ) break;
-
-		if ( *foo == mQuoteChar ) // if it is an open quote
-		{
-			foo++;
-			if ( argc < MAXARGS )
-			{
-				argv[argc++] = foo;
-			}
-			while ( !EOS(*foo) && *foo != mQuoteChar ) foo++;
-			if ( !EOS(*foo) )
-			{
-				*foo = 0; // replace close quote with zero byte EOS
-				foo++;
-			}
-		}
-		else
-		{
-
-			foo = AddHard(argc,argv,foo); // add any hard separators, skip any spaces
-
-			if ( IsNonSeparator(*foo) )  // add non-hard argument.
-			{
-				bool quote  = false;
-				if ( *foo == mQuoteChar )
-				{
-					foo++;
-					quote = true;
-				}
-
-				if ( argc < MAXARGS )
-				{
-					argv[argc++] = foo;
-				}
-
-				if ( quote )
-				{
-					while (*foo && *foo != mQuoteChar ) foo++;
-					if ( *foo ) *foo = 32;
-				}
-
-				// continue..until we hit an eos ..
-				while ( !EOS(*foo) ) // until we hit EOS
-				{
-					if ( IsWhiteSpace(*foo) ) // if we hit a space, stomp a zero byte, and exit
-					{
-						*foo = 0;
-						foo++;
-						break;
-					}
-					else if ( IsHard(*foo) ) // if we hit a hard separator, stomp a zero byte and store the hard separator argument
-					{
-						const char *hard = &mHardString[*foo*2];
-						*foo = 0;
-						if ( argc < MAXARGS )
-						{
-							argv[argc++] = hard;
-						}
-						foo++;
-						break;
-					}
-					foo++;
-				} // end of while loop...
-			}
-		}
-	}
-
-	count = argc;
-	if ( argc )
-	{
-		ret = argv;
-	}
-
-	return ret;
-}
-
-/*******************************************************************/
 /******************** Obj.h  ********************************/
 /*******************************************************************/
 
 
-class OBJ : public InPlaceParserInterface
+class OBJ : public IN_PARSER::InPlaceParserInterface
 {
 public:
 	uint32_t	LoadMesh(const char *fname);
@@ -520,7 +73,8 @@ public:
 
 	uint32_t	LoadOFF(const char *fname);
 	uint32_t	LoadOFF(const uint8_t *data, uint32_t dlen);
-
+	uint32_t	LoadSTL(const uint8_t *data, uint32_t dlen);
+	uint32_t	LoadDAE(const uint8_t *data, uint32_t dlen);
 
 	uint32_t	ParseLine(uint32_t lineno,uint32_t argc,const char **argv);  // return TRUE to continue parsing, return FALSE to abort parsing process
 	IntVector		mTriIndices;
@@ -545,7 +99,7 @@ uint32_t OBJ::LoadMesh(const char *fname)
 	mTriIndices.clear();
 	mIsOFF = false;
 
-	InPlaceParser ipp(fname);
+	IN_PARSER::InPlaceParser ipp(fname);
 
 	ipp.Parse(this);
 
@@ -562,13 +116,125 @@ uint32_t OBJ::LoadOFF(const char *fname)
 	mVerts.clear();
 	mTriIndices.clear();
 
-	InPlaceParser ipp(fname);
+	IN_PARSER::InPlaceParser ipp(fname);
 
 	ipp.Parse(this);
 
 
 	return ret;
 }
+
+uint32_t OBJ::LoadSTL(const uint8_t *data, uint32_t dlen)
+{
+	uint32_t ret = 0;
+
+	if (data && dlen)
+	{
+		IMPORT_STL::ImportSTL *s = IMPORT_STL::ImportSTL::create();
+		uint32_t triCount;
+		const IMPORT_STL::StlTriangle *triangles = s->importMesh(data, dlen,triCount);
+		if (triangles)
+		{
+			// todo...
+			mVerts.clear();
+			mTriIndices.clear();
+			for (uint32_t i = 0; i < triCount; i++)
+			{
+				const IMPORT_STL::StlTriangle &tri = triangles[i];
+
+				auto addVert = [this](const float *pos)
+				{
+					uint32_t ret = uint32_t(mVerts.size()) / 3;
+					mVerts.push_back(pos[0]);
+					mVerts.push_back(pos[1]);
+					mVerts.push_back(pos[2]);
+					return ret;
+				};
+
+				uint32_t i1 = addVert(tri.mP1);
+				uint32_t i2 = addVert(tri.mP2);
+				uint32_t i3 = addVert(tri.mP3);
+
+				mTriIndices.push_back(i3);
+				mTriIndices.push_back(i2);
+				mTriIndices.push_back(i1);
+			}
+		}
+		s->release();
+	}
+
+	return ret;
+}
+
+uint32_t OBJ::LoadDAE(const uint8_t *data, uint32_t dlen)
+{
+	uint32_t ret = 0;
+
+	if (data && dlen)
+	{
+		IMPORT_DAE::ImportDAE *s = IMPORT_DAE::ImportDAE::create();
+		s->importDAE(data, dlen);
+
+		uint32_t baseIndex = 0;
+		uint32_t scount = s->getVisualSceneCount();
+		for (uint32_t i = 0; i < scount; i++)
+		{
+			const char *sceneId;
+			const char *sceneName;
+			uint32_t nodeCount = s->getVisualSceneNodeCount(i, sceneId, sceneName);
+			for (uint32_t j = 0; j < nodeCount; j++)
+			{
+				const IMPORT_DAE::ImportDAE::SceneNode *sn = s->getVisualSceneNode(i, j);
+				if (sn)
+				{
+					for (uint32_t k = 0; k < sn->mMeshCount; k++)
+					{
+						const IMPORT_DAE::ImportDAE::MeshImport *mi = sn->mMeshes[i];
+						if (mi)
+						{
+							uint32_t subMeshCount = mi->getSubMeshCount();
+							for (uint32_t l = 0; l < subMeshCount; l++)
+							{
+								const IMPORT_DAE::ImportDAE::SubMesh *sm = mi->getSubMesh(l);
+								if (sm)
+								{
+									// Add all of the vertices...
+									for (uint32_t m = 0; m < sm->mVertexCount; m++)
+									{
+										const IMPORT_DAE::ImportDAE::Vertex &v = sm->mMeshVertices[m];
+
+										float tpos[3];
+										sn->transform(v.mPosition, tpos);
+
+										mVerts.push_back(tpos[0]);
+										mVerts.push_back(tpos[1]);
+										mVerts.push_back(tpos[2]);
+									}
+									for (uint32_t m = 0; m < sm->mTriangleCount; m++)
+									{
+										uint32_t i1 = sm->mMeshIndices[m * 3 + 0] + baseIndex;
+										uint32_t i2 = sm->mMeshIndices[m * 3 + 1] + baseIndex;
+										uint32_t i3 = sm->mMeshIndices[m * 3 + 2] + baseIndex;
+										mTriIndices.push_back(i3);
+										mTriIndices.push_back(i2);
+										mTriIndices.push_back(i1);
+									}
+									baseIndex += sm->mVertexCount;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+
+		s->release();
+	}
+
+	return ret;
+}
+
 
 uint32_t OBJ::LoadMesh(const uint8_t *data,uint32_t dlen)
 {
@@ -582,7 +248,7 @@ uint32_t OBJ::LoadMesh(const uint8_t *data,uint32_t dlen)
 	uint8_t *tdata = new uint8_t[dlen+1];
 	tdata[dlen] = 0;
 	memcpy(tdata,data,dlen);
-	InPlaceParser ipp((char *)tdata,dlen);
+	IN_PARSER::InPlaceParser ipp((char *)tdata,dlen);
 	ipp.Parse(this);
 	delete []tdata;
 
@@ -602,7 +268,7 @@ uint32_t OBJ::LoadOFF(const uint8_t *data, uint32_t dlen)
 	uint8_t *tdata = new uint8_t[dlen + 1];
 	tdata[dlen] = 0;
 	memcpy(tdata, data, dlen);
-	InPlaceParser ipp((char *)tdata, dlen);
+	IN_PARSER::InPlaceParser ipp((char *)tdata, dlen);
 	ipp.Parse(this);
 	delete[]tdata;
 
@@ -893,6 +559,62 @@ uint32_t WavefrontObj::loadOFF(const char *fname) // load a wavefront obj return
 	return ret;
 }
 
+uint32_t WavefrontObj::loadSTL(const uint8_t *data, uint32_t dlen)
+{
+	uint32_t ret = 0;
+
+
+	OBJ obj;
+
+	obj.LoadSTL(data, dlen);
+
+	mVertexCount = (uint32_t)obj.mVerts.size() / 3;
+	mTriCount = (uint32_t)obj.mTriIndices.size() / 3;
+
+	if (mVertexCount)
+	{
+		mVertices = new float[mVertexCount * 3];
+		memcpy(mVertices, &obj.mVerts[0], sizeof(float)*mVertexCount * 3);
+	}
+
+	if (mTriCount)
+	{
+		mIndices = new uint32_t[mTriCount * 3];
+		memcpy(mIndices, &obj.mTriIndices[0], mTriCount * 3 * sizeof(uint32_t));
+	}
+	ret = mTriCount;
+
+	return ret;
+}
+
+uint32_t WavefrontObj::loadDAE(const uint8_t *data, uint32_t dlen)
+{
+	uint32_t ret = 0;
+
+
+	OBJ obj;
+
+	obj.LoadDAE(data, dlen);
+
+	mVertexCount = (uint32_t)obj.mVerts.size() / 3;
+	mTriCount = (uint32_t)obj.mTriIndices.size() / 3;
+
+	if (mVertexCount)
+	{
+		mVertices = new float[mVertexCount * 3];
+		memcpy(mVertices, &obj.mVerts[0], sizeof(float)*mVertexCount * 3);
+	}
+
+	if (mTriCount)
+	{
+		mIndices = new uint32_t[mTriCount * 3];
+		memcpy(mIndices, &obj.mTriIndices[0], mTriCount * 3 * sizeof(uint32_t));
+	}
+	ret = mTriCount;
+
+	return ret;
+}
+
 bool WavefrontObj::saveObj(const char *fname)
 {
 	return saveObj(fname, mVertexCount, mVertices, mTriCount, mIndices);
@@ -921,7 +643,40 @@ bool WavefrontObj::saveObj(const char *fname,uint32_t vcount,const float *vertic
 	return ret;
 }
 
-void WavefrontObj::deepCopyScale(WavefrontObj &dest, float scaleFactor,bool centerMesh)
+// save the mesh as C++ code; just vertices and indices; really simple
+void WavefrontObj::saveCPP(const char *fname)
+{
+	FILE *fph = fopen(fname, "wb");
+	if (fph == nullptr) return;
+
+	fprintf(fph, "// Mesh: %d vertices %d triangles\r\n", mVertexCount, mTriCount);
+	fprintf(fph, "#define VERTEX_COUNT %d\r\n", mVertexCount);
+	fprintf(fph, "#define TRIANGLE_COUNT %d\r\n", mTriCount);
+
+	fprintf(fph, "float gVertices[VERTEX_COUNT*3]={\r\n");
+	for (uint32_t i = 0; i < mVertexCount; i++)
+	{
+		const float *v = &mVertices[i * 3];
+		fprintf(fph, "    %0.9f,%0.9f,%0.9f,\r\n", v[0], v[1], v[2]);
+	}
+	fprintf(fph,"};\r\n");
+
+	fprintf(fph, "uint32_t gIndices[TRIANGLE_COUNT*3]={\r\n");
+	for (uint32_t i = 0; i < mTriCount; i++)
+	{
+		const uint32_t *v = &mIndices[i * 3];
+		fprintf(fph, "    %d,%d,%d,\r\n", v[2], v[1], v[0]);
+	}
+	fprintf(fph, "};\r\n");
+
+
+	fclose(fph);
+}
+
+void WavefrontObj::deepCopyScale(WavefrontObj &dest,
+								float scaleFactor,
+								bool centerMesh,
+								uint32_t tessellateInputMesh) 
 {
 	dest.releaseMesh();
 	dest.mVertexCount = mVertexCount;
@@ -978,14 +733,68 @@ void WavefrontObj::deepCopyScale(WavefrontObj &dest, float scaleFactor,bool cent
 			adjustY = bmin[1]; // (bmin[1] + bmax[1])*0.5f;
 			adjustZ = (bmin[2] + bmax[2])*0.5f;
 		}
-
-
 		dest.mVertices = new float[mVertexCount * 3];
 		for (uint32_t i = 0; i < mVertexCount; i++)
 		{
 			dest.mVertices[i * 3 + 0] = (mVertices[i * 3 + 0]-adjustX) * scaleFactor;
 			dest.mVertices[i * 3 + 1] = (mVertices[i * 3 + 1]-adjustY) * scaleFactor;
 			dest.mVertices[i * 3 + 2] = (mVertices[i * 3 + 2]-adjustZ) * scaleFactor;
+		}
+		// if we are going to tessellate the input mesh..
+
+		if (tessellateInputMesh > 1)
+		{
+			// Compute the diagonal length of the input mesh
+			float bmin[3];
+			float bmax[3];
+			FLOAT_MATH::fm_initMinMax(bmin, bmax);
+			for (uint32_t i = 0; i < dest.mVertexCount; i++)
+			{
+				const float *p = &dest.mVertices[i * 3];
+				FLOAT_MATH::fm_minmax(p, bmin, bmax);
+			}
+			float diagonalLength = FLOAT_MATH::fm_distance(bmin, bmax);
+			// Populate the vertex index system with vertices and save the indices
+			FLOAT_MATH::fm_VertexIndex *vindex = FLOAT_MATH::fm_createVertexIndex(0.0f, false);
+			std::vector< uint32_t > indices;
+			for (uint32_t i = 0; i < dest.mTriCount; i++)
+			{
+				uint32_t i1 = dest.mIndices[i * 3 + 0];
+				uint32_t i2 = dest.mIndices[i * 3 + 1];
+				uint32_t i3 = dest.mIndices[i * 3 + 2];
+
+				const float *p1 = &dest.mVertices[i1 * 3];
+				const float *p2 = &dest.mVertices[i2 * 3];
+				const float *p3 = &dest.mVertices[i3 * 3];
+
+				bool newPos;
+				i1 = vindex->getIndex(p1, newPos);
+				i2 = vindex->getIndex(p2, newPos);
+				i3 = vindex->getIndex(p3, newPos);
+				indices.push_back(i1);
+				indices.push_back(i2);
+				indices.push_back(i3);
+			}
+			// The tessellation distance is the diagonal length divided by the tesselation factor
+			float tessellationDistance = diagonalLength / float(tessellateInputMesh);
+
+			FLOAT_MATH::fm_Tesselate *tess = FLOAT_MATH::fm_createTesselate();
+			uint32_t outcount;
+			const uint32_t *newIndices = tess->tesselate(vindex, dest.mTriCount, &indices[0], tessellationDistance, 8, outcount);
+
+			delete[]dest.mIndices;
+			delete[]dest.mVertices;
+
+			dest.mIndices = new uint32_t[outcount * 3];
+			dest.mTriCount = outcount; // new number of triangles..
+			memcpy(dest.mIndices, newIndices, outcount * 3 * sizeof(uint32_t));
+
+			dest.mVertexCount = vindex->getVcount();
+			dest.mVertices = new float[dest.mVertexCount * 3];
+			memcpy(dest.mVertices, vindex->getVerticesFloat(), sizeof(float)*dest.mVertexCount * 3);
+
+			FLOAT_MATH::fm_releaseVertexIndex(vindex);
+			FLOAT_MATH::fm_releaseTesselate(tess);
 		}
 	}
 }

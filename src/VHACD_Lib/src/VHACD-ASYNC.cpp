@@ -56,7 +56,9 @@ public:
         Cancel(); // if we previously had a solution running; cancel it.
         releaseHACD();
 
+        Parameters desc = _desc;
         mTaskRunner = _desc.m_taskRunner ? _desc.m_taskRunner : this;
+        desc.m_taskRunner = mTaskRunner;
 
         // We need to copy the input vertices and triangles into our own buffers so we can operate
         // on them safely from the background thread.
@@ -65,14 +67,14 @@ public:
         memcpy(mVertices, _points, sizeof(double)*countPoints * 3);
         memcpy(mIndices, _triangles, sizeof(uint32_t)*countTriangles * 3);
         mRunning = true;
-        mTask = mTaskRunner->StartTask([this, countPoints, countTriangles, _desc]()
+        mTask = mTaskRunner->StartTask([this, countPoints, countTriangles, desc]()
         {
-            ComputeNow(mVertices, countPoints, mIndices, countTriangles, _desc);
+            ComputeNow(mVertices, countPoints, mIndices, countTriangles, desc);
             mRunning = false;
         });
 #else
         releaseHACD();
-        ComputeNow(_points, countPoints, _triangles, countTriangles, _desc);
+        ComputeNow(_points, countPoints, _triangles, countTriangles, desc);
 #endif
         return true;
     }
@@ -86,14 +88,21 @@ public:
         VHACD_TRACE_CPUPROFILER_EVENT_SCOPE(_desc.m_profiler, MyHACD_API::ComputeNow);
         uint32_t ret = 0;
 
+        Parameters desc;
         mHullCount	= 0;
         mCallback	= _desc.m_callback;
         mLogger		= _desc.m_logger;
 
-        IVHACD::Parameters desc = _desc;
+        desc = _desc;
         // Set our intercepting callback interfaces if non-null
-        desc.m_callback = desc.m_callback ? this : nullptr;
-        desc.m_logger = desc.m_logger ? this : nullptr;
+        desc.m_callback = _desc.m_callback ? this : nullptr;
+        desc.m_logger = _desc.m_logger ? this : nullptr;
+
+        // If not task runner provided, then use the default one
+        if ( desc.m_taskRunner == nullptr )
+        {
+            desc.m_taskRunner = this;
+        }
 
         if ( countPoints )
         {

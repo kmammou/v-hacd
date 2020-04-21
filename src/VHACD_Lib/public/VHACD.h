@@ -28,13 +28,13 @@
 // *
 // * A new optional virtual interface called 'IUserProfiler' was provided.
 // * This allows the user to provide an optional profiling callback interface to assist in
-// * diagnosing performance issues. This change was made by engineers at Epic for the UE4 integration.
+// * diagnosing performance issues. This change was made by Danny Couture at Epic for the UE4 integration.
 // * Some profiling macros were also declared in support of this feature.
 // *
 // * Another new optional virtual interface called 'IUserTaskRunner' was provided.
 // * This interface is used to run logical 'tasks' in a background thread. If none is provided
-// * than a default implementation using std::thread will be executed.
-// * This change was made by engineers at Epic to speed up the voxelization step.
+// * then a default implementation using std::thread will be executed.
+// * This change was made by Danny Couture at Epic to speed up the voxelization step.
 // *
 // * Some performance optimizations were made to the code. They include the following:
 // *
@@ -51,12 +51,12 @@
 // * in a single pass at the specified detail level.
 // *
 // * The final performance optimization was to unroll the ComputeACD step so it can be run in parallel.
-// * A new helper class was introduced called 'SimpleJobSystem' which can run tasks across multiple threads.
+// * A new helper class was introduced called 'SimpleJobSystem' which can run micro-tasks across multiple threads.
 // * When computing the ACD (approximate convex decomposition) the code iterates through all input sub-meshes
 // * and computes the concavity, the optimal splitting plane and, optionally, splits the input mesh by a plane.
 // * This can happen hundreds of even thousands of times. The original code did this in a for loop using a single
 // * thread. The change made was so that this operation could be done in parallel. Since this operation is extremely
-// * memory bound, it onl provides about a 2x performance improvement, but that is still twice as fast at least.
+// * memory bound, it only provides about a 2x performance improvement, but that is still twice as fast at least.
 // * After the voxelization optimizations the ComputeACD step remained slowest part of V-HACD.
 // *
 // * A new feature was introduced called the 'FillMode'. By default V-HACD performs a flood fill operation after

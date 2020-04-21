@@ -20,19 +20,73 @@
 		</ClCompile>
 	</ItemGroup>
 	<ItemGroup>
-		<Filter Include="ConvexDecomposition\PhysXFramework">
+		<Filter Include="ConvexDecomposition\SkeletonRig">
 		</Filter>
 	</ItemGroup>
 	<ItemGroup>
-		<ClInclude Include="..\..\PhysXFramework\NvPhysXFramework.h">
-			<Filter>ConvexDecomposition\PhysXFramework</Filter>
+		<ClInclude Include="..\..\SkeletonRig\SkeletonRig.h">
+			<Filter>ConvexDecomposition\SkeletonRig</Filter>
 		</ClInclude>
-		<ClCompile Include="..\..\PhysXFramework\NvPhysXFrameworkBinding.cpp">
-			<Filter>ConvexDecomposition\PhysXFramework</Filter>
+		<ClCompile Include="..\..\SkeletonRig\SkeletonRigBinding.cpp">
+			<Filter>ConvexDecomposition\SkeletonRig</Filter>
 		</ClCompile>
 	</ItemGroup>
 	<ItemGroup>
+		<Filter Include="ConvexDecomposition\PhysicsDOM">
+		</Filter>
+	</ItemGroup>
+	<ItemGroup>
+		<ClInclude Include="..\..\PhysicsDOM\NvPhysicsDOM.h">
+			<Filter>ConvexDecomposition\PhysicsDOM</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\PhysicsDOM\PhysicsDOM.h">
+			<Filter>ConvexDecomposition\PhysicsDOM</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\PhysicsDOM\PhysicsDOMDef.h">
+			<Filter>ConvexDecomposition\PhysicsDOM</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\PhysicsDOM\PhysicsDOMHelper.h">
+			<Filter>ConvexDecomposition\PhysicsDOM</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\PhysicsDOM\PhysicsDOMInterface.h">
+			<Filter>ConvexDecomposition\PhysicsDOM</Filter>
+		</ClInclude>
+		<ClCompile Include="..\..\PhysicsDOM\NvPhysicsDOMBinding.cpp">
+			<Filter>ConvexDecomposition\PhysicsDOM</Filter>
+		</ClCompile>
+	</ItemGroup>
+	<ItemGroup>
+		<ClCompile Include="..\..\DisplayURDF.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\FastXml.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\ImportDAE.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\ImportSTL.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\ImportURDF.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\InParser.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\InspectXml.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
 		<ClCompile Include="..\..\main.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\MeshBuilder.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\MeshFactory.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\StringHelper.cpp">
 			<Filter>ConvexDecomposition</Filter>
 		</ClCompile>
 		<ClCompile Include="..\..\TestHACD.cpp">
@@ -47,10 +101,43 @@
 		<ClCompile Include="..\..\wavefront.cpp">
 			<Filter>ConvexDecomposition</Filter>
 		</ClCompile>
+		<ClInclude Include="..\..\DisplayURDF.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\FastXml.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\ImportDAE.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\ImportSTL.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\ImportURDF.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\InParser.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\InspectXml.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\MeshBuilder.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\MeshFactory.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\StringHelper.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
 		<ClInclude Include="..\..\TestHACD.h">
 			<Filter>ConvexDecomposition</Filter>
 		</ClInclude>
 		<ClInclude Include="..\..\TestRaycast.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\URDF_DOM.h">
 			<Filter>ConvexDecomposition</Filter>
 		</ClInclude>
 		<ClInclude Include="..\..\VoxelizeMesh.h">

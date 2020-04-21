@@ -55,7 +55,14 @@ namespace simplejobsystem
 
         void stopThread(void)
         {
-            if (mThread)
+            if ( mTaskRunnerThread )
+            {
+                mExit = true;
+                mHaveWork.notify_one();
+                mTaskRunner->JoinTask(mTaskRunnerThread);
+                mTaskRunnerThread = nullptr;
+            }
+            else if (mThread)
             {
                 mExit = true;
                 mHaveWork.notify_one();
@@ -65,16 +72,30 @@ namespace simplejobsystem
             }
         }
 
-        void start(FindJobs *fj)
+        void start(FindJobs *fj,VHACD::IVHACD::IUserTaskRunner *taskRunner)
         {
+            mTaskRunner = taskRunner;
             mFindJobs = fj;
-            if (mThread == nullptr)
+            if ( mTaskRunner )
             {
-                mExit = false;
-                mThread = new std::thread([this]() 
-                { 
-                    runThread(); 
-                });
+                if (mTaskRunnerThread == nullptr)
+                {
+                    mExit = false;
+                    mTaskRunnerThread = mTaskRunner->StartTask([this]()
+                    {
+                        runThread();
+                    });
+                }
+            }
+            else
+            {
+                if (mThread == nullptr)
+                {
+                    mThread = new std::thread([this]() 
+                    { 
+                        runThread(); 
+                    });
+                }
             }
             mHaveWork.notify_all();
         }
@@ -83,7 +104,7 @@ namespace simplejobsystem
         {
             while (!mExit)
             {
-                // Process jobs while jobs are availabe.
+                // Process jobs while jobs are available.
                 // If no more jobs are available, go to sleep until fresh work is provided
                 SimpleJob *sj = mFindJobs->getSimpleJob();
                 while ( sj )
@@ -102,15 +123,17 @@ namespace simplejobsystem
 
         FindJobs *mFindJobs{nullptr};
         std::atomic<bool> mExit{ false };
+        void        *mTaskRunnerThread{nullptr};
         std::thread* mThread{ nullptr };
         std::mutex mWorkMutex;
         std::condition_variable mHaveWork;
+        VHACD::IVHACD::IUserTaskRunner *mTaskRunner{nullptr};
     };
 
     class SimpleJobSystemImpl : public SimpleJobSystem, public FindJobs
     {
     public:
-        SimpleJobSystemImpl(uint32_t maxThreads) : mMaxThreads(maxThreads)
+        SimpleJobSystemImpl(uint32_t maxThreads,VHACD::IVHACD::IUserTaskRunner *taskRunner) : mMaxThreads(maxThreads), mTaskRunner(taskRunner)
         {
             mThreads = new SimpleJobThread[mMaxThreads];
         }
@@ -138,7 +161,7 @@ namespace simplejobsystem
             // Start all threads working on the available jobs
             for (uint32_t i=0; i<mMaxThreads; i++)
             {
-                mThreads[i].start(this);
+                mThreads[i].start(this,mTaskRunner);
             }
             return ret;
         }
@@ -191,13 +214,14 @@ namespace simplejobsystem
         std::mutex              mSimpleJobMutex;
         SimpleJobQueue          mPendingJobs;
         SimpleJobThread         *mThreads{nullptr};
+        VHACD::IVHACD::IUserTaskRunner *mTaskRunner{nullptr};
     };
 
 // Create in instance of the SimpleJobSystem with the number of threads specified.
 // More threads than available cores is not particularly beneficial.
-SimpleJobSystem * SimpleJobSystem::create(uint32_t maxThreads)
+SimpleJobSystem * SimpleJobSystem::create(uint32_t maxThreads,VHACD::IVHACD::IUserTaskRunner *taskRunner)
 {
-    auto ret = new SimpleJobSystemImpl(maxThreads);
+    auto ret = new SimpleJobSystemImpl(maxThreads,taskRunner);
     return static_cast< SimpleJobSystem *>(ret);
 }
 
