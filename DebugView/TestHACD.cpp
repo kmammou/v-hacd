@@ -323,6 +323,7 @@ public:
 		mCenterOfMass[1] = 0;
 		mCenterOfMass[2] = 0;
         mSkeletonRigFactory = skeletonrig::createSkeletonRigPlugin(SKELETON_RIG_VERSION,"SkeletonRig64.dll");
+//        mSkeletonRigFactory = skeletonrig::createSkeletonRigPlugin(SKELETON_RIG_VERSION,"SkeletonRig64DEBUG.dll");
 	}
 
 	virtual ~TestHACDImpl(void)
