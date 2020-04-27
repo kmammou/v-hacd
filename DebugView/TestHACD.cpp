@@ -1255,6 +1255,14 @@ public:
         }
     }
 
+    // Optional user callback. This is a callback performed to notify the user that the 
+    // convex decomposition background process is completed. This call back will occur from
+    // a different thread so the user should take that into account.
+    virtual void NotifyVHACDComplete(void)
+    {
+        printf("Convex Decomposition Complete.\n");
+    }
+
 	uint32_t							mMeshID{ 0 };
 	bool								mSimulateAsRagdoll{ false };
 	uint32_t							mConvexMeshCount{ 0 };

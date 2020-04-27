@@ -71,6 +71,10 @@ public:
         {
             ComputeNow(mVertices, countPoints, mIndices, countTriangles, desc);
             mRunning = false;
+            if ( desc.m_callback )
+            {
+                desc.m_callback->NotifyVHACDComplete();
+            }
         });
 #else
         releaseHACD();
@@ -137,6 +141,8 @@ public:
         }
 
         mHullCount = ret;
+
+
         return ret ? true : false;
     }
 

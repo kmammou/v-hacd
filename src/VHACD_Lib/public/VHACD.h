@@ -20,6 +20,11 @@
 #define VHACD_VERSION_MINOR 1
 
 // Changes for version 3.0 : April 17, 2020 : John W. Ratcliff mailto:jratcliffscarab@gmail.com
+//
+// * An optional callback method called 'NotifyVHACDComplete' was added to the IUserCallback interface.
+// * This method is called when an asynchronous V-HACD operation is been completed. The application can
+// * use this call back as a trigger to wake up the app to start processing the V-HACD results. The
+// * original polled method 'IsReady' is still valid and can continue to be used.
 // 
 // * Some code cleanup was done, removed obsolete OpenCL, OpenMP and SIMD code.
 // * The purpose of this change was to make the code more vanilla C++ and to make it easier to maintain
@@ -163,12 +168,23 @@ public:
     class IUserCallback {
     public:
         virtual ~IUserCallback(){};
+
+        // Be aware that if you are running V-HACD asynchronously (in a background thread) this callback will come from a different thread.
+        // So if your print/logging code isn't thread safe, take that into account.
         virtual void Update(const double overallProgress,
             const double stageProgress,
             const double operationProgress,
             const char* const stage,
             const char* const operation)
             = 0;
+
+        // This is an optional user callback which is only called when running V-HACD asynchronously. 
+        // This is a callback performed to notify the user that the 
+        // convex decomposition background process is completed. This call back will occur from
+        // a different thread so the user should take that into account.
+        virtual void NotifyVHACDComplete(void)
+        {
+        }
     };
 
     class IUserLogger {
