@@ -6,7 +6,7 @@
 // It's just a very simple way to distribute a meaningful amount of
 // 'work' across <n> number of threads.
 #include <stdint.h>
-#include "VHACD.h"
+#include "../public/VHACD.h"
 
 #ifdef _MSC_VER
 #    define SJS_ABI __cdecl
