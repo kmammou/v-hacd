@@ -673,6 +673,87 @@ void WavefrontObj::saveCPP(const char *fname)
 	fclose(fph);
 }
 
+// save the triangle mesh as python code
+void WavefrontObj::savePython(const char *fname)
+{
+    FILE *fph = fopen(fname,"wb");
+    if ( fph == nullptr )
+    {
+        printf("Failed to open file '%s' for write access\n", fname);
+        return;
+    }
+    fprintf(fph,"# Python representation of the triangle mesh:%s\n", fname );
+    fprintf(fph,"vertices = [\n");
+    fprintf(fph,"    ");
+    uint32_t count = 0;
+    uint32_t fcount = mVertexCount*3;
+    for (uint32_t i=0; i<fcount; i++)
+    {
+        if ( count == 9 )
+        {
+            fprintf(fph,"\n");
+            fprintf(fph, "    ");
+            count = 0;
+        }
+        if ( (i+1) == fcount )
+        {
+            fprintf(fph,"%0.9f\n", mVertices[i]);
+        }
+        else
+        {
+            if ( count == 8 )
+            {
+                fprintf(fph,"%0.9f,", mVertices[i]);
+            }
+            else
+            {
+                fprintf(fph,"%0.9f, ", mVertices[i]);
+            }
+        }
+        count++;
+    }
+
+    fprintf(fph,"    ]\n");
+
+
+    fprintf(fph, "indices = [\n");
+    fprintf(fph, "    ");
+
+    count = 0;
+    uint32_t tcount = mTriCount * 3;
+    for (uint32_t i = 0; i < tcount; i++)
+    {
+        if (count == 9)
+        {
+            fprintf(fph, "\n");
+            fprintf(fph, "    ");
+            count = 0;
+        }
+        if ((i + 1) == tcount)
+        {
+            fprintf(fph, "%d\n", mIndices[i]);
+        }
+        else
+        {
+            if ( count == 8 )
+            {
+                fprintf(fph, "%d,", mIndices[i]);
+            }
+            else
+            {
+                fprintf(fph, "%d, ", mIndices[i]);
+            }
+        }
+        count++;
+    }
+
+    fprintf(fph, "    ]\n");
+
+
+
+    fclose(fph);
+}
+
 void WavefrontObj::deepCopyScale(WavefrontObj &dest,
 								float scaleFactor,
 								bool centerMesh,

@@ -61,6 +61,7 @@ void createMenus(void)
     gRenderDebug->sendRemoteCommand("Button TestRaycastMesh \"raycast\"");
 	gRenderDebug->sendRemoteCommand("Button CenterMesh CenterMesh");
 	gRenderDebug->sendRemoteCommand("Button SaveObj SaveObj");
+    gRenderDebug->sendRemoteCommand("Button SavePython SavePython");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
 	gRenderDebug->sendRemoteCommand("BeginGroup \"View\"");	// Mark the beginning of a group of controls.
@@ -204,6 +205,11 @@ public:
 				mWavefront.saveObj("wavefront.obj");
 				printf("Saving mesh at current scale to 'wavefront.obj'\n");
 			}
+            else if (strcmp(cmd, "SavePython") == 0)
+            {
+                mWavefront.savePython("python.py");
+                printf("Saving mesh at current scale to 'python.py'\n");
+            }
 			else if (strcmp(cmd, "CenterMesh") == 0)
 			{
                 releaseMesh();

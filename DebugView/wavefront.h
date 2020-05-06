@@ -58,6 +58,9 @@ public:
 	// save the mesh as C++ code; just vertices and indices; really simple
 	void saveCPP(const char *fname);
 
+    // save the triangle mesh as python code
+    void savePython(const char *fname);
+
 	void releaseMesh(void);
 
 
