@@ -3,12 +3,15 @@ Copyright (c) 2003-2009 Erwin Coumans  http://bullet.googlecode.com
 
 This software is provided 'as-is', without any express or implied warranty.
 In no event will the authors be held liable for any damages arising from the use of this software.
-Permission is granted to anyone to use this software for any purpose, 
-including commercial applications, and to alter it and redistribute it freely, 
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it freely,
 subject to the following restrictions:
 
-1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software. If you use this software in a product, an acknowledgment in the product documentation would be appreciated but is not required.
-2. Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
+1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software. If
+you use this software in a product, an acknowledgment in the product documentation would be appreciated but is not
+required.
+2. Altered source versions must be plainly marked as such, and must not be misrepresented as being the original
+software.
 3. This notice may not be removed or altered from any source distribution.
 */
 
@@ -21,22 +24,23 @@ subject to the following restrictions:
 #include <stdint.h>
 
 #if defined(DEBUG) || defined(_DEBUG)
-#define BT_DEBUG
+#    define BT_DEBUG
 #endif
 
 #include <assert.h>
 #ifdef BT_DEBUG
-#define btAssert assert
+#    define btAssert assert
 #else
-#define btAssert(x)
+#    define btAssert(x)
 #endif
-//btFullAssert is optional, slows down a lot
+// btFullAssert is optional, slows down a lot
 #define btFullAssert(x)
 
 #define btLikely(_c) _c
 #define btUnlikely(_c) _c
 
-///The btScalar type abstracts floating point numbers, to easily switch between double and single floating point precision.
+/// The btScalar type abstracts floating point numbers, to easily switch between double and single floating point
+/// precision.
 typedef float btScalar;
 #define BT_LARGE_FLOAT 1e18f
 
@@ -45,10 +49,22 @@ inline btScalar btSqrt(btScalar y)
     return sqrtf(y);
 }
 
-inline btScalar btFabs(btScalar x) { return fabsf(x); }
-inline btScalar btCos(btScalar x) { return cosf(x); }
-inline btScalar btSin(btScalar x) { return sinf(x); }
-inline btScalar btTan(btScalar x) { return tanf(x); }
+inline btScalar btFabs(btScalar x)
+{
+    return fabsf(x);
+}
+inline btScalar btCos(btScalar x)
+{
+    return cosf(x);
+}
+inline btScalar btSin(btScalar x)
+{
+    return sinf(x);
+}
+inline btScalar btTan(btScalar x)
+{
+    return tanf(x);
+}
 inline btScalar btAcos(btScalar x)
 {
     if (x < btScalar(-1))
@@ -65,12 +81,30 @@ inline btScalar btAsin(btScalar x)
         x = btScalar(1);
     return asinf(x);
 }
-inline btScalar btAtan(btScalar x) { return atanf(x); }
-inline btScalar btAtan2(btScalar x, btScalar y) { return atan2f(x, y); }
-inline btScalar btExp(btScalar x) { return expf(x); }
-inline btScalar btLog(btScalar x) { return logf(x); }
-inline btScalar btPow(btScalar x, btScalar y) { return powf(x, y); }
-inline btScalar btFmod(btScalar x, btScalar y) { return fmodf(x, y); }
+inline btScalar btAtan(btScalar x)
+{
+    return atanf(x);
+}
+inline btScalar btAtan2(btScalar x, btScalar y)
+{
+    return atan2f(x, y);
+}
+inline btScalar btExp(btScalar x)
+{
+    return expf(x);
+}
+inline btScalar btLog(btScalar x)
+{
+    return logf(x);
+}
+inline btScalar btPow(btScalar x, btScalar y)
+{
+    return powf(x, y);
+}
+inline btScalar btFmod(btScalar x, btScalar y)
+{
+    return fmodf(x, y);
+}
 
 
 #define SIMD_2_PI btScalar(6.283185307179586232)
@@ -90,18 +124,23 @@ inline btScalar btAtan2Fast(btScalar y, btScalar x)
     btScalar coeff_2 = 3.0f * coeff_1;
     btScalar abs_y = btFabs(y);
     btScalar angle;
-    if (x >= 0.0f) {
+    if (x >= 0.0f)
+    {
         btScalar r = (x - abs_y) / (x + abs_y);
         angle = coeff_1 - coeff_1 * r;
     }
-    else {
+    else
+    {
         btScalar r = (x + abs_y) / (abs_y - x);
         angle = coeff_2 - coeff_1 * r;
     }
     return (y < 0.0f) ? -angle : angle;
 }
 
-inline bool btFuzzyZero(btScalar x) { return btFabs(x) < FLT_EPSILON; }
+inline bool btFuzzyZero(btScalar x)
+{
+    return btFabs(x) < FLT_EPSILON;
+}
 
 inline bool btEqual(btScalar a, btScalar eps)
 {
@@ -117,12 +156,19 @@ inline int32_t btIsNegative(btScalar x)
     return x < btScalar(0.0) ? 1 : 0;
 }
 
-inline btScalar btRadians(btScalar x) { return x * SIMD_RADS_PER_DEG; }
-inline btScalar btDegrees(btScalar x) { return x * SIMD_DEGS_PER_RAD; }
+inline btScalar btRadians(btScalar x)
+{
+    return x * SIMD_RADS_PER_DEG;
+}
+inline btScalar btDegrees(btScalar x)
+{
+    return x * SIMD_DEGS_PER_RAD;
+}
 
-#define BT_DECLARE_HANDLE(name) \
-    typedef struct name##__ {   \
-        int32_t unused;             \
+#define BT_DECLARE_HANDLE(name)                                                                                        \
+    typedef struct name##__                                                                                            \
+    {                                                                                                                  \
+        int32_t unused;                                                                                                \
     } * name
 
 #ifndef btFsel
@@ -143,8 +189,8 @@ inline bool btMachineIsLittleEndian()
         return false;
 }
 
-///btSelect avoids branches, which makes performance much better for consoles like Playstation 3 and XBox 360
-///Thanks Phil Knight. See also http://www.cellperformance.com/articles/2006/04/more_techniques_for_eliminatin_1.html
+/// btSelect avoids branches, which makes performance much better for consoles like Playstation 3 and XBox 360
+/// Thanks Phil Knight. See also http://www.cellperformance.com/articles/2006/04/more_techniques_for_eliminatin_1.html
 inline unsigned btSelect(unsigned condition, unsigned valueIfConditionNonZero, unsigned valueIfConditionZero)
 {
     // Set testNz to 0xFFFFFFFF if condition is nonzero, 0x00000000 if condition is zero
@@ -174,10 +220,11 @@ inline void btSwap(T& a, T& b)
     b = tmp;
 }
 
-//PCK: endian swapping functions
+// PCK: endian swapping functions
 inline unsigned btSwapEndian(unsigned val)
 {
-    return (((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24));
+    return (((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) |
+            ((val & 0x000000ff) << 24));
 }
 
 inline unsigned short btSwapEndian(unsigned short val)
@@ -195,12 +242,13 @@ inline unsigned short btSwapEndian(short val)
     return btSwapEndian((unsigned short)val);
 }
 
-///btSwapFloat uses using char pointers to swap the endianness
+/// btSwapFloat uses using char pointers to swap the endianness
 ////btSwapFloat/btSwapDouble will NOT return a float, because the machine might 'correct' invalid floating point values
-///Not all values of sign/exponent/mantissa are valid floating point numbers according to IEEE 754.
-///When a floating point unit is faced with an invalid value, it may actually change the value, or worse, throw an exception.
-///In most systems, running user mode code, you wouldn't get an exception, but instead the hardware/os/runtime will 'fix' the number for you.
-///so instead of returning a float/double, we return integer/long long integer
+/// Not all values of sign/exponent/mantissa are valid floating point numbers according to IEEE 754.
+/// When a floating point unit is faced with an invalid value, it may actually change the value, or worse, throw an
+/// exception. In most systems, running user mode code, you wouldn't get an exception, but instead the
+/// hardware/os/runtime will 'fix' the number for you. so instead of returning a float/double, we return integer/long
+/// long integer
 inline uint32_t btSwapEndianFloat(float d)
 {
     uint32_t a = 0;
@@ -266,21 +314,24 @@ inline double btUnswapEndianDouble(const unsigned char* src)
 inline btScalar btNormalizeAngle(btScalar angleInRadians)
 {
     angleInRadians = btFmod(angleInRadians, SIMD_2_PI);
-    if (angleInRadians < -SIMD_PI) {
+    if (angleInRadians < -SIMD_PI)
+    {
         return angleInRadians + SIMD_2_PI;
     }
-    else if (angleInRadians > SIMD_PI) {
+    else if (angleInRadians > SIMD_PI)
+    {
         return angleInRadians - SIMD_2_PI;
     }
-    else {
+    else
+    {
         return angleInRadians;
     }
 }
 
-///rudimentary class to provide type info
-struct btTypedObject {
-    btTypedObject(int32_t objectType)
-        : m_objectType(objectType)
+/// rudimentary class to provide type info
+struct btTypedObject
+{
+    btTypedObject(int32_t objectType) : m_objectType(objectType)
     {
     }
     int32_t m_objectType;
@@ -289,4 +340,4 @@ struct btTypedObject {
         return m_objectType;
     }
 };
-#endif //BT_SCALAR_H
+#endif // BT_SCALAR_H

@@ -1,4 +1,4 @@
-#include "../public/VHACD.h"
+#include "VHACD.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -17,7 +17,10 @@
 namespace VHACD
 {
 
-class MyHACD_API : public VHACD::IVHACD, public VHACD::IVHACD::IUserCallback, VHACD::IVHACD::IUserLogger, VHACD::IVHACD::IUserTaskRunner
+class MyHACD_API : public VHACD::IVHACD,
+                   public VHACD::IVHACD::IUserCallback,
+                   VHACD::IVHACD::IUserLogger,
+                   VHACD::IVHACD::IUserTaskRunner
 {
 public:
     MyHACD_API(void)
@@ -43,12 +46,12 @@ public:
         t->join();
         delete t;
     }
-    
+
     virtual bool Compute(const double* const _points,
-        const uint32_t countPoints,
-        const uint32_t* const _triangles,
-        const uint32_t countTriangles,
-        const Parameters& _desc) final
+                         const uint32_t countPoints,
+                         const uint32_t* const _triangles,
+                         const uint32_t countTriangles,
+                         const Parameters& _desc) final
     {
 #if ENABLE_ASYNC
         VHACD_TRACE_CPUPROFILER_EVENT_SCOPE(_desc.m_profiler, MyHACD_API::Compute)
@@ -62,19 +65,25 @@ public:
 
         // We need to copy the input vertices and triangles into our own buffers so we can operate
         // on them safely from the background thread.
-        mVertices = (double *)HACD_ALLOC(sizeof(double)*countPoints * 3);
-        mIndices = (uint32_t *)HACD_ALLOC(sizeof(uint32_t)*countTriangles * 3);
-        memcpy(mVertices, _points, sizeof(double)*countPoints * 3);
-        memcpy(mIndices, _triangles, sizeof(uint32_t)*countTriangles * 3);
+        mVertices = (double*)HACD_ALLOC(sizeof(double) * countPoints * 3);
+        mIndices = (uint32_t*)HACD_ALLOC(sizeof(uint32_t) * countTriangles * 3);
+        memcpy(mVertices, _points, sizeof(double) * countPoints * 3);
+        memcpy(mIndices, _triangles, sizeof(uint32_t) * countTriangles * 3);
         mRunning = true;
-        mTask = mTaskRunner->StartTask([this, countPoints, countTriangles, desc]()
-        {
+        mTask = mTaskRunner->StartTask([this, countPoints, countTriangles, desc]() {
+            // printf("Computing V-HACD in background task.\n");
             ComputeNow(mVertices, countPoints, mIndices, countTriangles, desc);
-            mRunning = false;
-            if ( desc.m_callback )
+            // printf("V-HACD computation complete.\n");
+            // If we have a user provided callback and the user did *not* call 'cancel' we notify him that the
+            // task is completed. However..if the user selected 'cancel' we do not send a completed notification event.
+            if (desc.m_callback && !mCancel)
             {
+                // printf("Doing callback notification\n");
                 desc.m_callback->NotifyVHACDComplete();
+                // printf("Notify callback complete.\n");
             }
+            mRunning = false;
+            // printf("Exiting compute V-HACD task.\n");
         });
 #else
         releaseHACD();
@@ -84,18 +93,18 @@ public:
     }
 
     bool ComputeNow(const double* const points,
-        const uint32_t countPoints,
-        const uint32_t* const triangles,
-        const uint32_t countTriangles,
-        const Parameters& _desc) 
+                    const uint32_t countPoints,
+                    const uint32_t* const triangles,
+                    const uint32_t countTriangles,
+                    const Parameters& _desc)
     {
         VHACD_TRACE_CPUPROFILER_EVENT_SCOPE(_desc.m_profiler, MyHACD_API::ComputeNow);
         uint32_t ret = 0;
 
         Parameters desc;
-        mHullCount	= 0;
-        mCallback	= _desc.m_callback;
-        mLogger		= _desc.m_logger;
+        mHullCount = 0;
+        mCallback = _desc.m_callback;
+        mLogger = _desc.m_logger;
 
         desc = _desc;
         // Set our intercepting callback interfaces if non-null
@@ -103,12 +112,12 @@ public:
         desc.m_logger = _desc.m_logger ? this : nullptr;
 
         // If not task runner provided, then use the default one
-        if ( desc.m_taskRunner == nullptr )
+        if (desc.m_taskRunner == nullptr)
         {
             desc.m_taskRunner = this;
         }
 
-        if ( countPoints )
+        if (countPoints)
         {
             bool ok = mVHACD->Compute(points, countPoints, triangles, countTriangles, desc);
             if (ok)
@@ -121,10 +130,10 @@ public:
                     mVHACD->GetConvexHull(i, vhull);
                     VHACD::IVHACD::ConvexHull h;
                     h.m_nPoints = vhull.m_nPoints;
-                    h.m_points = (double *)HACD_ALLOC(sizeof(double) * 3 * h.m_nPoints);
+                    h.m_points = (double*)HACD_ALLOC(sizeof(double) * 3 * h.m_nPoints);
                     memcpy(h.m_points, vhull.m_points, sizeof(double) * 3 * h.m_nPoints);
                     h.m_nTriangles = vhull.m_nTriangles;
-                    h.m_triangles = (uint32_t *)HACD_ALLOC(sizeof(uint32_t) * 3 * h.m_nTriangles);
+                    h.m_triangles = (uint32_t*)HACD_ALLOC(sizeof(uint32_t) * 3 * h.m_nTriangles);
                     memcpy(h.m_triangles, vhull.m_triangles, sizeof(uint32_t) * 3 * h.m_nTriangles);
                     h.m_volume = vhull.m_volume;
                     h.m_center[0] = vhull.m_center[0];
@@ -146,29 +155,29 @@ public:
         return ret ? true : false;
     }
 
-    void releaseHull(VHACD::IVHACD::ConvexHull &h)
+    void releaseHull(VHACD::IVHACD::ConvexHull& h)
     {
-        HACD_FREE((void *)h.m_triangles);
-        HACD_FREE((void *)h.m_points);
+        HACD_FREE((void*)h.m_triangles);
+        HACD_FREE((void*)h.m_points);
         h.m_triangles = nullptr;
         h.m_points = nullptr;
     }
 
     virtual void GetConvexHull(const uint32_t index, VHACD::IVHACD::ConvexHull& ch) const final
     {
-        if ( index < mHullCount )
+        if (index < mHullCount)
         {
             ch = mHulls[index];
         }
     }
 
-    void    releaseHACD(void) // release memory associated with the last HACD request
+    void releaseHACD(void) // release memory associated with the last HACD request
     {
-        for (uint32_t i=0; i<mHullCount; i++)
+        for (uint32_t i = 0; i < mHullCount; i++)
         {
             releaseHull(mHulls[i]);
         }
-        delete[]mHulls;
+        delete[] mHulls;
         mHulls = nullptr;
         mHullCount = 0;
         HACD_FREE(mVertices);
@@ -183,36 +192,40 @@ public:
         delete this;
     }
 
-    virtual uint32_t	getHullCount(void)
+    virtual uint32_t getHullCount(void)
     {
         return mHullCount;
     }
 
     virtual void Cancel() final
     {
-        if (mRunning)
+        // printf("Entered Cancel\n");
+        mCancel = true;
+        if (mVHACD)
         {
-            mVHACD->Cancel();	// Set the cancel signal to the base VHACD
+            // printf("Setting cancel on the V-HACD instance\n");
+            mVHACD->Cancel(); // Set the cancel signal to the base VHACD
         }
         if (mTask)
         {
-            mTaskRunner->JoinTask(mTask);	// Wait for the thread to fully exit before we delete the instance
+            // printf("JoinTask waiting for task to complete.\n");
+            mTaskRunner->JoinTask(mTask); // Wait for the thread to fully exit before we delete the instance
             mTask = nullptr;
-            Log("Convex Decomposition thread canceled\n");
         }
+        // printf("Leaving Cancel routine\n");
         mCancel = false; // clear the cancel semaphore
     }
 
     virtual bool Compute(const float* const points,
-        const uint32_t countPoints,
-        const uint32_t* const triangles,
-        const uint32_t countTriangles,
-        const Parameters& params) final
+                         const uint32_t countPoints,
+                         const uint32_t* const triangles,
+                         const uint32_t countTriangles,
+                         const Parameters& params) final
     {
 
-        double *vertices = (double *)HACD_ALLOC(sizeof(double)*countPoints * 3);
-        const float *source = points;
-        double *dest = vertices;
+        double* vertices = (double*)HACD_ALLOC(sizeof(double) * countPoints * 3);
+        const float* source = points;
+        double* dest = vertices;
         for (uint32_t i = 0; i < countPoints; i++)
         {
             dest[0] = source[0];
@@ -222,7 +235,7 @@ public:
             source += 3;
         }
 
-        bool ret =  Compute(vertices, countPoints, triangles, countTriangles, params);
+        bool ret = Compute(vertices, countPoints, triangles, countTriangles, params);
         HACD_FREE(vertices);
         return ret;
     }
@@ -240,16 +253,16 @@ public:
         mVHACD->Clean();
     }
 
-    virtual void Release(void) final  // release IVHACD
+    virtual void Release(void) final // release IVHACD
     {
         delete this;
     }
 
     virtual void Update(const double overallProgress,
-        const double stageProgress,
-        const double operationProgress,
-        const char* const stage,
-        const char* const operation) final
+                        const double stageProgress,
+                        const double operationProgress,
+                        const char* const stage,
+                        const char* const operation) final
     {
         mMessageMutex.lock();
         mHaveUpdateMessage = true;
@@ -272,7 +285,7 @@ public:
     virtual bool IsReady(void) const final
     {
         processPendingMessages();
-        return !mRunning; 
+        return !mRunning;
     }
 
     // As a convenience for the calling application we only send it update and log messages from it's own main
@@ -280,7 +293,12 @@ public:
     // messages in it's main application thread.
     void processPendingMessages(void) const
     {
-        // If we have a new update message and the user has specified a callback we send the message and clear the semaphore
+        if (mCancel)
+        {
+            return;
+        }
+        // If we have a new update message and the user has specified a callback we send the message and clear the
+        // semaphore
         if (mHaveUpdateMessage && mCallback)
         {
             mMessageMutex.lock();
@@ -288,7 +306,8 @@ public:
             mHaveUpdateMessage = false;
             mMessageMutex.unlock();
         }
-        // If we have a new log message and the user has specified a callback we send the message and clear the semaphore
+        // If we have a new log message and the user has specified a callback we send the message and clear the
+        // semaphore
         if (mHaveLogMessage && mLogger)
         {
             mMessageMutex.lock();
@@ -308,7 +327,7 @@ public:
         centerOfMass[1] = 0;
         centerOfMass[2] = 0;
 
-        if (mVHACD && IsReady() )
+        if (mVHACD && IsReady())
         {
             ret = mVHACD->ComputeCenterOfMass(centerOfMass);
         }
@@ -316,39 +335,38 @@ public:
     }
 
 private:
-    double							*mVertices{ nullptr };
-    uint32_t						*mIndices{ nullptr };
-    std::atomic< uint32_t>			mHullCount{ 0 };
-    VHACD::IVHACD::ConvexHull		*mHulls{ nullptr };
-    VHACD::IVHACD::IUserCallback	*mCallback{ nullptr };
-    VHACD::IVHACD::IUserLogger		*mLogger{ nullptr };
-    VHACD::IVHACD					*mVHACD{ nullptr };
-    VHACD::IVHACD::IUserTaskRunner	*mTaskRunner{ nullptr };
-    void                            *mTask{ nullptr };
-    std::atomic< bool >				mRunning{ false };
-    std::atomic<bool>				mCancel{ false };
+    double* mVertices{ nullptr };
+    uint32_t* mIndices{ nullptr };
+    std::atomic<uint32_t> mHullCount{ 0 };
+    VHACD::IVHACD::ConvexHull* mHulls{ nullptr };
+    VHACD::IVHACD::IUserCallback* mCallback{ nullptr };
+    VHACD::IVHACD::IUserLogger* mLogger{ nullptr };
+    VHACD::IVHACD* mVHACD{ nullptr };
+    VHACD::IVHACD::IUserTaskRunner* mTaskRunner{ nullptr };
+    void* mTask{ nullptr };
+    std::atomic<bool> mRunning{ false };
+    std::atomic<bool> mCancel{ false };
 
     // Thread safe caching mechanism for messages and update status.
     // This is so that caller always gets messages in his own thread
     // Member variables are marked as 'mutable' since the message dispatch function
     // is called from const query methods.
-    mutable std::mutex						mMessageMutex;
-    mutable std::atomic< bool >				mHaveUpdateMessage{ false };
-    mutable std::atomic< bool >				mHaveLogMessage{ false };
-    mutable double							mOverallProgress{ 0 };
-    mutable double							mStageProgress{ 0 };
-    mutable double							mOperationProgress{ 0 };
-    mutable std::string						mStage;
-    mutable std::string						mOperation;
-    mutable std::string						mMessage;
+    mutable std::mutex mMessageMutex;
+    mutable std::atomic<bool> mHaveUpdateMessage{ false };
+    mutable std::atomic<bool> mHaveLogMessage{ false };
+    mutable double mOverallProgress{ 0 };
+    mutable double mStageProgress{ 0 };
+    mutable double mOperationProgress{ 0 };
+    mutable std::string mStage;
+    mutable std::string mOperation;
+    mutable std::string mMessage;
 };
 
 IVHACD* CreateVHACD_ASYNC(void)
 {
-    MyHACD_API *m = new MyHACD_API;
-    return static_cast<IVHACD *>(m);
+    MyHACD_API* m = new MyHACD_API;
+    return static_cast<IVHACD*>(m);
 }
 
 
-}; // end of VHACD namespace
-
+}; // namespace VHACD
