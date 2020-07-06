@@ -259,8 +259,8 @@ private:
         VoxelizeMesh(points, nPoints, (int32_t*)triangles, nTriangles, params);
         ComputePrimitiveSet(params);
         ComputeACD(params);
-        SimplifyConvexHulls(params);
         MergeConvexHulls(params);
+        SimplifyConvexHulls(params);
         if (GetCancel())
         {
             //printf("EarlyOut:ComputeACD::Clean\n");
