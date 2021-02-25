@@ -1,4 +1,7 @@
 project(VHACD_LIB CXX C)
+
+set(CMAKE_COMMON_INC "${CMAKE_CURRENT_SOURCE_DIR}/../../scripts/cmake_common.cmake")
+
 include(${CMAKE_COMMON_INC})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -29,9 +32,11 @@ endif()
 
 
 target_include_directories(vhacd PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public/>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc/>
   $<INSTALL_INTERFACE:include/>  # <prefix>/include/mylib
   )
+
 
 
 message("[VHACD] \t -> CMAKE_INSTALL_PREFIX " ${CMAKE_INSTALL_PREFIX})
@@ -74,4 +79,3 @@ install(
   COMPONENT
     Devel
 )
-
