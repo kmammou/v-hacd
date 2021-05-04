@@ -70,18 +70,18 @@ public:
     Vec3<double>& GetPoint(size_t index) { return m_points[index]; };
     size_t GetNPoints() const { return m_points.Size(); };
     double* GetPoints() { return (double*)m_points.Data(); } // ugly
-    const double* const GetPoints() const { return (double*)m_points.Data(); } // ugly
-    const Vec3<double>* const GetPointsBuffer() const { return m_points.Data(); } //
-    Vec3<double>* const GetPointsBuffer() { return m_points.Data(); } //
+    const double* GetPoints() const { return (double*)m_points.Data(); } // ugly
+    const Vec3<double>* GetPointsBuffer() const { return m_points.Data(); } //
+    Vec3<double>* GetPointsBuffer() { return m_points.Data(); } //
     void AddTriangle(const Vec3<int32_t>& tri) { m_triangles.PushBack(tri); };
     void SetTriangle(size_t index, const Vec3<int32_t>& tri) { m_triangles[index] = tri; };
     const Vec3<int32_t>& GetTriangle(size_t index) const { return m_triangles[index]; };
     Vec3<int32_t>& GetTriangle(size_t index) { return m_triangles[index]; };
     size_t GetNTriangles() const { return m_triangles.Size(); };
     int32_t* GetTriangles() { return (int32_t*)m_triangles.Data(); } // ugly
-    const int32_t* const GetTriangles() const { return (int32_t*)m_triangles.Data(); } // ugly
-    const Vec3<int32_t>* const GetTrianglesBuffer() const { return m_triangles.Data(); }
-    Vec3<int32_t>* const GetTrianglesBuffer() { return m_triangles.Data(); }
+    const int32_t* GetTriangles() const { return (int32_t*)m_triangles.Data(); } // ugly
+    const Vec3<int32_t>* GetTrianglesBuffer() const { return m_triangles.Data(); }
+    Vec3<int32_t>* GetTrianglesBuffer() { return m_triangles.Data(); }
     const Vec3<double>& GetCenter() const { return m_center; }
     const Vec3<double>& GetMinBB() const { return m_minBB; }
     const Vec3<double>& GetMaxBB() const { return m_maxBB; }
