@@ -168,8 +168,10 @@ public:
         {
             return;
         }
-        std::unique_lock<std::mutex> lock(mWorkCompleteMutex);
-        mWorkComplete.wait(lock);
+        while (mPendingJobCount.load() )
+        {
+            std::this_thread::sleep_for(std::chrono::nanoseconds(10000)); // s
+        }
     }
 
     // Releases the SimpleJobSystem instance
