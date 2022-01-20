@@ -364,7 +364,7 @@ private:
     * 
     * @return : Returns which convex hull this position is closest to.
     */
-    virtual uint32_t findNearestConvexHull(const double pos[3]) final;
+    virtual uint32_t findNearestConvexHull(const double pos[3],double &distanceToHull) final;
 
 private:
 	RaycastMesh		*mRaycastMesh{ nullptr };

@@ -305,7 +305,8 @@ public:
 			for (uint32_t i=0; i<vcount; i++)
 			{
 				const double *pos = &points[i*3];
-				uint32_t hull = mHACD->findNearestConvexHull(pos);
+				double distanceToHull;
+				uint32_t hull = mHACD->findNearestConvexHull(pos,distanceToHull);
 
 				uint32_t cindex = (hull % 20) + RENDER_DEBUG::DebugColors::Red;
 

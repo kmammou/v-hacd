@@ -307,14 +307,15 @@ public:
     * 
     * @return : Returns which convex hull this position is closest to.
     */
-    virtual uint32_t findNearestConvexHull(const double pos[3]) final
+    virtual uint32_t findNearestConvexHull(const double pos[3],double &distanceToHull) final
 	{
 		uint32_t ret = 0; // The default return code is zero
 
+		distanceToHull = 0;
 		// First, make sure that we have valid and completed results
 		if (mVHACD && IsReady() && mHullCount )
 		{
-			ret = mVHACD->findNearestConvexHull(pos);
+			ret = mVHACD->findNearestConvexHull(pos,distanceToHull);
 		}
 
 		return ret;

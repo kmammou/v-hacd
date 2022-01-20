@@ -1596,11 +1596,12 @@ bool VHACD::ComputeCenterOfMass(double centerOfMass[3]) const
 * 
 * @return : Returns which convex hull this position is closest to.
 */
-uint32_t VHACD::findNearestConvexHull(const double pos[3]) 
+uint32_t VHACD::findNearestConvexHull(const double pos[3],double &distanceToHull) 
 {
 	uint32_t ret = 0; // The default return code is zero
 
     uint32_t hullCount = GetNConvexHulls();
+    distanceToHull = 0;
 	// First, make sure that we have valid and completed results
 	if ( hullCount )
 	{
@@ -1640,6 +1641,7 @@ uint32_t VHACD::findNearestConvexHull(const double pos[3])
 				}
 			}
 		}
+        distanceToHull = sqrt(closest); // compute the distance to the nearest convex hull
 	}
 
 	return ret;
