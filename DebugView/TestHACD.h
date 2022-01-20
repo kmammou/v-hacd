@@ -39,6 +39,8 @@ public:
 
 	virtual void cancel(void) = 0;
 
+	virtual void meshVertsToHulls(uint32_t vcount,const double *points) = 0;
+
 	virtual void release(void) = 0;
 protected:
 	virtual ~TestHACD(void)

@@ -144,6 +144,22 @@ public:
 		return true;
 	}
 
+    /**
+    * At the request of LegionFu : out_look@foxmail.com
+    * This method will return which convex hull is closest to the source position.
+    * You can use this method to figure out, for example, which vertices in the original
+    * source mesh are best associated with which convex hull.
+    * 
+    * @param pos : The input 3d position to test against
+    * 
+    * @return : Returns which convex hull this position is closest to.
+    */
+    virtual uint32_t findNearestConvexHull(const double pos[3]) 
+    {
+        (pos);
+        return 0;
+    }
+
 protected:
     virtual ~IVHACD(void) {}
 };

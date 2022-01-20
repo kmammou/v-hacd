@@ -1,4 +1,5 @@
 #include "../public/VHACD.h"
+#include "aabb.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -7,6 +8,7 @@
 #include <mutex>
 #include <string>
 #include <float.h>
+#include <vector>
 
 #define ENABLE_ASYNC 1
 
@@ -16,6 +18,8 @@
 
 namespace VHACD
 {
+
+using AABBTreeVector = std::vector< AABBTree *>;
 
 class MyHACD_API : public VHACD::IVHACD, public VHACD::IVHACD::IUserCallback, VHACD::IVHACD::IUserLogger
 {
@@ -133,6 +137,11 @@ public:
 
 	void	releaseHACD(void) // release memory associated with the last HACD request
 	{
+		for (auto &i:mTrees)
+		{
+			i->release();
+		}
+		mTrees.clear();
 		for (uint32_t i=0; i<mHullCount; i++)
 		{
 			releaseHull(mHulls[i]);
@@ -296,6 +305,64 @@ public:
 		return ret;
 	}
 
+	/**
+    * At the request of LegionFu : out_look@foxmail.com
+    * This method will return which convex hull is closest to the source position.
+    * You can use this method to figure out, for example, which vertices in the original
+    * source mesh are best associated with which convex hull.
+    * 
+    * @param pos : The input 3d position to test against
+    * 
+    * @return : Returns which convex hull this position is closest to.
+    */
+    virtual uint32_t findNearestConvexHull(const double pos[3]) final
+	{
+		uint32_t ret = 0; // The default return code is zero
+
+		// First, make sure that we have valid and completed results
+		if (mVHACD && IsReady() && mHullCount )
+		{
+			// See if we already have AABB trees created for each convex hull
+			if ( mTrees.empty() )
+			{
+				// For each convex hull, we generate an AABB tree for fast closest point queries
+				for (uint32_t i=0; i<mHullCount; i++)
+				{
+					VHACD::IVHACD::ConvexHull ch;
+					GetConvexHull(i,ch);
+					// Pass the triangle mesh to create an AABB tree instance based on it.
+					AABBTree *t  = AABBTree::create(ch.m_points,ch.m_nPoints,ch.m_triangles,ch.m_nTriangles);
+					// Save the AABB tree into the container 'mTrees'
+					mTrees.push_back(t);
+				}
+			}
+			// We now compute the closest point to each convex hull and save the nearest one
+			double closest = 1e99;
+			for (uint32_t i=0; i<mHullCount; i++)
+			{
+				AABBTree *t = mTrees[i];
+				if ( t )
+				{
+					double closestPoint[3];
+					if ( t->getClosestPointWithinDistance(pos,1e99,closestPoint))
+					{
+						double dx = pos[0] - closestPoint[0];
+						double dy = pos[1] - closestPoint[1];
+						double dz = pos[2] - closestPoint[2];
+						double distanceSquared = dx*dx + dy*dy + dz*dz;
+						if ( distanceSquared < closest )
+						{
+							closest = distanceSquared;
+							ret = i;
+						}
+					}
+				}
+			}
+		}
+
+		return ret;
+	}
+
 private:
 	double							*mVertices{ nullptr };
 	uint32_t						*mIndices{ nullptr };
@@ -321,6 +388,9 @@ private:
 	mutable std::string						mStage;
 	mutable std::string						mOperation;
 	mutable std::string						mMessage;
+
+	// A collection of AABB trees for each convex hull to do high speed queries against
+	AABBTreeVector							mTrees;
 };
 
 IVHACD* CreateVHACD_ASYNC(void)

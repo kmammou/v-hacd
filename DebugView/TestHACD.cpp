@@ -296,6 +296,31 @@ public:
 		}
 	}
 
+	virtual void meshVertsToHulls(uint32_t vcount,const double *points) final
+	{
+		if ( mHACD )
+		{
+			mRenderDebug->pushRenderState();
+			mRenderDebug->setCurrentDisplayTime(15.0);
+			for (uint32_t i=0; i<vcount; i++)
+			{
+				const double *pos = &points[i*3];
+				uint32_t hull = mHACD->findNearestConvexHull(pos);
+
+				uint32_t cindex = (hull % 20) + RENDER_DEBUG::DebugColors::Red;
+
+				uint32_t color = mRenderDebug->getDebugColor((RENDER_DEBUG::DebugColors::Enum)cindex);
+				mRenderDebug->setCurrentColor(color,0xFFFFFF);
+				float fpos[3];
+				fpos[0] = float(pos[0]);
+				fpos[1] = float(pos[1]);
+				fpos[2] = float(pos[2]);
+				mRenderDebug->debugPoint(fpos,0.03f);
+			}
+			mRenderDebug->popRenderState();
+		}
+	}
+
 	uint32_t							mConvexMeshCount{ 0 };
 	NV_PHYSX_FRAMEWORK::PhysXFramework::ConvexMesh		**mConvexMeshes{ nullptr };
 	NV_PHYSX_FRAMEWORK::PhysXFramework::CompoundActor	*mCompoundActor{ nullptr };

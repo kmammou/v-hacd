@@ -227,7 +227,9 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("Button ToggleSimulation ToggleSimulation");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
-
+	gRenderDebug->sendRemoteCommand("BeginGroup \"LegionFu\"");	// Mark the beginning of a group of controls.
+	gRenderDebug->sendRemoteCommand("Button MeshVertsToHulls MeshVertsToHulls");
+	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
 
 	gRenderDebug->sendRemoteCommand("EndTab"); // End the tab called 'Test RenderDebug'
@@ -308,6 +310,10 @@ public:
 			else if (strcmp(cmd, "ToggleSimulation") == 0 && mTestHACD )
 			{
 				mTestHACD->toggleSimulation();
+			}
+			else if (strcmp(cmd, "MeshVertsToHulls") == 0 && mTestHACD )
+			{
+				mTestHACD->meshVertsToHulls(gVertexCount,gVertices);
 			}
 			else if (strcmp(cmd, "raycast") == 0 && mTestHACD)
 			{
