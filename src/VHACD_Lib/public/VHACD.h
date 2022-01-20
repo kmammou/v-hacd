@@ -154,11 +154,7 @@ public:
     * 
     * @return : Returns which convex hull this position is closest to.
     */
-    virtual uint32_t findNearestConvexHull(const double pos[3]) 
-    {
-        (pos);
-        return 0;
-    }
+    virtual uint32_t findNearestConvexHull(const double pos[3]) = 0;
 
 protected:
     virtual ~IVHACD(void) {}

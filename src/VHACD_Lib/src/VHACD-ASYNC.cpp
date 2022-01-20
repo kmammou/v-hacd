@@ -1,5 +1,4 @@
 #include "../public/VHACD.h"
-#include "aabb.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -18,8 +17,6 @@
 
 namespace VHACD
 {
-
-using AABBTreeVector = std::vector< AABBTree *>;
 
 class MyHACD_API : public VHACD::IVHACD, public VHACD::IVHACD::IUserCallback, VHACD::IVHACD::IUserLogger
 {
@@ -137,11 +134,6 @@ public:
 
 	void	releaseHACD(void) // release memory associated with the last HACD request
 	{
-		for (auto &i:mTrees)
-		{
-			i->release();
-		}
-		mTrees.clear();
 		for (uint32_t i=0; i<mHullCount; i++)
 		{
 			releaseHull(mHulls[i]);
@@ -322,42 +314,7 @@ public:
 		// First, make sure that we have valid and completed results
 		if (mVHACD && IsReady() && mHullCount )
 		{
-			// See if we already have AABB trees created for each convex hull
-			if ( mTrees.empty() )
-			{
-				// For each convex hull, we generate an AABB tree for fast closest point queries
-				for (uint32_t i=0; i<mHullCount; i++)
-				{
-					VHACD::IVHACD::ConvexHull ch;
-					GetConvexHull(i,ch);
-					// Pass the triangle mesh to create an AABB tree instance based on it.
-					AABBTree *t  = AABBTree::create(ch.m_points,ch.m_nPoints,ch.m_triangles,ch.m_nTriangles);
-					// Save the AABB tree into the container 'mTrees'
-					mTrees.push_back(t);
-				}
-			}
-			// We now compute the closest point to each convex hull and save the nearest one
-			double closest = 1e99;
-			for (uint32_t i=0; i<mHullCount; i++)
-			{
-				AABBTree *t = mTrees[i];
-				if ( t )
-				{
-					double closestPoint[3];
-					if ( t->getClosestPointWithinDistance(pos,1e99,closestPoint))
-					{
-						double dx = pos[0] - closestPoint[0];
-						double dy = pos[1] - closestPoint[1];
-						double dz = pos[2] - closestPoint[2];
-						double distanceSquared = dx*dx + dy*dy + dz*dz;
-						if ( distanceSquared < closest )
-						{
-							closest = distanceSquared;
-							ret = i;
-						}
-					}
-				}
-			}
+			ret = mVHACD->findNearestConvexHull(pos);
 		}
 
 		return ret;
@@ -389,8 +346,6 @@ private:
 	mutable std::string						mOperation;
 	mutable std::string						mMessage;
 
-	// A collection of AABB trees for each convex hull to do high speed queries against
-	AABBTreeVector							mTrees;
 };
 
 IVHACD* CreateVHACD_ASYNC(void)

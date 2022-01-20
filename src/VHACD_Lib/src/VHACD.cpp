@@ -1586,4 +1586,63 @@ bool VHACD::ComputeCenterOfMass(double centerOfMass[3]) const
 	return ret;
 }
 
+/**
+* At the request of LegionFu : out_look@foxmail.com
+* This method will return which convex hull is closest to the source position.
+* You can use this method to figure out, for example, which vertices in the original
+* source mesh are best associated with which convex hull.
+* 
+* @param pos : The input 3d position to test against
+* 
+* @return : Returns which convex hull this position is closest to.
+*/
+uint32_t VHACD::findNearestConvexHull(const double pos[3]) 
+{
+	uint32_t ret = 0; // The default return code is zero
+
+    uint32_t hullCount = GetNConvexHulls();
+	// First, make sure that we have valid and completed results
+	if ( hullCount )
+	{
+		// See if we already have AABB trees created for each convex hull
+		if ( mTrees.empty() )
+		{
+			// For each convex hull, we generate an AABB tree for fast closest point queries
+			for (uint32_t i=0; i<hullCount; i++)
+			{
+				VHACD::IVHACD::ConvexHull ch;
+				GetConvexHull(i,ch);
+				// Pass the triangle mesh to create an AABB tree instance based on it.
+				AABBTree *t  = AABBTree::create(ch.m_points,ch.m_nPoints,ch.m_triangles,ch.m_nTriangles);
+				// Save the AABB tree into the container 'mTrees'
+				mTrees.push_back(t);
+			}
+		}
+		// We now compute the closest point to each convex hull and save the nearest one
+		double closest = 1e99;
+		for (uint32_t i=0; i<hullCount; i++)
+		{
+			AABBTree *t = mTrees[i];
+			if ( t )
+			{
+				double closestPoint[3];
+				if ( t->getClosestPointWithinDistance(pos,1e99,closestPoint))
+				{
+					double dx = pos[0] - closestPoint[0];
+					double dy = pos[1] - closestPoint[1];
+					double dz = pos[2] - closestPoint[2];
+					double distanceSquared = dx*dx + dy*dy + dz*dz;
+					if ( distanceSquared < closest )
+					{
+						closest = distanceSquared;
+						ret = i;
+					}
+				}
+			}
+		}
+	}
+
+	return ret;
+}
+
 } // end of VHACD namespace

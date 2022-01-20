@@ -27,13 +27,20 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "vhacdMutex.h"
 #include "vhacdVolume.h"
 #include "vhacdRaycastMesh.h"
+#include "aabb.h"
+
 #include <vector>
 
 #define USE_THREAD 1
 #define OCL_MIN_NUM_PRIMITIVES 4096
 #define CH_APP_MIN_NUM_PRIMITIVES 64000
-namespace VHACD {
-class VHACD : public IVHACD {
+namespace VHACD 
+{
+
+using AABBTreeVector = std::vector< AABBTree *>;
+
+class VHACD : public IVHACD 
+{
 public:
     //! Constructor.
     VHACD()
@@ -80,6 +87,14 @@ public:
     }
     void Clean(void)
     {
+        for (auto &i:mTrees)
+        {
+            if ( i )
+            {
+                i->release();
+            }
+        }
+        mTrees.clear();
         if (mRaycastMesh)
         {
             mRaycastMesh->release();
@@ -339,6 +354,18 @@ private:
         return true;
     }
 
+    /**
+    * At the request of LegionFu : out_look@foxmail.com
+    * This method will return which convex hull is closest to the source position.
+    * You can use this method to figure out, for example, which vertices in the original
+    * source mesh are best associated with which convex hull.
+    * 
+    * @param pos : The input 3d position to test against
+    * 
+    * @return : Returns which convex hull this position is closest to.
+    */
+    virtual uint32_t findNearestConvexHull(const double pos[3]) final;
+
 private:
 	RaycastMesh		*mRaycastMesh{ nullptr };
     SArray<Mesh*> m_convexHulls;
@@ -366,6 +393,8 @@ private:
     cl_kernel* m_oclKernelComputeSum;
     size_t m_oclWorkGroupSize;
 #endif //CL_VERSION_1_1
+    	// A collection of AABB trees for each convex hull to do high speed queries against
+	AABBTreeVector							mTrees;
 };
 }
 #endif // VHACD_VHACD_H
