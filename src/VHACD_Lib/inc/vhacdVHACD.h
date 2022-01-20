@@ -29,11 +29,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #    include "vhacdMutex.h"
 #    include "vhacdVolume.h"
 #    include "vhacdRaycastMesh.h"
+#include "aabbtree.h"
 #include <atomic>
 #    include <vector>
 
 namespace VHACD
 {
+
+using AABBTreeVector = std::vector< aabbtree::AABBTree *>;
 
 class PrimitiveSetBase;
 
@@ -72,6 +75,14 @@ public:
     }
     void Clean(void)
     {
+        for (auto &i:mTrees)
+        {
+            if ( i )
+            {
+                i->release();
+            }
+        }
+        mTrees.clear();
         if (mRaycastMesh)
         {
             mRaycastMesh->release();
@@ -270,6 +281,18 @@ private:
         return true;
     }
 
+    /**
+    * At the request of LegionFu : out_look@foxmail.com
+    * This method will return which convex hull is closest to the source position.
+    * You can use this method to figure out, for example, which vertices in the original
+    * source mesh are best associated with which convex hull.
+    * 
+    * @param pos : The input 3d position to test against
+    * 
+    * @return : Returns which convex hull this position is closest to.
+    */
+    virtual uint32_t findNearestConvexHull(const double pos[3],double &distanceToHull) final;
+
 private:
     RaycastMesh* mRaycastMesh{ nullptr };
     SArray<Mesh*> m_convexHulls;
@@ -285,6 +308,7 @@ private:
     Volume* m_volume;
     PrimitiveSet* m_pset;
     std::atomic<bool> m_cancel{false};
+	AABBTreeVector							mTrees;
 };
 } // namespace VHACD
 #endif // VHACD_VHACD_H

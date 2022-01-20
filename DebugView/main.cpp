@@ -113,6 +113,7 @@ void createMenus(void)
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 	gRenderDebug->sendRemoteCommand("EndTab"); // End the tab called 'Test RenderDebug'
 
+
         // Debug the V-HACD code
     gRenderDebug->sendRemoteCommand("BeginTab \"V-HACD Debugging\"");	// Mark the beginning of a new tab display in the DebugView application
 
@@ -125,6 +126,10 @@ void createMenus(void)
     gRenderDebug->sendRemoteCommand("CheckBox ShowVoxelOutside false ShowVoxelOutside");
     gRenderDebug->sendRemoteCommand("CheckBox ShowVoxelUndefined false ShowVoxelUndefined");
     gRenderDebug->sendRemoteCommand("EndGroup"); //
+
+	gRenderDebug->sendRemoteCommand("BeginGroup \"LegionFu\"");	// Mark the beginning of a group of controls.
+	gRenderDebug->sendRemoteCommand("Button MeshVertsToHulls MeshVertsToHulls");
+	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
 
 
     gRenderDebug->sendRemoteCommand("EndTab"); // End the tab called 'Test RenderDebug'
@@ -230,6 +235,10 @@ public:
 			else if (strcmp(cmd, "ToggleSimulation") == 0 && mTestHACD )
 			{
 				mTestHACD->toggleSimulation(mSimulateAsRagdoll,mBoneWeightFalloff,mBoneWeightPercentage, mConstraintType, 0, mLimitRangeDegrees, mLimitRangeDegrees, mLimitRangeDegrees, mForwardAxis);
+			}
+			else if (strcmp(cmd, "MeshVertsToHulls") == 0 && mTestHACD )
+			{
+				mTestHACD->meshVertsToHulls(gVertexCount,gVertices);
 			}
 			else if (strcmp(cmd, "raycast") == 0 && mTestHACD)
 			{
