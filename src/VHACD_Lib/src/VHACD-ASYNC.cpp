@@ -1,4 +1,5 @@
 #include "VHACD.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -17,6 +18,12 @@
 namespace VHACD
 {
 
+IVHACD* CreateVHACD(void)
+{
+    return nullptr;
+}
+
+
 class MyHACD_API : public VHACD::IVHACD,
                    public VHACD::IVHACD::IUserCallback,
                    VHACD::IVHACD::IUserLogger,
@@ -32,7 +39,10 @@ public:
     {
         releaseHACD();
         Cancel();
-        mVHACD->Release();
+        if ( mVHACD )
+        {
+            mVHACD->Release();
+        }
     }
 
     virtual void* StartTask(std::function<void()> func) override
@@ -117,7 +127,7 @@ public:
             desc.m_taskRunner = this;
         }
 
-        if (countPoints)
+        if (countPoints && mVHACD)
         {
             bool ok = mVHACD->Compute(points, countPoints, triangles, countTriangles, desc);
             if (ok)

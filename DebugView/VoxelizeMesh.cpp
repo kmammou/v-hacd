@@ -1,9 +1,6 @@
 #include "VoxelizeMesh.h"
-#include "vhacdVolume.h"
-#include "vhacdMesh.h"
 #include "NvRenderDebug.h"
 #include "FloatMath.h"
-#include "vhacdRaycastMesh.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -160,75 +157,6 @@ namespace voxelizemesh
 	};
 
 
-class DebugMesh
-{
-public:
-	DebugMesh(VHACD::Mesh &m,RENDER_DEBUG::RenderDebug *r) : mRenderDebug(r)
-	{
-		if ( m.GetNTriangles() )
-		{
-			const int32_t *indices = m.GetTriangles();
-			uint32_t triangleCount = uint32_t(m.GetNTriangles());
-			MeshBuilder mb(uint32_t(m.GetNPoints()));
-			uint32_t tcount = 0;
-#define MAX_VERT_MESH 200000
-			for (uint32_t i=0; i<triangleCount; i++)
-			{
-				uint32_t i1 = uint32_t(indices[i*3+0]);
-				uint32_t i2 = uint32_t(indices[i*3+1]);
-				uint32_t i3 = uint32_t(indices[i*3+2]);
-				VHACD::Vec3<float> p1 = m.GetPointFloat(i1);
-				VHACD::Vec3<float> p2 = m.GetPointFloat(i2);
-				VHACD::Vec3<float> p3 = m.GetPointFloat(i3);
-				mb.addTriangle(&p1[0],&p2[0],&p3[0]);
-				tcount++;
-				if ( tcount == MAX_VERT_MESH )
-				{
-					uint32_t meshId = mRenderDebug->getMeshId();
-					mRenderDebug->createTriangleMesh(meshId, (uint32_t)mb.mVertices.size(), &mb.mVertices[0], 0, nullptr);
-					mMeshIds.push_back(meshId);
-					mb.clear();
-					tcount = 0;
-				}
-			}
-			if ( mb.mVertices.size() )
-			{
-				uint32_t meshId = mRenderDebug->getMeshId();
-				mRenderDebug->createTriangleMesh(meshId, (uint32_t)mb.mVertices.size(), &mb.mVertices[0], 0, nullptr);
-				mMeshIds.push_back(meshId);
-			}
-		}
-	}
-
-	~DebugMesh(void)
-	{
-		for (auto &i:mMeshIds)
-		{
-			mRenderDebug->releaseTriangleMesh(i);
-		}
-	}
-
-	void visualize(RENDER_DEBUG::DebugTextures::Enum t)
-	{
-		if ( !mMeshIds.empty() )
-		{
-			mRenderDebug->pushRenderState();
-			mRenderDebug->setCurrentTexture(t,1,RENDER_DEBUG::DebugTextures::WHITE,4);
-			RENDER_DEBUG::RenderDebugInstance instance;
-			float xform[16];
-			FLOAT_MATH::fm_identity(xform);
-			for (auto &i:mMeshIds)
-			{
-				mRenderDebug->renderTriangleMeshInstances(i, 1, &instance);
-			}
-			mRenderDebug->popRenderState();
-		}
-	}
-
-	std::vector<uint32_t>		mMeshIds;
-	RENDER_DEBUG::RenderDebug	*mRenderDebug{nullptr};
-};
-
 class VoxelizeMeshImpl : public VoxelizeMesh
 {
 public:
@@ -241,91 +169,14 @@ public:
                      VHACD::IVHACD::Parameters &params) : mRenderDebug(renderDebug)
 	{
 
-		{
-			mRaycastMesh = VHACD::RaycastMesh::createRaycastMesh(vertexCount,vertices,triangleCount,indices);
-		}
-
-		double a = pow((double)(resolution), 0.33);
-		mDimensions = (uint32_t)(a*1.5);
-		// Minimum voxel resolution is 32x32x32
-		if (mDimensions < 32)
-		{
-			mDimensions = 32;
-		}
-		mVolume = new VHACD::Volume(params);
-
-		printf("Voxelizing input mesh of %d triangles at dimensions:%d\n", triangleCount, mDimensions);
-
-		mVolume->Voxelize(vertices,vertexCount,(const int32_t *)indices,triangleCount,mDimensions,VHACD::FillMode::SURFACE_ONLY,nullptr);
-		printf("Building OnSurface mesh\n");
-		mVolume->Convert(mOnSurface,VHACD::PRIMITIVE_ON_SURFACE);
-		printf("Building OutsideSurface mesh\n");
-		mVolume->Convert(mOutsideSurface,VHACD::PRIMITIVE_OUTSIDE_SURFACE);
-		printf("Building InsideSurface mesh\n");
-		mVolume->Convert(mInsideSurface,VHACD::PRIMITIVE_INSIDE_SURFACE);
-		printf("Building UndefinedSurface mesh\n");
-		mVolume->Convert(mUndefined,VHACD::PRIMITIVE_UNDEFINED);
-
-		printf("Building OnSurface Debug Visualization mesh\n");
-		mOnSurfaceMesh = new DebugMesh(mOnSurface, mRenderDebug);
-
-		printf("Building OutsideSurface Debug Visualization mesh\n");
-		mOutsideSurfaceMesh = new DebugMesh(mOutsideSurface,mRenderDebug);
-
-		printf("Building InsideSurface Debug Visualization mesh\n");
-		mInsideSurfaceMesh = new DebugMesh(mInsideSurface,mRenderDebug);
-
-		printf("Building UndefinedSurface Debug Visualization mesh\n");
-		mUndefinedMesh = new DebugMesh(mUndefined,mRenderDebug);
-
-		printf("Voxelization complete.\n");
 	}
 
 	virtual ~VoxelizeMeshImpl(void)
 	{
-		mRaycastMesh->release();
-		delete mVolume;
-		delete mOutsideSurfaceMesh;
-		delete mInsideSurfaceMesh;
-		delete mOnSurfaceMesh;
-		delete mUndefinedMesh;
 	}
 
 	virtual void visualize(bool showSurface,bool showInside,bool showOutside,bool showUndefined) final
 	{
-#if 0
-		if ( mOnSurfaceMesh && showSurface )
-		{
-			mOnSurfaceMesh->visualize(RENDER_DEBUG::DebugTextures::GOLD);
-		}
-		if (mOutsideSurfaceMesh && showOutside)
-		{
-			mOutsideSurfaceMesh->visualize(RENDER_DEBUG::DebugTextures::LIGHT_TORQUISE);
-		}
-		if (mInsideSurfaceMesh && showInside)
-		{
-			mInsideSurfaceMesh->visualize(RENDER_DEBUG::DebugTextures::BLUE_GRAY);
-		}
-		if (mUndefinedMesh && showUndefined)
-		{
-			mUndefinedMesh->visualize(RENDER_DEBUG::DebugTextures::GRAY);
-		}
-#else
-		visualizeVolume(showSurface,showInside,showOutside,showUndefined);
-#endif
-		if ( !mSnapPoints.empty() )
-		{
-			mRenderDebug->pushRenderState();
-			for (auto &i:mSnapPoints)
-			{
-				mRenderDebug->setCurrentColor(0xFF0000);
-				mRenderDebug->debugLine(&i.from.x,&i.to.x);
-				mRenderDebug->debugPoint(&i.from.x,0.05f);
-				mRenderDebug->setCurrentColor(0x00FF00);
-				mRenderDebug->debugPoint(&i.to.x,0.05f);
-			}
-			mRenderDebug->popRenderState();
-		}
 	}
 
 	virtual void release(void) final
@@ -335,92 +186,10 @@ public:
 
 	void visualizeVolume(bool showSurface,bool showInside,bool showOutside,bool showUndefined)
 	{
-		float scale = float(mVolume->m_scale);
-		float bmin[3];
-
-		bmin[0] = float(mVolume->m_minBB[0]);
-		bmin[1] = float(mVolume->m_minBB[1]);
-		bmin[2] = float(mVolume->m_minBB[2]);
-
-		const size_t i0 = mVolume->m_dim[0];
-		const size_t j0 = mVolume->m_dim[1];
-		const size_t k0 = mVolume->m_dim[2];
-
-		uint32_t lastColor = 0;
-
-		for (size_t i = 0; i < i0; ++i)
-		{
-			for (size_t j = 0; j < j0; ++j)
-			{
-				for (size_t k = 0; k < k0; ++k)
-				{
-					const unsigned char& voxel = mVolume->GetVoxel(i, j, k);
-					float pos[3];
-					pos[0] = float(i)*scale + bmin[0];
-					pos[1] = float(j)*scale + bmin[1];
-					pos[2] = float(k)*scale + bmin[2];
-					uint32_t color = 0;
-					switch ( voxel )
-					{
-						case VHACD::PRIMITIVE_ON_SURFACE:
-							if ( showSurface )
-							{
-								color = 0xFFFF00;
-							}
-							break;
-						case VHACD::PRIMITIVE_OUTSIDE_SURFACE:
-							if (showOutside)
-							{
-								color = 0xFF0000;
-							}
-							break;
-						case VHACD::PRIMITIVE_INSIDE_SURFACE:
-							if (showInside)
-							{
-								color = 0x00FF00;
-							}
-							break;
-						case VHACD::PRIMITIVE_UNDEFINED:
-							if (showUndefined)
-							{
-								color = 0x202020;
-							}
-							break;
-						default:
-							assert(0);
-							break;
-					}
-					if (color)
-					{
-						if (color != lastColor)
-						{
-							lastColor = color;
-						}
-						mRenderDebug->setCurrentColor(color);
-						mRenderDebug->debugPoint(pos, scale*0.5f);
-					}
-				}
-			}
-		}
 	}
 
 	void traceRay(const double *start,const double *dir,uint32_t &insideCount,uint32_t &outsideCount)
 	{
-		double outT,u,v,w,faceSign;
-		uint32_t faceIndex;
-		bool hit = mRaycastMesh->raycast(start,dir,outT,u,v,w,faceSign,faceIndex);
-		if ( hit )
-		{
-			if ( faceSign >= 0 )
-			{
-				insideCount++;
-			}
-			else
-			{
-				outsideCount++;
-			}
-		}
-
 	}
 
 	void initVec3(double *dest, uint32_t vindex, double x, double y, double z)
@@ -433,146 +202,14 @@ public:
 	// We are going to compute which voxels are 'inside' vs. 'outside' using raycasting
 	virtual void computeInsideVoxels(void) final
 	{
-		float scale = float(mVolume->m_scale);
-		float bmin[3];
-
-		bmin[0] = float(mVolume->m_minBB[0]);
-		bmin[1] = float(mVolume->m_minBB[1]);
-		bmin[2] = float(mVolume->m_minBB[2]);
-
-		const size_t i0 = mVolume->m_dim[0];
-		const size_t j0 = mVolume->m_dim[1];
-		const size_t k0 = mVolume->m_dim[2];
-
-		for (size_t i = 0; i < i0; ++i)
-		{
-			for (size_t j = 0; j < j0; ++j)
-			{
-				for (size_t k = 0; k < k0; ++k)
-				{
-					const unsigned char& voxel = mVolume->GetVoxel(i, j, k);
-					if (voxel != VHACD::PRIMITIVE_ON_SURFACE)
-					{
-						double start[3];
-						start[0] = double(i)*scale + bmin[0];
-						start[1] = double(j)*scale + bmin[1];
-						start[2] = double(k)*scale + bmin[2];
-						uint32_t insideCount = 0;
-						uint32_t outsideCount = 0;
-
-						double directions[6*3];
-						initVec3(directions, 0, 1, 0, 0);
-						initVec3(directions, 1, 1, 0, 0);
-						initVec3(directions, 2, 0, 1, 0);
-						initVec3(directions, 3, 0, -1, 0);
-						initVec3(directions, 4, 0, 0, 1);
-						initVec3(directions, 5, 0, 0, -1);
-						// Ray trace out in 6 directions.
-						// We need to hit an inside facing triangle at least 3 times
-						// for it to be fully considered 'inside'
-						for (uint32_t r = 0; r < 6; r++)
-						{
-							traceRay(start, &directions[r * 3], insideCount, outsideCount);
-							// Early out if we hit the outside of the mesh
-							if (outsideCount)
-							{
-								break;
-							}
-							// Early out if we accumulated 3 inside hits
-							if (insideCount >= 3)
-							{
-								break;
-							}
-						}
-
-						if ( outsideCount == 0 && insideCount >= 3 )
-						{
-							mVolume->SetVoxel(i, j, k, VHACD::PRIMITIVE_INSIDE_SURFACE);
-						}
-						else
-						{
-							mVolume->SetVoxel(i, j, k, VHACD::PRIMITIVE_OUTSIDE_SURFACE);
-						}
-					}
-				}
-			}
-		}
 	}
 
 	virtual void snapVoxelToMesh(void) final
 	{
-		mSnapPoints.clear();
-		float scale = float(mVolume->m_scale);
-		float bmin[3];
-
-		bmin[0] = float(mVolume->m_minBB[0]);
-		bmin[1] = float(mVolume->m_minBB[1]);
-		bmin[2] = float(mVolume->m_minBB[2]);
-
-		const size_t i0 = mVolume->m_dim[0];
-		const size_t j0 = mVolume->m_dim[1];
-		const size_t k0 = mVolume->m_dim[2];
-
-		double center[3];
-
-		center[0] = (mVolume->m_maxBB[0]-mVolume->m_minBB[0])*0.5 + mVolume->m_minBB[0];
-		center[1] = (mVolume->m_maxBB[1]-mVolume->m_minBB[1])*0.5 + mVolume->m_minBB[1];
-		center[2] = (mVolume->m_maxBB[2]-mVolume->m_minBB[2])*0.5 + mVolume->m_minBB[2];
-
-		for (size_t i = 0; i < i0; ++i)
-		{
-			for (size_t j = 0; j < j0; ++j)
-			{
-				for (size_t k = 0; k < k0; ++k)
-				{
-					const unsigned char& voxel = mVolume->GetVoxel(i, j, k);
-
-					if (voxel == VHACD::PRIMITIVE_ON_SURFACE)
-					{
-						double pos[3];
-						double closest[3];
-
-						pos[0] = double(i)*scale + bmin[0];
-						pos[1] = double(j)*scale + bmin[1];
-						pos[2] = double(k)*scale + bmin[2];
-
-						bool found = mRaycastMesh->getClosestPointWithinDistance(pos,scale*2,closest);
-
-						if ( found )
-						{
-							SnapPoint p;
-
-							p.from.x = float(pos[0]);
-							p.from.y = float(pos[1]);
-							p.from.z = float(pos[2]);
-
-							p.to.x = float(closest[0]);
-							p.to.y = float(closest[1]);
-							p.to.z = float(closest[2]);
-
-							mSnapPoints.push_back(p);
-						}
-					}
-				}
-			}
-		}
 	}
 
 	uint32_t		mDimensions{64};
-	VHACD::Volume	*mVolume{nullptr};
-	VHACD::Mesh		mOutsideSurface;
-	VHACD::Mesh		mInsideSurface;
-	VHACD::Mesh		mOnSurface;
-	VHACD::Mesh		mUndefined;
-
-	DebugMesh		*mOutsideSurfaceMesh{nullptr};
-	DebugMesh		*mInsideSurfaceMesh{nullptr};
-	DebugMesh		*mOnSurfaceMesh{nullptr};
-	DebugMesh		*mUndefinedMesh{nullptr};
-
 	RENDER_DEBUG::RenderDebug *mRenderDebug{nullptr};
-
-	VHACD::RaycastMesh	*mRaycastMesh{nullptr};
 
 	SnapPointVector		mSnapPoints;
 };

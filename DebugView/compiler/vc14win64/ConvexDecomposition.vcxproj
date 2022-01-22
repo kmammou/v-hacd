@@ -13,15 +13,16 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D0AF22C5-C5FF-C5C4-7770-51673A8E4000}</ProjectGuid>
     <RootNamespace>ConvexDecomposition</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -201,45 +202,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\aabbtree.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\btAlignedAllocator.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\btAlignedObjectArray.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\btConvexHullComputer.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\btMinMax.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\btScalar.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\btVector3.h">
-    </ClInclude>
     <ClInclude Include="..\..\..\src\VHACD_Lib\inc\FloatMath.h">
     </ClInclude>
     <ClInclude Include="..\..\..\src\VHACD_Lib\inc\SimpleJobSystem.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdCircularList.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdICHull.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdManifoldMesh.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdMesh.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdMutex.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdRaycastMesh.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdSArray.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdTimer.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdVector.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdVHACD.h">
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdVolume.h">
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -249,27 +214,11 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\src\VHACD_Lib\src\aabbtree.cpp">
     </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\btAlignedAllocator.cpp">
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\btConvexHullComputer.cpp">
-    </ClCompile>
     <ClCompile Include="..\..\..\src\VHACD_Lib\src\FloatMath.cpp">
     </ClCompile>
     <ClCompile Include="..\..\..\src\VHACD_Lib\src\SimpleJobSystem.cpp">
     </ClCompile>
     <ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD-ASYNC.cpp">
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD.cpp">
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdICHull.cpp">
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdManifoldMesh.cpp">
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdMesh.cpp">
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdRaycastMesh.cpp">
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdVolume.cpp">
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

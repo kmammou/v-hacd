@@ -1,273 +1,195 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemGroup>
-    <Filter Include="ConvexDecomposition">
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="ConvexDecomposition\NvRenderDebug">
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\NvRenderDebug\NvRenderDebug.h">
-      <Filter>ConvexDecomposition\NvRenderDebug</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\NvRenderDebug\NvRenderDebugTyped.h">
-      <Filter>ConvexDecomposition\NvRenderDebug</Filter>
-    </ClInclude>
-    <ClCompile Include="..\..\NvRenderDebug\NvRenderDebugBinding.cpp">
-      <Filter>ConvexDecomposition\NvRenderDebug</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="ConvexDecomposition\SkeletonRig">
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\SkeletonRig\SkeletonRig.h">
-      <Filter>ConvexDecomposition\SkeletonRig</Filter>
-    </ClInclude>
-    <ClCompile Include="..\..\SkeletonRig\SkeletonRigBinding.cpp">
-      <Filter>ConvexDecomposition\SkeletonRig</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="ConvexDecomposition\PhysicsDOM">
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\PhysicsDOM\NvPhysicsDOM.h">
-      <Filter>ConvexDecomposition\PhysicsDOM</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\PhysicsDOM\PhysicsDOM.h">
-      <Filter>ConvexDecomposition\PhysicsDOM</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\PhysicsDOM\PhysicsDOMDef.h">
-      <Filter>ConvexDecomposition\PhysicsDOM</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\PhysicsDOM\PhysicsDOMHelper.h">
-      <Filter>ConvexDecomposition\PhysicsDOM</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\PhysicsDOM\PhysicsDOMInterface.h">
-      <Filter>ConvexDecomposition\PhysicsDOM</Filter>
-    </ClInclude>
-    <ClCompile Include="..\..\PhysicsDOM\NvPhysicsDOMBinding.cpp">
-      <Filter>ConvexDecomposition\PhysicsDOM</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\DisplayURDF.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\FastXml.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\ImportDAE.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\ImportSTL.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\ImportURDF.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\InParser.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\InspectXml.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\main.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\MeshBuilder.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\MeshFactory.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\StringHelper.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TestHACD.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TestRaycast.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\VoxelizeMesh.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\wavefront.cpp">
-      <Filter>ConvexDecomposition</Filter>
-    </ClCompile>
-    <ClInclude Include="..\..\DisplayURDF.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\FastXml.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ImportDAE.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ImportSTL.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ImportURDF.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\InParser.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\InspectXml.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\MeshBuilder.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\MeshFactory.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\StringHelper.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TestHACD.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TestRaycast.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\URDF_DOM.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\VoxelizeMesh.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\wavefront.h">
-      <Filter>ConvexDecomposition</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="VHADC_lib">
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="VHADC_lib\inc">
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\aabbtree.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\btAlignedAllocator.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\btAlignedObjectArray.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\btConvexHullComputer.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\btMinMax.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\btScalar.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\btVector3.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\FloatMath.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\SimpleJobSystem.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdCircularList.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdICHull.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdManifoldMesh.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdMesh.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdMutex.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdRaycastMesh.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdSArray.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdTimer.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdVector.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdVHACD.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\inc\vhacdVolume.h">
-      <Filter>VHADC_lib\inc</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="VHADC_lib\public">
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\src\VHACD_Lib\public\VHACD.h">
-      <Filter>VHADC_lib\public</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="VHADC_lib\src">
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\aabbtree.cpp">
-      <Filter>VHADC_lib\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\btAlignedAllocator.cpp">
-      <Filter>VHADC_lib\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\btConvexHullComputer.cpp">
-      <Filter>VHADC_lib\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\FloatMath.cpp">
-      <Filter>VHADC_lib\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\SimpleJobSystem.cpp">
-      <Filter>VHADC_lib\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD-ASYNC.cpp">
-      <Filter>VHADC_lib\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD.cpp">
-      <Filter>VHADC_lib\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdICHull.cpp">
-      <Filter>VHADC_lib\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdManifoldMesh.cpp">
-      <Filter>VHADC_lib\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdMesh.cpp">
-      <Filter>VHADC_lib\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdRaycastMesh.cpp">
-      <Filter>VHADC_lib\src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\VHACD_Lib\src\vhacdVolume.cpp">
-      <Filter>VHADC_lib\src</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<ItemGroup>
+		<Filter Include="ConvexDecomposition">
+		</Filter>
+	</ItemGroup>
+	<ItemGroup>
+		<Filter Include="ConvexDecomposition\NvRenderDebug">
+		</Filter>
+	</ItemGroup>
+	<ItemGroup>
+		<ClInclude Include="..\..\NvRenderDebug\NvRenderDebug.h">
+			<Filter>ConvexDecomposition\NvRenderDebug</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\NvRenderDebug\NvRenderDebugTyped.h">
+			<Filter>ConvexDecomposition\NvRenderDebug</Filter>
+		</ClInclude>
+		<ClCompile Include="..\..\NvRenderDebug\NvRenderDebugBinding.cpp">
+			<Filter>ConvexDecomposition\NvRenderDebug</Filter>
+		</ClCompile>
+	</ItemGroup>
+	<ItemGroup>
+		<Filter Include="ConvexDecomposition\SkeletonRig">
+		</Filter>
+	</ItemGroup>
+	<ItemGroup>
+		<ClInclude Include="..\..\SkeletonRig\SkeletonRig.h">
+			<Filter>ConvexDecomposition\SkeletonRig</Filter>
+		</ClInclude>
+		<ClCompile Include="..\..\SkeletonRig\SkeletonRigBinding.cpp">
+			<Filter>ConvexDecomposition\SkeletonRig</Filter>
+		</ClCompile>
+	</ItemGroup>
+	<ItemGroup>
+		<Filter Include="ConvexDecomposition\PhysicsDOM">
+		</Filter>
+	</ItemGroup>
+	<ItemGroup>
+		<ClInclude Include="..\..\PhysicsDOM\NvPhysicsDOM.h">
+			<Filter>ConvexDecomposition\PhysicsDOM</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\PhysicsDOM\PhysicsDOM.h">
+			<Filter>ConvexDecomposition\PhysicsDOM</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\PhysicsDOM\PhysicsDOMDef.h">
+			<Filter>ConvexDecomposition\PhysicsDOM</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\PhysicsDOM\PhysicsDOMHelper.h">
+			<Filter>ConvexDecomposition\PhysicsDOM</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\PhysicsDOM\PhysicsDOMInterface.h">
+			<Filter>ConvexDecomposition\PhysicsDOM</Filter>
+		</ClInclude>
+		<ClCompile Include="..\..\PhysicsDOM\NvPhysicsDOMBinding.cpp">
+			<Filter>ConvexDecomposition\PhysicsDOM</Filter>
+		</ClCompile>
+	</ItemGroup>
+	<ItemGroup>
+		<ClCompile Include="..\..\DisplayURDF.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\FastXml.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\ImportDAE.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\ImportSTL.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\ImportURDF.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\InParser.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\InspectXml.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\main.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\MeshBuilder.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\MeshFactory.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\StringHelper.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\TestHACD.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\TestRaycast.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\VoxelizeMesh.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\wavefront.cpp">
+			<Filter>ConvexDecomposition</Filter>
+		</ClCompile>
+		<ClInclude Include="..\..\DisplayURDF.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\FastXml.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\ImportDAE.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\ImportSTL.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\ImportURDF.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\InParser.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\InspectXml.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\MeshBuilder.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\MeshFactory.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\StringHelper.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\TestHACD.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\TestRaycast.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\URDF_DOM.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\VoxelizeMesh.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\wavefront.h">
+			<Filter>ConvexDecomposition</Filter>
+		</ClInclude>
+	</ItemGroup>
+	<ItemGroup>
+		<Filter Include="VHADC_lib">
+		</Filter>
+	</ItemGroup>
+	<ItemGroup>
+		<Filter Include="VHADC_lib\inc">
+		</Filter>
+	</ItemGroup>
+	<ItemGroup>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\FloatMath.h">
+			<Filter>VHADC_lib\inc</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\inc\SimpleJobSystem.h">
+			<Filter>VHADC_lib\inc</Filter>
+		</ClInclude>
+	</ItemGroup>
+	<ItemGroup>
+		<Filter Include="VHADC_lib\public">
+		</Filter>
+	</ItemGroup>
+	<ItemGroup>
+		<ClInclude Include="..\..\..\src\VHACD_Lib\public\VHACD.h">
+			<Filter>VHADC_lib\public</Filter>
+		</ClInclude>
+	</ItemGroup>
+	<ItemGroup>
+		<Filter Include="VHADC_lib\src">
+		</Filter>
+	</ItemGroup>
+	<ItemGroup>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\aabbtree.cpp">
+			<Filter>VHADC_lib\src</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\FloatMath.cpp">
+			<Filter>VHADC_lib\src</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\SimpleJobSystem.cpp">
+			<Filter>VHADC_lib\src</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\src\VHACD_Lib\src\VHACD-ASYNC.cpp">
+			<Filter>VHADC_lib\src</Filter>
+		</ClCompile>
+	</ItemGroup>
+	<ItemGroup>
+	</ItemGroup>
 </Project>
