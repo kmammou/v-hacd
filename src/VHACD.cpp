@@ -9860,7 +9860,6 @@ public:
         mVoxelVolume = singleVoxelVolume * double(voxelCount);
         double diff = fabs(mHullVolume-mVoxelVolume);
         mVolumeError = (diff*100)/mHullVolume;
-        printf("VolumeError:%0.2f%%\n", mVolumeError);
     }
 
     // Returns true if this convex hull should be considered done
@@ -10264,6 +10263,7 @@ public:
     double z;
 };
 
+void jobCallback(void *userPtr);
 
 class VHACDImpl : public IVHACD
 {
@@ -10372,12 +10372,11 @@ public:
         }
         mVoxelHulls.clear();
 
-        while ( !mPendingHulls.empty() )
+        for (auto &ch:mPendingHulls)
         {
-            auto ch = mPendingHulls.front();
             delete ch;
-            mPendingHulls.pop();
         }
+        mPendingHulls.clear();
 
         mVertices.clear();
         mIndices.clear();
@@ -10574,7 +10573,7 @@ public:
         printf("Building initial VoxelHull\n");
         VoxelHull *vh = new VoxelHull(mVoxelize,mInputMesh,mParams);
         mOverallHullVolume = vh->mConvexHull->m_volume;
-        mPendingHulls.push(vh);
+        mPendingHulls.push_back(vh);
     }
 
     void scaleOutputConvexHull(ConvexHull &ch)
@@ -10593,24 +10592,67 @@ public:
 
     void performConvexDecomposition(void)
     {
+        printf("Recursive decomposition of the source mesh.\n");
+        // We recursively split convex hulls until we can
+        // no longer recurse further.
         while ( !mPendingHulls.empty() )
         {
-            VoxelHull *vh = mPendingHulls.front();
-            mPendingHulls.pop();
-            if ( vh->isComplete() )
+            // First we make a copy of the hulls we are processing
+            VoxelHullVector oldList = mPendingHulls;
+            // For each hull we want to split, we either
+            // immediately perform the plane split or we post it as
+            // a job to be performed in a background thread
+            for (auto &i:mPendingHulls)
             {
-                mVoxelHulls.push_back(vh);
+                if ( i->isComplete() )
+                {
+                }
+                else
+                {
+                    if ( mSimpleJobSystem )
+                    {
+                        mSimpleJobSystem->addJob(i,jobCallback);
+                    }
+                    else
+                    {
+                        i->performPlaneSplit();
+                    }
+                }
             }
-            else
+            // Wait for any outstanding jobs to complete in the background threads
+            if ( mSimpleJobSystem )
             {
-                vh->performPlaneSplit();
-                mPendingHulls.push(vh->mHullA);
-                mPendingHulls.push(vh->mHullB);
-                vh->mHullA = nullptr;
-                vh->mHullB = nullptr;
-                delete vh;
+                mSimpleJobSystem->startJobs();
+                mSimpleJobSystem->waitForJobsToComplete();
+            }
+            // Now, we rebuild the pending convex hulls list by
+            // adding the two children to the output list if
+            // we need to recurse them further
+            mPendingHulls.clear();
+            for (auto &vh:oldList)
+            {
+                if ( vh->isComplete() )
+                {
+                    mVoxelHulls.push_back(vh);
+                }
+                else
+                {
+                    if ( vh->mHullA )
+                    {
+                        mPendingHulls.push_back(vh->mHullA);
+                    }
+                    if ( vh->mHullB )
+                    {
+                        mPendingHulls.push_back(vh->mHullB);
+                    }
+                    vh->mHullA = nullptr;
+                    vh->mHullB = nullptr;
+                    delete vh;
+                }
             }
         }
+
+        printf("Initializing convex hulls for merging.\n");
         // Give each convex hull a unique guid
         mMeshId = 0;
         mHulls.clear();
@@ -10640,8 +10682,10 @@ public:
         // here we merge convex hulls as needed until the match the
         // desired maximum hull count.
         size_t hullCount = hulls.size();
+
         if ( hullCount > mParams.m_maxConvexHulls )
         {
+            printf("Computing the cost matrix.\n");
             // First thing we need to do is compute the cost matrix
             // This is computed as the volume error of any two convex hulls
             // combined
@@ -10681,6 +10725,7 @@ public:
                 }
             }
             // Now that we know the cost to merge each hull, we can begin merging them.
+            printf("Performing merging operations...\n");
             bool cancel = false;
             while ( !cancel && mHulls.size() > mParams.m_maxConvexHulls && !mHullPairQueue.empty() )
             {
@@ -10746,13 +10791,14 @@ public:
             }
             // Ok...once we are done, we copy the results!
             mMeshId -= 0;
+            printf("Finalizing convex hull results.\n");
             for (auto &i:mHulls)
             {
                 ConvexHull *ch = i.second;
                 // We now must reduce the convex hull 
-                if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH )
+                if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH || mParams.m_projectHullVertices)
                 {
-                    ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH);
+                    ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH,mParams.m_projectHullVertices);
                     delete ch;
                     ch = reduce;
                 }
@@ -10765,13 +10811,14 @@ public:
         }
         else
         {
+            printf("No need to merge hulls, just doing final shrinkwrap and cleanup.\n");
             mMeshId = 0;
             for (auto &ch:hulls)
             {
                 // We now must reduce the convex hull 
-                if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH )
+                if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH  || mParams.m_projectHullVertices )
                 {
-                    ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH);
+                    ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH,mParams.m_projectHullVertices);
                     delete ch;
                     ch = reduce;
                 }
@@ -10862,36 +10909,38 @@ public:
         mTaskMutex.unlock();
     }
 
-    ConvexHull *computeReducedConvexHull(const ConvexHull &ch,uint32_t maxVerts)
+    ConvexHull *computeReducedConvexHull(const ConvexHull &ch,uint32_t maxVerts,bool projectHullVertices)
     {
-        VHACD::QuickHull *qh = VHACD::QuickHull::create();
-        VHACD::HullPoints hp;
-        hp.mVertexCount = ch.m_nPoints;
-        hp.mVertices = ch.m_points;
-        hp.mMaxQuantizeVertexCount = ch.m_nPoints;
-        hp.mMaxHullVertices = maxVerts;
-        qh->computeConvexHull(hp);
 
-        uint32_t hvcount,htcount;
-        const double *hvertices = qh->getVertices(hvcount);
-        const uint32_t *hindices = qh->getIndices(htcount);
+        SimpleMesh sourceConvexHull;
+
+        sourceConvexHull.mVertexCount = ch.m_nPoints;
+        sourceConvexHull.mTriangleCount = ch.m_nTriangles;
+        sourceConvexHull.mVertices = new double[sourceConvexHull.mVertexCount*3];
+        memcpy(sourceConvexHull.mVertices,ch.m_points,sizeof(double)*3*sourceConvexHull.mVertexCount);
+        sourceConvexHull.mIndices = new uint32_t[sourceConvexHull.mTriangleCount*3];
+        memcpy(sourceConvexHull.mIndices,ch.m_triangles,sizeof(uint32_t)*3*sourceConvexHull.mTriangleCount);
+
+        ShrinkWrap *sw = ShrinkWrap::create();
+        sw->shrinkWrap(sourceConvexHull,*mRaycastMesh,maxVerts,mVoxelScale*4,projectHullVertices);
 
         ConvexHull *ret = new ConvexHull;
-        ret->m_nPoints = hvcount;
-        ret->m_nTriangles = htcount;
-        ret->m_points = new double[hvcount*3];
-        memcpy(ret->m_points,hvertices,sizeof(double)*hvcount*3);
-        ret->m_triangles = new uint32_t[htcount*3];
-        memcpy(ret->m_triangles,hindices,sizeof(uint32_t)*htcount*3);
-        ret->m_volume = computeConvexHullVolume(*ret);
 
-        fm_getAABB(hvcount,hvertices,sizeof(double)*3,ret->mBmin,ret->mBmax);
+        ret->m_nPoints = sourceConvexHull.mVertexCount;
+        ret->m_nTriangles = sourceConvexHull.mTriangleCount;
+        ret->m_points = sourceConvexHull.mVertices;
+        sourceConvexHull.mVertices = nullptr;
+        ret->m_triangles = sourceConvexHull.mIndices;
+        sourceConvexHull.mIndices = nullptr;
+
+         fm_getAABB(ret->m_nPoints,ret->m_points,sizeof(double)*3,ret->mBmin,ret->mBmax);
         fm_inflateMinMax(ret->mBmin,ret->mBmax,0.1);
-
         fm_computeCentroid(ret->m_nPoints,ret->m_points,ret->m_nTriangles,ret->m_triangles,ret->m_center);
 
-        qh->release();
+        ret->m_volume = computeConvexHullVolume(*ret);
 
+
+        sw->release();
 
         // Return the convex hull 
         return ret;
@@ -11013,7 +11062,7 @@ public:
 
     ConvexHullVector                        mConvexHulls;               // Finalized convex hulls
     VoxelHullVector                         mVoxelHulls;                // completed voxel hulls
-    VoxelHullQueue                          mPendingHulls;
+    VoxelHullVector                         mPendingHulls;
 
     AABBTreeVector							mTrees;
     RaycastMesh                             *mRaycastMesh{nullptr};
@@ -11036,6 +11085,12 @@ public:
     SimpleJobSystem        *mSimpleJobSystem{nullptr};
     HullMap             mHulls;
 };
+
+void jobCallback(void *userPtr)
+{
+   VoxelHull *vh = (VoxelHull *)userPtr;
+   vh->performPlaneSplit();
+}
 
 void computeMergeCostTask(void *ptr)
 {
