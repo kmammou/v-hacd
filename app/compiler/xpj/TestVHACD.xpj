@@ -1,0 +1,99 @@
+<XPJ version="4">
+
+  <Project name="TestVHACD" version="1">
+
+    <Export platform="win32" tool="vc14">../vc14win32</Export>
+
+    <Export platform="win64" tool="vc14">../vc14win64</Export>
+
+    <Target name="TestVHACD">
+
+      <Export platform="win32" tool="vc14">../vc14win32</Export>
+
+      <Export platform="win64" tool="vc14">../vc14win64</Export>
+
+      <Files name="TestVHACD" root="../.." type="header">
+      	*.cpp
+      	*.h
+      </Files>
+
+      <Files name="VHACD" root="../../../" type="header">
+        include/*.h
+        src/*.cpp
+      </Files>
+
+      <Configuration name="default" type="console">
+        <Preprocessor type="define">
+          WIN32
+          _WINDOWS
+          UNICODE=1
+          _CRT_SECURE_NO_DEPRECATE
+          OPEN_SOURCE=1
+        </Preprocessor>
+        <CFlags tool="vc8">/wd4996</CFlags>
+        <LFlags tool="vc8">/NODEFAULTLIB:libcp.lib</LFlags>
+
+        <SearchPaths type="header">
+        	"../../../include"
+        </SearchPaths>
+
+        <SearchPaths type="library">
+        </SearchPaths>
+        <Libraries>
+        </Libraries>
+      </Configuration>
+
+      <Configuration name="debug" platform="win32">
+        <OutDir>../../</OutDir>
+        <OutFile>TesetVHACDDEBUG.exe</OutFile>
+        <CFlags>/fp:fast /WX /W4 /MTd /Zi</CFlags>
+        <LFlags>/DEBUG</LFlags>
+        <Preprocessor type="define">
+          _DEBUG
+          _ITERATOR_DEBUG_LEVEL=0
+        </Preprocessor>
+        <Libraries>
+        </Libraries>
+      </Configuration>
+
+      <Configuration name="release" platform="win32">
+        <OutDir>../../</OutDir>
+        <OutFile>TestVHACD.exe</OutFile>
+        <CFlags>/fp:fast /WX /W4 /MT /Zi /O2</CFlags>
+        <LFlags>/DEBUG</LFlags>
+        <Preprocessor type="define">NDEBUG</Preprocessor>
+        <Libraries>
+        </Libraries>
+      </Configuration>
+
+      <Configuration name="debug" platform="win64">
+        <OutDir>../../</OutDir>
+        <OutFile>TestVHACDDEBUG.exe</OutFile>
+        <CFlags>/fp:fast /WX /W4 /MTd /Zi</CFlags>
+        <LFlags>/DEBUG</LFlags>
+        <Preprocessor type="define">
+          _DEBUG
+          _ITERATOR_DEBUG_LEVEL=0
+        </Preprocessor>
+        <Libraries>
+        </Libraries>
+      </Configuration>
+
+      <Configuration name="release" platform="win64">
+        <OutDir>../../</OutDir>
+        <OutFile>TestVHACD.exe</OutFile>
+        <CFlags>/fp:fast /WX /W4 /MT /Zi /O2</CFlags>
+        <LFlags>/DEBUG</LFlags>
+        <Preprocessor type="define">NDEBUG</Preprocessor>
+        <Libraries>
+        </Libraries>
+      </Configuration>
+
+
+      <Libraries>
+      </Libraries>
+      <Dependencies type="link">
+      </Dependencies>
+    </Target>
+  </Project>
+</XPJ>
