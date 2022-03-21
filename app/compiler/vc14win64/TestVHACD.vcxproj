@@ -1,127 +1,142 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-	<ItemGroup Label="ProjectConfigurations">
-		<ProjectConfiguration Include="debug|x64">
-			<Configuration>debug</Configuration>
-			<Platform>x64</Platform>
-		</ProjectConfiguration>
-		<ProjectConfiguration Include="release|x64">
-			<Configuration>release</Configuration>
-			<Platform>x64</Platform>
-		</ProjectConfiguration>
-	</ItemGroup>
-	<PropertyGroup Label="Globals">
-		<ProjectGuid>{0631E000-D000-AEC0-B3FE-2200CC20527C}</ProjectGuid>
-		<RootNamespace>TestVHACD</RootNamespace>
-	</PropertyGroup>
-	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'" Label="Configuration">
-		<ConfigurationType>Application</ConfigurationType>
-		<PlatformToolset>v140</PlatformToolset>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'" Label="Configuration">
-		<ConfigurationType>Application</ConfigurationType>
-		<PlatformToolset>v140</PlatformToolset>
-	</PropertyGroup>
-	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-	<ImportGroup Label="ExtensionSettings">
-	</ImportGroup>
-	<ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
-		<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-	</ImportGroup>
-	<ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='release|x64'">
-		<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-	</ImportGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
-		<OutDir>./../..\</OutDir>
-		<IntDir>./x64/TestVHACD/debug\</IntDir>
-		<TargetExt>.exe</TargetExt>
-		<TargetName>TestVHACDDEBUG</TargetName>
-		<CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-		<CodeAnalysisRules />
-		<CodeAnalysisRuleAssemblies />
-	</PropertyGroup>
-	<ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
-		<ClCompile>
-			<TreatWarningAsError>true</TreatWarningAsError>
-			<FloatingPointModel>Fast</FloatingPointModel>
-			<AdditionalOptions>/W4</AdditionalOptions>
-			<Optimization>Disabled</Optimization>
-			<AdditionalIncludeDirectories>./../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-			<PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE=1;_CRT_SECURE_NO_DEPRECATE;OPEN_SOURCE=1;_DEBUG;_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-			<WarningLevel>Level3</WarningLevel>
-			<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-			<PrecompiledHeader>NotUsing</PrecompiledHeader>
-			<PrecompiledHeaderFile></PrecompiledHeaderFile>
-			<DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-		</ClCompile>
-		<Link>
-			<AdditionalOptions>/DEBUG</AdditionalOptions>
-			<AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-			<OutputFile>$(OutDir)TestVHACDDEBUG.exe</OutputFile>
-			<AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-			<ProgramDatabaseFile>$(OutDir)/TestVHACDDEBUG.exe.pdb</ProgramDatabaseFile>
-			<SubSystem>Console</SubSystem>
-			<ImportLibrary>$(OutDir)$(TargetName).lib</ImportLibrary>
-			<TargetMachine>MachineX64</TargetMachine>
-		</Link>
-		<ResourceCompile>
-		</ResourceCompile>
-		<ProjectReference>
-		</ProjectReference>
-	</ItemDefinitionGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
-		<OutDir>./../..\</OutDir>
-		<IntDir>./x64/TestVHACD/release\</IntDir>
-		<TargetExt>.exe</TargetExt>
-		<TargetName>TestVHACD</TargetName>
-		<CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-		<CodeAnalysisRules />
-		<CodeAnalysisRuleAssemblies />
-	</PropertyGroup>
-	<ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
-		<ClCompile>
-			<TreatWarningAsError>true</TreatWarningAsError>
-			<FloatingPointModel>Fast</FloatingPointModel>
-			<AdditionalOptions>/W4</AdditionalOptions>
-			<Optimization>MaxSpeed</Optimization>
-			<AdditionalIncludeDirectories>./../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-			<PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE=1;_CRT_SECURE_NO_DEPRECATE;OPEN_SOURCE=1;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-			<WarningLevel>Level3</WarningLevel>
-			<RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-			<PrecompiledHeader>NotUsing</PrecompiledHeader>
-			<PrecompiledHeaderFile></PrecompiledHeaderFile>
-			<DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-		</ClCompile>
-		<Link>
-			<AdditionalOptions>/DEBUG</AdditionalOptions>
-			<AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-			<OutputFile>$(OutDir)TestVHACD.exe</OutputFile>
-			<AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-			<ProgramDatabaseFile>$(OutDir)/TestVHACD.exe.pdb</ProgramDatabaseFile>
-			<SubSystem>Console</SubSystem>
-			<ImportLibrary>$(OutDir)$(TargetName).lib</ImportLibrary>
-			<TargetMachine>MachineX64</TargetMachine>
-		</Link>
-		<ResourceCompile>
-		</ResourceCompile>
-		<ProjectReference>
-		</ProjectReference>
-	</ItemDefinitionGroup>
-	<ItemGroup>
-		<ClCompile Include="..\..\TestVHACD.cpp">
-		</ClCompile>
-	</ItemGroup>
-	<ItemGroup>
-		<ClInclude Include="..\..\..\include\VHACD.h">
-		</ClInclude>
-	</ItemGroup>
-	<ItemGroup>
-		<ClCompile Include="..\..\..\src\VHACD.cpp">
-		</ClCompile>
-	</ItemGroup>
-	<ItemGroup>
-	</ItemGroup>
-	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-	<ImportGroup Label="ExtensionTargets"></ImportGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="debug|x64">
+      <Configuration>debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="release|x64">
+      <Configuration>release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{0631E000-D000-AEC0-B3FE-2200CC20527C}</ProjectGuid>
+    <RootNamespace>TestVHACD</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
+    <OutDir>./../..\</OutDir>
+    <IntDir>./x64/TestVHACD/debug\</IntDir>
+    <TargetExt>.exe</TargetExt>
+    <TargetName>TestVHACDDEBUG</TargetName>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules />
+    <CodeAnalysisRuleAssemblies />
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'">
+    <ClCompile>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <AdditionalOptions>/W4</AdditionalOptions>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>./../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE=1;_CRT_SECURE_NO_DEPRECATE;OPEN_SOURCE=1;_DEBUG;_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalOptions>/DEBUG</AdditionalOptions>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)TestVHACDDEBUG.exe</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ProgramDatabaseFile>$(OutDir)/TestVHACDDEBUG.exe.pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <ImportLibrary>$(OutDir)$(TargetName).lib</ImportLibrary>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+    <ResourceCompile>
+    </ResourceCompile>
+    <ProjectReference>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
+    <OutDir>./../..\</OutDir>
+    <IntDir>./x64/TestVHACD/release\</IntDir>
+    <TargetExt>.exe</TargetExt>
+    <TargetName>TestVHACD</TargetName>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules />
+    <CodeAnalysisRuleAssemblies />
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
+    <ClCompile>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <AdditionalOptions>/W4</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
+      <AdditionalIncludeDirectories>./../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE=1;_CRT_SECURE_NO_DEPRECATE;OPEN_SOURCE=1;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalOptions>/DEBUG</AdditionalOptions>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)TestVHACD.exe</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ProgramDatabaseFile>$(OutDir)/TestVHACD.exe.pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <ImportLibrary>$(OutDir)$(TargetName).lib</ImportLibrary>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+    <ResourceCompile>
+    </ResourceCompile>
+    <ProjectReference>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\FloatMath.cpp">
+    </ClCompile>
+    <ClCompile Include="..\..\InParser.cpp">
+    </ClCompile>
+    <ClCompile Include="..\..\TestVHACD.cpp">
+    </ClCompile>
+    <ClCompile Include="..\..\wavefront.cpp">
+    </ClCompile>
+    <ClInclude Include="..\..\FloatMath.h">
+    </ClInclude>
+    <ClInclude Include="..\..\InParser.h">
+    </ClInclude>
+    <ClInclude Include="..\..\wavefront.h">
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\include\VHACD.h">
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\VHACD.cpp">
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
 </Project>

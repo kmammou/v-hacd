@@ -157,3 +157,17 @@ build/
 /app/compiler/vc14win64/x64/TestVHACD/release/VHACD.obj
 /app/compiler/vc14win64/x64/TestVHACD/release/vc140.pdb
 /app/compiler/xpj/*.bak
+/app/compiler/vc14win64/.vs/TestVHACD/v16/ipch/AutoPCH/304ea8173f46a8d/VHACD.ipch
+/app/compiler/vc14win64/.vs/TestVHACD/v16/ipch/AutoPCH/3aaaf82212d185ab/VHACD.ipch
+/app/compiler/vc14win64/.vs/TestVHACD/v16/ipch/AutoPCH/f784af049e96fbc1/EXPORTUSDA.ipch
+/app/compiler/vc14win64/x64/TestVHACD/debug/ExportUSDA.obj
+/app/compiler/vc14win64/x64/TestVHACD/debug/FloatMath.obj
+/app/compiler/vc14win64/x64/TestVHACD/debug/InParser.obj
+/app/compiler/vc14win64/x64/TestVHACD/debug/vc140.pdb
+/app/compiler/vc14win64/x64/TestVHACD/debug/wavefront.obj
+/app/compiler/vc14win64/x64/TestVHACD/release/FloatMath.obj
+/app/compiler/vc14win64/x64/TestVHACD/release/InParser.obj
+/app/compiler/vc14win64/x64/TestVHACD/release/TestVHACD.Build.CppClean.log
+/app/compiler/vc14win64/x64/TestVHACD/release/TestVHACD.vcxproj.FileListAbsolute.txt
+/app/compiler/vc14win64/x64/TestVHACD/release/wavefront.obj
+/app/decomp.obj

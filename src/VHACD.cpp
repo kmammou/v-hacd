@@ -10796,9 +10796,9 @@ public:
             {
                 ConvexHull *ch = i.second;
                 // We now must reduce the convex hull 
-                if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH || mParams.m_projectHullVertices)
+                if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH || mParams.m_shrinkWrap)
                 {
-                    ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH,mParams.m_projectHullVertices);
+                    ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH,mParams.m_shrinkWrap);
                     delete ch;
                     ch = reduce;
                 }
@@ -10816,9 +10816,9 @@ public:
             for (auto &ch:hulls)
             {
                 // We now must reduce the convex hull 
-                if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH  || mParams.m_projectHullVertices )
+                if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH  || mParams.m_shrinkWrap )
                 {
-                    ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH,mParams.m_projectHullVertices);
+                    ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH,mParams.m_shrinkWrap);
                     delete ch;
                     ch = reduce;
                 }

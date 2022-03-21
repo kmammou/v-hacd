@@ -209,52 +209,19 @@ public:
     class Parameters
     {
     public:
-        Parameters(void)
-        {
-            Init();
-        }
-
-        void Init(void)
-        {
-            m_fillMode = FillMode::FLOOD_FILL;
-            m_resolution = 1000000;
-            m_concavity = 0.001;
-            m_planeDownsampling = 4;
-            m_convexhullDownsampling = 4;
-            m_alpha = 0.05;
-            m_beta = 0.05;
-            m_maxNumVerticesPerCH = 64;
-            m_minVolumePerCH = 0.0001;
-            m_callback = nullptr;
-            m_logger = nullptr;
-            m_taskRunner = nullptr;
-            m_convexhullApproximation = true;
-            m_maxConvexHulls = 1024;
-            m_projectHullVertices = true; // This will project the output convex hull vertices onto the original source
-                                          // mesh to increase the floating point accuracy of the results
-            m_asyncACD = true; // whether or not to perform the ACD operation in parallel
-        }
-        double m_concavity;
-        double m_alpha;
-        double m_beta;
-        double m_minVolumePerCH;
-        IUserCallback* m_callback;
-        IUserLogger* m_logger;
-        IUserTaskRunner* m_taskRunner;
-        uint32_t m_resolution;
-        uint32_t m_maxNumVerticesPerCH;
-        uint32_t m_planeDownsampling;
-        uint32_t m_convexhullDownsampling;
-        uint32_t m_convexhullApproximation;
-        uint32_t m_maxConvexHulls;
-        bool m_projectHullVertices;
-        FillMode m_fillMode{ FillMode::FLOOD_FILL };
-        bool m_asyncACD{ true };
-
-        // New parameters
-        uint32_t    m_maximumVoxelPointsToConsider{1000000};
-        double      m_minimumVolumePercentErrorAllowed{2}; // if the voxels are within 2% of the volume of the hull, we consider this a close enough approximation
-        uint32_t    m_minEdgeLength{4};                     // Once a voxel patch has an edge length of less than 4 on all 3 sides, we don't keep recursing
+        IUserCallback*      m_callback{nullptr};
+        IUserLogger*        m_logger{nullptr};
+        IUserTaskRunner*    m_taskRunner{nullptr};
+        uint32_t            m_maxConvexHulls{64};
+        uint32_t            m_resolution{100000};
+        double              m_minimumVolumePercentErrorAllowed{8}; // if the voxels are within 8% of the volume of the hull, we consider this a close enough approximation
+        uint32_t            m_maxRecursionDepth{12};
+        bool                m_shrinkWrap{true};
+        FillMode            m_fillMode{ FillMode::FLOOD_FILL };
+        uint32_t            m_maxNumVerticesPerCH{64};
+        bool                m_asyncACD{ true };
+        uint32_t            m_maximumVoxelPointsToConsider{1000000};
+        uint32_t            m_minEdgeLength{4};                     // Once a voxel patch has an edge length of less than 4 on all 3 sides, we don't keep recursing
     };
 
     virtual void Cancel() = 0;
