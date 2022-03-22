@@ -23,6 +23,9 @@
     <ClInclude Include="..\..\InParser.h">
       <Filter>TestVHACD</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\ScopedTime.h">
+      <Filter>TestVHACD</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\wavefront.h">
       <Filter>TestVHACD</Filter>
     </ClInclude>

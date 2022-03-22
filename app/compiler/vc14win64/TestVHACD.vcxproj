@@ -123,6 +123,8 @@
     </ClInclude>
     <ClInclude Include="..\..\InParser.h">
     </ClInclude>
+    <ClInclude Include="..\..\ScopedTime.h">
+    </ClInclude>
     <ClInclude Include="..\..\wavefront.h">
     </ClInclude>
   </ItemGroup>

@@ -220,7 +220,6 @@ public:
         FillMode            m_fillMode{ FillMode::FLOOD_FILL };
         uint32_t            m_maxNumVerticesPerCH{64};
         bool                m_asyncACD{ true };
-        uint32_t            m_maximumVoxelPointsToConsider{1000000};
         uint32_t            m_minEdgeLength{4};                     // Once a voxel patch has an edge length of less than 4 on all 3 sides, we don't keep recursing
     };
 

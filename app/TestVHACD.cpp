@@ -30,7 +30,6 @@ int main(int argc,const char **argv)
 		printf("-v <maxHullVertCount>   : Maximum number of vertices in the output convex hull. Default value is 64\n");
 		printf("-a <true/false>         : Whether or not to run asynchronously. Default is 'true'\n");
 		printf("-l <minEdgeLength>      : Minimum size of a voxel edge. Default value is 4 voxels.\n");
-		printf("-q <quantizeCount>      : Maximum number of voxel points to consider when generating a convex hull. Default is 100000\n");
 	}
 	else
 	{
@@ -119,13 +118,6 @@ int main(int argc,const char **argv)
 				}
 				else if ( strcmp(option,"-l") == 0 )
 				{
-				}
-				else if ( strcmp(option,"-q") == 0 )
-				{
-				}
-				else
-				{
-					printf("Unknown option (%s)\n", option );
 				}
 			}
 
