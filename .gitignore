@@ -171,3 +171,6 @@ build/
 /app/compiler/vc14win64/x64/TestVHACD/release/TestVHACD.vcxproj.FileListAbsolute.txt
 /app/compiler/vc14win64/x64/TestVHACD/release/wavefront.obj
 /app/decomp.obj
+/app/compiler/vc14win64/.vs/TestVHACD/v16/Browse.VC.db-shm
+/app/compiler/vc14win64/.vs/TestVHACD/v16/Browse.VC.db-wal
+/app/compiler/vc14win64/.vs/TestVHACD/v16/Browse.VC.opendb

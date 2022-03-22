@@ -4,4 +4,8 @@
     <LocalDebuggerCommandArguments>d:\github\v-hacd\app\meshes\beshon.obj</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
+    <LocalDebuggerCommandArguments>d:\github\v-hacd\app\meshes\mite.obj -r 10000000 -e 1 -a false -d 16 -h 512 -v 512 -l 1</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
 </Project>

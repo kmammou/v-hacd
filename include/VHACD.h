@@ -16,8 +16,8 @@
 #ifndef VHACD_H
 #    define VHACD_H
 
-#    define VHACD_VERSION_MAJOR 3
-#    define VHACD_VERSION_MINOR 1
+#    define VHACD_VERSION_MAJOR 4
+#    define VHACD_VERSION_MINOR 0
 
 // Changes for version 3.0 : April 17, 2020 : John W. Ratcliff mailto:jratcliffscarab@gmail.com
 //
@@ -112,36 +112,24 @@
 // * mesh, within a radius, in a highly efficient manner.
 
 
-// Changes for version 2.3
-//
-// m_gamma : Has been removed.  This used to control the error metric to merge convex hulls.  Now it uses the
-// 'm_maxConvexHulls' value instead. m_maxConvexHulls : This is the maximum number of convex hulls to produce from the
-// merge operation; replaces 'm_gamma'.
-//
-// Note that decomposition depth is no longer a user provided value.  It is now derived from the
-// maximum number of hulls requested.
-//
-// As a convenience to the user, each convex hull produced now includes the volume of the hull as well as it's center.
-//
-// This version supports a convenience method to automatically make V-HACD run asynchronously in a background thread.
-// To get a fully asynchronous version, call 'CreateVHACD_ASYNC' instead of 'CreateVHACD'.  You get the same interface
-// however, now when computing convex hulls, it is no longer a blocking operation.  All callback messages are still
-// returned in the application's thread so you don't need to worry about mutex locks or anything in that case. To tell
-// if the operation is complete, the application should call 'IsReady'.  This will return true if the last approximation
-// operation is complete and will dispatch any pending messages. If you call 'Compute' while a previous operation was
-// still running, it will automatically cancel the last request and begin a new one.  To cancel a currently running
-// approximation just call 'Cancel'.
-
-#    include <stdint.h>
-#    include <functional>
-
-#    define VHACD_PREPROCESSOR_JOIN(x, y) VHACD_PREPROCESSOR_JOIN_INNER(x, y)
-#    define VHACD_PREPROCESSOR_JOIN_INNER(x, y) x##y
-
+#include <stdint.h>
+#include <functional>
 
 namespace VHACD
 {
 
+/**
+* This enumeration determines how the voxels as filled to create a solid
+* object. The default should be 'FLOOD_FILL' which generally works fine 
+* for closed meshes. However, if the mesh is not watertight, then using
+* RAYCAST_FILL may be preferable as it will determine if a voxel is part 
+* of the interior of the source mesh by raycasting around it.
+* 
+* Finally, there are some cases where you might actually want a convex 
+* decomposition to treat the source mesh as being hollow. If that is the
+* case you can pass in 'SURFACE_ONLY' and then the convex decomposition 
+* will converge only onto the 'skin' of the surface mesh.
+*/
 enum class FillMode
 {
     FLOOD_FILL, // This is the default behavior, after the voxelization step it uses a flood fill to determine 'inside'
@@ -236,9 +224,13 @@ public:
                          const uint32_t* const triangles,
                          const uint32_t countTriangles,
                          const Parameters& params) = 0;
+
     virtual uint32_t GetNConvexHulls() const = 0;
+
     virtual bool GetConvexHull(const uint32_t index, ConvexHull& ch) const = 0;
+
     virtual void Clean(void) = 0; // release internally allocated memory
+
     virtual void Release(void) = 0; // release IVHACD
 
     // Will compute the center of mass of the convex hull decomposition results and return it

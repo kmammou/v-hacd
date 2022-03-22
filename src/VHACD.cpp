@@ -9038,7 +9038,10 @@ public:
 
         }
         SAFE_RELEASE(qh);
-        mHullVolume = mConvexHull->m_volume;
+        if ( mConvexHull )
+        {
+            mHullVolume = mConvexHull->m_volume;
+        }
         // This is the volume of a single voxel
         double singleVoxelVolume = mVoxelScale*mVoxelScale*mVoxelScale;
         size_t voxelCount = mInteriorVoxels.size() + mNewSurfaceVoxels.size() + mSurfaceVoxels.size();
@@ -9051,7 +9054,15 @@ public:
     bool isComplete(void)
     {
         bool ret = false;
-        if ( mVolumeError < mParams.m_minimumVolumePercentErrorAllowed )
+        if ( mConvexHull == nullptr )
+        {
+            ret = true;
+        }
+        else if ( mVolumeError < mParams.m_minimumVolumePercentErrorAllowed )
+        {
+            ret = true;
+        }
+        else if ( mDepth > mParams.m_maxRecursionDepth )
         {
             ret = true;
         }
@@ -9818,7 +9829,14 @@ public:
             {
                 if ( vh->isComplete() )
                 {
-                    mVoxelHulls.push_back(vh);
+                    if ( vh->mConvexHull )
+                    {
+                        mVoxelHulls.push_back(vh);
+                    }
+                    else
+                    {
+                        delete vh;
+                    }
                 }
                 else
                 {

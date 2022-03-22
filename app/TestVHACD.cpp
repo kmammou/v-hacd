@@ -15,6 +15,34 @@
 #include <conio.h>
 #endif
 
+// Evaluates if this is true or false, returns true if it 
+// could be evaluated. Stores the result into 'value'
+bool getTrueFalse(const char *option,bool &value)
+{
+	bool ret = false;
+
+	if ( strcmp(option,"t") == 0 ||
+		 strcmp(option,"true") == 0 ||
+		 strcmp(option,"1") == 0 )
+	{
+		ret = true;
+		value = true;
+	}
+	else if ( strcmp(option,"f") == 0 ||
+		 strcmp(option,"false") == 0 ||
+		 strcmp(option,"0") == 0 )
+	{
+		ret = true;
+		value = false;
+	}
+	else
+	{
+		printf("Valid values are 'true' or 'false', 't' or 'f', or '1' or '0', only.\n");
+	}
+
+	return ret;
+}
+
 int main(int argc,const char **argv)
 {
 	if ( argc < 2 )
@@ -89,39 +117,104 @@ int main(int argc,const char **argv)
 				}
 				else if ( strcmp(option,"-d") == 0 )
 				{
-				}
-				else if ( strcmp(option,"-s") == 0 )
-				{
-					if ( strcmp(value,"true") == 0 )
+					int32_t r = atoi(value);
+					if ( r >= 2 && r <= 64 )
 					{
-						p.m_shrinkWrap = true;
-						printf("Shrinkwrap enabled.\n");
-					}
-					if ( strcmp(value,"false") == 0 )
-					{
-						p.m_shrinkWrap = false;
-						printf("Shrinkwrap disabled.\n");
+						printf("Maximum recursion depth set to:%d\n", r);
+						p.m_maxRecursionDepth = uint32_t(r);
 					}
 					else
 					{
-						printf("Valid values are 'true' or 'false' only.\n");
+						printf("Invalid maximum recursion depth, must be between 2 and 64\n");
+					}
+				}
+				else if ( strcmp(option,"-s") == 0 )
+				{
+					if ( getTrueFalse(value,p.m_shrinkWrap) )
+					{
+						if ( p.m_shrinkWrap )
+						{
+							printf("Shrinkwrap enabled.\n");
+						}
+						else
+						{
+							printf("Shrinkwrap disabled.\n");
+						}
 					}
 				}
 				else if ( strcmp(option,"-f") == 0 )
 				{
+					if ( strcmp(value,"flood") == 0 )
+					{
+						p.m_fillMode = VHACD::FillMode::FLOOD_FILL;
+						printf("FillMode set to FLOOD\n");
+					}
+					else if ( strcmp(value,"raycast") == 0 )
+					{
+						p.m_fillMode = VHACD::FillMode::RAYCAST_FILL;
+						printf("FillMode set to RAYCAST\n");
+					}
+					else if ( strcmp(value,"surface") == 0 )
+					{
+						p.m_fillMode = VHACD::FillMode::SURFACE_ONLY;
+						printf("FillMode set to SURFACE\n");
+					}
+					else
+					{
+						printf("Invalid fill mode, only valid options are 'flood', 'raycast', and 'surface'\n");
+					}
 				}
 				else if ( strcmp(option,"-v") == 0 )
 				{
+					int32_t r = atoi(value);
+					if ( r >= 8 && r <= 2048 )
+					{
+						printf("Maximum hull vertices set to:%d\n", r);
+						p.m_maxNumVerticesPerCH = uint32_t(r);
+					}
+					else
+					{
+						printf("Invalid maximum hull vertices, must be between 8 and 20484\n");
+					}
 				}
 				else if ( strcmp(option,"-a") == 0 )
 				{
+					if ( getTrueFalse(value,p.m_asyncACD) )
+					{
+						if ( p.m_asyncACD )
+						{
+							printf("Asynchronous mode enabled\n");
+						}
+						else
+						{
+							printf("Synchronous mode enabled\n");
+						}
+					}
 				}
 				else if ( strcmp(option,"-l") == 0 )
 				{
+					int32_t r = atoi(value);
+					if ( r >= 1 && r <= 32 )
+					{
+						printf("Minimum voxel edge length set to:%d\n", r);
+						p.m_minEdgeLength = uint32_t(r);
+					}
+					else
+					{
+						printf("Invalid minimum voxel edge length, must be between 1 and 32\n");
+					}
 				}
 			}
 
-			VHACD::IVHACD *iface = VHACD::CreateVHACD_ASYNC();
+			VHACD::IVHACD *iface = nullptr;
+			if ( p.m_asyncACD )
+			{
+				iface = VHACD::CreateVHACD_ASYNC();
+			}
+			else
+			{
+				iface = VHACD::CreateVHACD();
+			}
 
 #ifdef _MSC_VER
 			printf("Press any key to cancel convex decomposition before it has completed.\n");
