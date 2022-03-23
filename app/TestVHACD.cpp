@@ -206,16 +206,7 @@ int main(int argc,const char **argv)
 				}
 			}
 
-			VHACD::IVHACD *iface = nullptr;
-			if ( p.m_asyncACD )
-			{
-				iface = VHACD::CreateVHACD_ASYNC();
-			}
-			else
-			{
-				iface = VHACD::CreateVHACD();
-			}
-
+			VHACD::IVHACD *iface = VHACD::CreateVHACD_ASYNC();
 #ifdef _MSC_VER
 			printf("Press any key to cancel convex decomposition before it has completed.\n");
 #endif

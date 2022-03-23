@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <math.h>
 
+#include <chrono>
 #include <iostream>
 #include <vector>
 #include <queue>
@@ -20,6 +21,60 @@
 #define SAFE_RELEASE(x) if ( x ) { x->release(); x = nullptr; }
 
 #define QUICK_HULL_INLINE 1
+
+// Scoped Timer
+namespace VHACD
+{
+
+    class Timer
+{
+public:
+    Timer() : mStartTime(std::chrono::high_resolution_clock::now())
+    {
+    }
+
+    void reset()
+    {
+        mStartTime = std::chrono::high_resolution_clock::now();
+    }
+
+    double getElapsedSeconds()
+    {
+        auto s = peekElapsedSeconds();
+        reset();
+        return s;
+    }
+
+    double peekElapsedSeconds()
+    {
+        auto now = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> diff = now - mStartTime;
+        return diff.count();
+    }
+
+private:
+    std::chrono::time_point<std::chrono::high_resolution_clock> mStartTime;
+};
+
+class ScopedTime
+{
+public:
+    ScopedTime(const char *action) : mAction(action)
+    {
+        mTimer.reset();
+    }
+    ~ScopedTime(void)
+    {
+        double dtime = mTimer.getElapsedSeconds();
+        printf("%s took %0.5f seconds\n", mAction, dtime);
+    }
+
+    const char *mAction{nullptr};
+    Timer       mTimer;
+};
+
+
+}
 
 //***********************************************************************************************
 // ConvexHull generation code by Julio Jerez <jerezjulio0@gmail.com>
@@ -9788,69 +9843,72 @@ public:
 
     void performConvexDecomposition(void)
     {
-        printf("Recursive decomposition of the source mesh.\n");
-        // We recursively split convex hulls until we can
-        // no longer recurse further.
-        while ( !mPendingHulls.empty() )
         {
-            // First we make a copy of the hulls we are processing
-            VoxelHullVector oldList = mPendingHulls;
-            // For each hull we want to split, we either
-            // immediately perform the plane split or we post it as
-            // a job to be performed in a background thread
-            for (auto &i:mPendingHulls)
+            ScopedTime st("Time Spend doing the decomposition");
+            printf("Recursive decomposition of the source mesh.\n");
+            // We recursively split convex hulls until we can
+            // no longer recurse further.
+            while ( !mPendingHulls.empty() )
             {
-                if ( i->isComplete() )
+                // First we make a copy of the hulls we are processing
+                VoxelHullVector oldList = mPendingHulls;
+                // For each hull we want to split, we either
+                // immediately perform the plane split or we post it as
+                // a job to be performed in a background thread
+                for (auto &i:mPendingHulls)
                 {
-                }
-                else
-                {
-                    if ( mSimpleJobSystem )
+                    if ( i->isComplete() )
                     {
-                        mSimpleJobSystem->addJob(i,jobCallback);
                     }
                     else
                     {
-                        i->performPlaneSplit();
+                        if ( mSimpleJobSystem )
+                        {
+                            mSimpleJobSystem->addJob(i,jobCallback);
+                        }
+                        else
+                        {
+                            i->performPlaneSplit();
+                        }
                     }
                 }
-            }
-            // Wait for any outstanding jobs to complete in the background threads
-            if ( mSimpleJobSystem )
-            {
-                mSimpleJobSystem->startJobs();
-                mSimpleJobSystem->waitForJobsToComplete();
-            }
-            // Now, we rebuild the pending convex hulls list by
-            // adding the two children to the output list if
-            // we need to recurse them further
-            mPendingHulls.clear();
-            for (auto &vh:oldList)
-            {
-                if ( vh->isComplete() )
+                // Wait for any outstanding jobs to complete in the background threads
+                if ( mSimpleJobSystem )
                 {
-                    if ( vh->mConvexHull )
+                    mSimpleJobSystem->startJobs();
+                    mSimpleJobSystem->waitForJobsToComplete();
+                }
+                // Now, we rebuild the pending convex hulls list by
+                // adding the two children to the output list if
+                // we need to recurse them further
+                mPendingHulls.clear();
+                for (auto &vh:oldList)
+                {
+                    if ( vh->isComplete() )
                     {
-                        mVoxelHulls.push_back(vh);
+                        if ( vh->mConvexHull )
+                        {
+                            mVoxelHulls.push_back(vh);
+                        }
+                        else
+                        {
+                            delete vh;
+                        }
                     }
                     else
                     {
+                        if ( vh->mHullA )
+                        {
+                            mPendingHulls.push_back(vh->mHullA);
+                        }
+                        if ( vh->mHullB )
+                        {
+                            mPendingHulls.push_back(vh->mHullB);
+                        }
+                        vh->mHullA = nullptr;
+                        vh->mHullB = nullptr;
                         delete vh;
                     }
-                }
-                else
-                {
-                    if ( vh->mHullA )
-                    {
-                        mPendingHulls.push_back(vh->mHullA);
-                    }
-                    if ( vh->mHullB )
-                    {
-                        mPendingHulls.push_back(vh->mHullB);
-                    }
-                    vh->mHullA = nullptr;
-                    vh->mHullB = nullptr;
-                    delete vh;
                 }
             }
         }
@@ -9888,6 +9946,8 @@ public:
 
         if ( hullCount > mParams.m_maxConvexHulls )
         {
+            ScopedTime st("Merging Convex Hulls");
+
             printf("Computing the cost matrix.\n");
             // First thing we need to do is compute the cost matrix
             // This is computed as the volume error of any two convex hulls
