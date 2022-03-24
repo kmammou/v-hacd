@@ -66,7 +66,7 @@ public:
     ~ScopedTime(void)
     {
         double dtime = mTimer.getElapsedSeconds();
-        printf("%s took %0.5f seconds\n", mAction, dtime);
+        printf("[TIME] %s took %0.5f seconds\n", mAction, dtime);
     }
 
     const char *mAction{nullptr};
@@ -8091,8 +8091,6 @@ public:
             mDimensions = 32;
         }
 
-        //printf("Voxelizing dimensions:%d : %d voxels total\n", mDimensions, mDimensions*mDimensions*mDimensions);
-
         delete mVolume;
         mVolume = new VHACD::Volume;
 
@@ -9424,6 +9422,7 @@ public:
     VHACDImpl   *mThis{nullptr};
     IVHACD::ConvexHull  *mHullA{nullptr};
     IVHACD::ConvexHull  *mHullB{nullptr};
+    double      mConcavity{0}; // concavity of the two combined
 };
 
 void computeMergeCostTask(void *ptr);
@@ -9767,64 +9766,76 @@ public:
         mRecipScale[1] = mScale[1] > 0 ? 1.0 / mScale[1] : 0;
         mRecipScale[2] = mScale[2] > 0 ? 1.0 / mScale[2] : 0;
 
-        printf("Re-indexing and normalizing the input mesh.\n");
-        VHACD::fm_VertexIndex *vi = VHACD::fm_createVertexIndex(0.001,false);
-
-        for (uint32_t i=0; i<countTriangles; i++)
         {
-            uint32_t i1 = triangles[i*3+0];
-            uint32_t i2 = triangles[i*3+1];
-            uint32_t i3 = triangles[i*3+2];
+            VHACD::fm_VertexIndex *vi = VHACD::fm_createVertexIndex(0.001,false);
 
-            const double *p1 = &points[i1*3];
-            const double *p2 = &points[i2*3];
-            const double *p3 = &points[i3*3];
+            uint32_t dcount=0;
 
-            i1 = getIndex(vi,p1);
-            i2 = getIndex(vi,p2);
-            i3 = getIndex(vi,p3);
-
-            if ( i1 == i2 || i1 == i3 || i2 == i3 )
+            for (uint32_t i=0; i<countTriangles; i++)
             {
-                printf("Skipping degenerate triangle.\n");
+                uint32_t i1 = triangles[i*3+0];
+                uint32_t i2 = triangles[i*3+1];
+                uint32_t i3 = triangles[i*3+2];
+
+                const double *p1 = &points[i1*3];
+                const double *p2 = &points[i2*3];
+                const double *p3 = &points[i3*3];
+
+                i1 = getIndex(vi,p1);
+                i2 = getIndex(vi,p2);
+                i3 = getIndex(vi,p3);
+
+                if ( i1 == i2 || i1 == i3 || i2 == i3 )
+                {
+                    dcount++;
+                }
+                else
+                {
+                    mIndices.push_back(i1);
+                    mIndices.push_back(i2);
+                    mIndices.push_back(i3);
+                }
             }
-            else
+            if ( dcount )
             {
-                mIndices.push_back(i1);
-                mIndices.push_back(i2);
-                mIndices.push_back(i3);
+                printf("Skipped %d degeneratate triangles\n", dcount);
             }
+            uint32_t vcount = vi->getVcount();
+            mVertices.resize(vcount*3);
+            memcpy(&mVertices[0],vi->getVerticesDouble(),sizeof(double)*vcount*3);
+
+
+            VHACD::fm_releaseVertexIndex(vi);
         }
-        uint32_t vcount = vi->getVcount();
-        mVertices.resize(vcount*3);
-        memcpy(&mVertices[0],vi->getVerticesDouble(),sizeof(double)*vcount*3);
-
-
-        VHACD::fm_releaseVertexIndex(vi);
 
         // Create the raycast mesh
-        printf("Bulding a raycast version of the normalized input mesh.\n");
+        {
+            printf("Bulding a raycast version of the normalized input mesh.\n");
+            mRaycastMesh = RaycastMesh::createRaycastMesh(uint32_t(mVertices.size())/3,&mVertices[0],uint32_t(mIndices.size())/3,&mIndices[0]);
+        }
 
-        mRaycastMesh = RaycastMesh::createRaycastMesh(uint32_t(mVertices.size())/3,&mVertices[0],uint32_t(mIndices.size())/3,&mIndices[0]);
 
-        printf("Voxelizing the input mesh.\n");
-
-        mVoxelize = Voxelize::create();
-        mVoxelize->voxelize(mRaycastMesh,&mVertices[0],uint32_t(mVertices.size())/3,&mIndices[0],uint32_t(mIndices.size())/3,mParams.m_resolution,(VoxelFillMode)mParams.m_fillMode);
-        mVoxelScale = mVoxelize->getScale();
-        mVoxelHalfScale = mVoxelScale*0.5;
-        mVoxelize->getBoundsMin(mVoxelBmin);
-        mVoxelize->getBoundsMax(mVoxelBmax);
+        {
+            printf("Voxelizing the input mesh.\n");
+            mVoxelize = Voxelize::create();
+            mVoxelize->voxelize(mRaycastMesh,&mVertices[0],uint32_t(mVertices.size())/3,&mIndices[0],uint32_t(mIndices.size())/3,mParams.m_resolution,(VoxelFillMode)mParams.m_fillMode);
+            mVoxelScale = mVoxelize->getScale();
+            mVoxelHalfScale = mVoxelScale*0.5;
+            mVoxelize->getBoundsMin(mVoxelBmin);
+            mVoxelize->getBoundsMax(mVoxelBmax);
+        }
 
         mInputMesh.mVertexCount = (uint32_t)mVertices.size()/3;
         mInputMesh.mVertices = &mVertices[0];
         mInputMesh.mTriangleCount = (uint32_t)mIndices.size()/3;
         mInputMesh.mIndices = &mIndices[0];
 
-        printf("Building initial VoxelHull\n");
-        VoxelHull *vh = new VoxelHull(mVoxelize,mInputMesh,mParams);
-        mOverallHullVolume = vh->mConvexHull->m_volume;
-        mPendingHulls.push_back(vh);
+        {
+            printf("Building initial VoxelHull\n");
+            VoxelHull *vh = new VoxelHull(mVoxelize,mInputMesh,mParams);
+            mOverallHullVolume = vh->mConvexHull->m_volume;
+            mPendingHulls.push_back(vh);
+        }
     }
 
     void scaleOutputConvexHull(ConvexHull &ch)
@@ -9839,6 +9850,12 @@ public:
         ch.m_volume = computeConvexHullVolume(ch); // get the combined volume
         fm_getAABB(ch.m_nPoints,ch.m_points,sizeof(double)*3,ch.mBmin,ch.mBmax);
         fm_computeCentroid(ch.m_nPoints,ch.m_points,ch.m_nTriangles,ch.m_triangles,ch.m_center);
+    }
+
+    void addCostToPriorityQueue(CostTask *task)
+    {
+        HullPair hp(task->mHullA->m_meshId,task->mHullB->m_meshId,task->mConcavity);
+        mHullPairQueue.push(hp);
     }
 
     void performConvexDecomposition(void)
@@ -9946,47 +9963,72 @@ public:
 
         if ( hullCount > mParams.m_maxConvexHulls )
         {
+            {
+                size_t costMatrixSize = ((hullCount*hullCount)-hullCount)>>1;
+                CostTask *tasks = new CostTask[costMatrixSize];
+                CostTask *task = tasks;
+                ScopedTime st("Computing the Cost Matrix");
+                printf("Computing the cost matrix.\n");
+                // First thing we need to do is compute the cost matrix
+                // This is computed as the volume error of any two convex hulls
+                // combined
+
+                for (size_t i=1; i<hullCount; i++)
+                {
+                    ConvexHull *chA = hulls[i];
+
+                    for (size_t j=0; j<i; j++)
+                    {
+                        ConvexHull *chB = hulls[j];
+
+                        task->mHullA = chA;
+                        task->mHullB = chB;
+                        task->mThis = this;
+
+                        if ( doFastCost(task) )
+                        {
+                        }
+                        else
+                        {
+                            if ( mSimpleJobSystem )
+                            {
+                                mSimpleJobSystem->addJob(task,computeMergeCostTask);
+                            }
+                            task++;
+                        }
+                    }
+                }
+
+                size_t taskCount = task - tasks;
+
+                if ( mSimpleJobSystem )
+                {
+                    if ( taskCount )
+                    {
+                        mSimpleJobSystem->startJobs();
+                        mSimpleJobSystem->waitForJobsToComplete();
+                    }
+                    task = tasks;
+                    for (size_t i=0; i<taskCount; i++)
+                    {
+                        addCostToPriorityQueue(task);
+                        task++;
+                    }
+                }
+                else
+                {
+                    task = tasks;
+                    for (size_t i=0; i<taskCount; i++)
+                    {
+                        performMergeCostTask(task);
+                        addCostToPriorityQueue(task);
+                        task++;
+                    }
+                }
+            }
+
             ScopedTime st("Merging Convex Hulls");
 
-            printf("Computing the cost matrix.\n");
-            // First thing we need to do is compute the cost matrix
-            // This is computed as the volume error of any two convex hulls
-            // combined
-            size_t costMatrixSize = ((hullCount*hullCount)-hullCount)>>1;
-            CostTask *tasks = new CostTask[costMatrixSize];
-            CostTask *task = tasks;
-            for (size_t i=1; i<hullCount; i++)
-            {
-                ConvexHull *chA = hulls[i];
-                for (size_t j=0; j<i; j++)
-                {
-                    ConvexHull *chB = hulls[j];
-                    task->mHullA = chA;
-                    task->mHullB = chB;
-                    task->mThis = this;
-                    if ( mSimpleJobSystem )
-                    {
-                        mSimpleJobSystem->addJob(task,computeMergeCostTask);
-                    }
-                    task++;
-                }
-            }
-            size_t taskCount = task - tasks;
-            if ( mSimpleJobSystem )
-            {
-                if ( taskCount )
-                {
-                    mSimpleJobSystem->startJobs();
-                    mSimpleJobSystem->waitForJobsToComplete();
-                }
-            }
-            else
-            {
-                for (size_t i=0; i<taskCount; i++)
-                {
-                    performMergeCostTask(&tasks[i]);
-                }
-            }
             // Now that we know the cost to merge each hull, we can begin merging them.
             printf("Performing merging operations...\n");
             bool cancel = false;
@@ -10017,36 +10059,24 @@ public:
                     removeHull(hp.mHullB);
                     mMeshId++;
                     combinedHull->m_meshId = mMeshId;
-                    task = tasks;
+                    CostTask task;
+
                     // Compute the cost between this new merged hull
                     // and all existing convex hulls and then 
                     // add that to the priority queue
                     for (auto &i:mHulls)
                     {
                         ConvexHull *secondHull = i.second;
-                        task->mHullA = combinedHull;
-                        task->mHullB = secondHull;
-                        task->mThis = this;
-                        if ( mSimpleJobSystem )
+                        task.mHullA = combinedHull;
+                        task.mHullB = secondHull;
+                        task.mThis = this;
+                        if ( doFastCost(&task) )
                         {
-                            mSimpleJobSystem->addJob(task,computeMergeCostTask);
                         }
-                        task++;
-                    }
-                    taskCount = task - tasks;
-                    if ( mSimpleJobSystem )
-                    {
-                        if ( taskCount )
+                        else
                         {
-                            mSimpleJobSystem->startJobs();
-                            mSimpleJobSystem->waitForJobsToComplete();
-                        }
-                    }
-                    else
-                    {
-                        for (size_t i=0; i<taskCount; i++)
-                        {
-                            performMergeCostTask(&tasks[i]);
+                            performMergeCostTask(&task);
+                            addCostToPriorityQueue(&task);
                         }
                     }
                     mHulls[combinedHull->m_meshId] = combinedHull;
@@ -10137,6 +10167,35 @@ public:
         return fabs(volumeSeparate - volumeCombined) / volumeMesh;
     }
 
+    // See if we can compute the cost without having to actually merge convex hulls.
+    // If the axis aligned bounding boxes (slightly inflated) of the two convex hulls
+    // do not intersect, then we don't need to actually compute the merged convex hull
+    // volume.
+    inline bool doFastCost(CostTask *mt)
+    {
+        bool ret = false;
+
+        ConvexHull *ch1 = mt->mHullA;
+        ConvexHull *ch2 = mt->mHullB;
+
+        double volume1 = ch1->m_volume;
+        double volume2 = ch2->m_volume;
+        double concavity = FLT_MAX;
+
+        if ( !fm_intersectAABB(ch1->mBmin, ch1->mBmax, ch2->mBmin, ch2->mBmax))
+        {
+            double bmin[3];
+            double bmax[3];
+            fm_combineAABB(ch1->mBmin, ch1->mBmax, ch2->mBmin, ch2->mBmax, bmin, bmax);
+            double combinedVolume = fm_volumeAABB(bmin, bmax);
+            concavity = computeConcavity(volume1 + volume2, combinedVolume, mOverallHullVolume);
+            HullPair hp(ch1->m_meshId, ch2->m_meshId,concavity);
+            mHullPairQueue.push(hp);
+            ret = true;
+        }
+        return ret;
+    }
+
     void performMergeCostTask(CostTask *mt)
     {
         ConvexHull *ch1 = mt->mHullA;
@@ -10146,30 +10205,10 @@ public:
         double volume2 = ch2->m_volume;
         double concavity = FLT_MAX;
 
-        if (fm_intersectAABB(ch1->mBmin, ch1->mBmax, ch2->mBmin, ch2->mBmax))
-        {
-            ConvexHull *combined = computeCombinedConvexHull(*ch1, *ch2); // Build the combined convex hull
-            double combinedVolume = computeConvexHullVolume(*combined); // get the combined volume
-            concavity = computeConcavity(volume1 + volume2, combinedVolume, mOverallHullVolume);
-            delete combined; // done with it
-        }
-        else
-        {
-            double bmin[3];
-            double bmax[3];
-            fm_combineAABB(ch1->mBmin, ch1->mBmax, ch2->mBmin, ch2->mBmax, bmin, bmax);
-            double combinedVolume = fm_volumeAABB(bmin, bmax);
-            concavity = computeConcavity(volume1 + volume2, combinedVolume, mOverallHullVolume);
-        }
-
-        HullPair hp(ch1->m_meshId, ch2->m_meshId,concavity);
-
-        // When inserting the result into the hull pair map we need
-        // to take a mutex lock so multiple tasks aren't trying to refresh this
-        // container at the same time.
-        mTaskMutex.lock();
-        mHullPairQueue.push(hp);
-        mTaskMutex.unlock();
+        ConvexHull *combined = computeCombinedConvexHull(*ch1, *ch2); // Build the combined convex hull
+        double combinedVolume = computeConvexHullVolume(*combined); // get the combined volume
+        mt->mConcavity = computeConcavity(volume1 + volume2, combinedVolume, mOverallHullVolume);
+        delete combined; // done with it
     }
 
     ConvexHull *computeReducedConvexHull(const ConvexHull &ch,uint32_t maxVerts,bool projectHullVertices)
@@ -10342,7 +10381,6 @@ public:
     double                                  mVoxelBmin[3];
     double                                  mVoxelBmax[3];
     uint32_t                                mMeshId{0};
-    std::mutex          mTaskMutex;
     HullPairQueue       mHullPairQueue;
     SimpleJobSystem        *mSimpleJobSystem{nullptr};
     HullMap             mHulls;
