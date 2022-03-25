@@ -8,7 +8,8 @@
 #include "ScopedTime.h"
 
 #include <thread>
-
+#include <string>
+#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(disable:4100 4996)
@@ -43,6 +44,77 @@ bool getTrueFalse(const char *option,bool &value)
 	return ret;
 }
 
+class Logging : public VHACD::IVHACD::IUserCallback, public VHACD::IVHACD::IUserLogger
+{
+public:
+	Logging(void)
+	{
+	}
+
+	~Logging(void)
+	{
+		printf("\n");
+		flushMessages();
+	}
+
+        // Be aware that if you are running V-HACD asynchronously (in a background thread) this callback will come from
+        // a different thread. So if your print/logging code isn't thread safe, take that into account.
+        virtual void Update(const double overallProgress,
+                            const double stageProgress,
+                            const char* const stage) final
+		{
+			char scratch[512];
+			snprintf(scratch,sizeof(scratch),"[%-40s] : %0.0f%% : %0.0f%%",stage,overallProgress,stageProgress);
+
+			if ( strcmp(stage,mCurrentStage.c_str()) == 0 )
+			{
+				for (uint32_t i=0; i<mLastLen; i++)
+				{
+					printf("%c", 8);
+				}
+			}
+			else
+			{
+				printf("\n");
+				flushMessages();
+				mCurrentStage = std::string(stage);
+			}
+			mLastLen = (uint32_t)strlen(scratch);
+			printf("%s", scratch);
+		}
+
+        // This is an optional user callback which is only called when running V-HACD asynchronously.
+        // This is a callback performed to notify the user that the
+        // convex decomposition background process is completed. This call back will occur from
+        // a different thread so the user should take that into account.
+        virtual void NotifyVHACDComplete(void)
+        {
+			Log("VHACD::Complete\n");
+        }
+
+		virtual void Log(const char* const msg) final
+		{
+			mLogMessages.push_back(std::string(msg));
+		}
+
+		void flushMessages(void)
+		{
+			if ( !mLogMessages.empty() )
+			{
+				for (auto &i:mLogMessages)
+				{
+					printf("%s\n", i.c_str());
+				}
+				mLogMessages.clear();
+			}
+		}
+
+		uint32_t	mLastLen{0};
+		std::string mCurrentStage;
+		std::vector< std::string > mLogMessages;
+
+};
+
 int main(int argc,const char **argv)
 {
 	if ( argc < 2 )
@@ -61,7 +133,10 @@ int main(int argc,const char **argv)
 	}
 	else
 	{
+		Logging logging;
 		VHACD::IVHACD::Parameters p;
+		p.m_callback = &logging;
+		p.m_logger = &logging;
 		const char *inputFile = argv[1];
 
 		WavefrontObj w;
