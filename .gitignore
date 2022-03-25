@@ -174,3 +174,4 @@ build/
 /app/compiler/vc14win64/.vs/TestVHACD/v16/Browse.VC.db-shm
 /app/compiler/vc14win64/.vs/TestVHACD/v16/Browse.VC.db-wal
 /app/compiler/vc14win64/.vs/TestVHACD/v16/Browse.VC.opendb
+/app/compiler/vc14win64/decomp.obj

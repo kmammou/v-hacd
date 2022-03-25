@@ -53,7 +53,6 @@ public:
 
 	~Logging(void)
 	{
-		printf("\n");
 		flushMessages();
 	}
 
@@ -61,10 +60,10 @@ public:
         // a different thread. So if your print/logging code isn't thread safe, take that into account.
         virtual void Update(const double overallProgress,
                             const double stageProgress,
-                            const char* const stage) final
+                            const char* const stage,const char *operation) final
 		{
 			char scratch[512];
-			snprintf(scratch,sizeof(scratch),"[%-40s] : %0.0f%% : %0.0f%%",stage,overallProgress,stageProgress);
+			snprintf(scratch,sizeof(scratch),"[%-40s] : %0.0f%% : %0.0f%% : %s",stage,overallProgress,stageProgress,operation);
 
 			if ( strcmp(stage,mCurrentStage.c_str()) == 0 )
 			{
@@ -76,7 +75,6 @@ public:
 			else
 			{
 				printf("\n");
-				flushMessages();
 				mCurrentStage = std::string(stage);
 			}
 			mLastLen = (uint32_t)strlen(scratch);
@@ -89,7 +87,7 @@ public:
         // a different thread so the user should take that into account.
         virtual void NotifyVHACDComplete(void)
         {
-			Log("VHACD::Complete\n");
+			Log("VHACD::Complete");
         }
 
 		virtual void Log(const char* const msg) final
@@ -101,6 +99,7 @@ public:
 		{
 			if ( !mLogMessages.empty() )
 			{
+				printf("\n");
 				for (auto &i:mLogMessages)
 				{
 					printf("%s\n", i.c_str());
@@ -307,6 +306,7 @@ int main(int argc,const char **argv)
 					}
 #endif
 				}
+				logging.flushMessages();
 			}
 			if ( !canceled && iface->GetNConvexHulls() )
 			{

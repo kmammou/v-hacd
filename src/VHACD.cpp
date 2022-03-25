@@ -26,6 +26,7 @@
 namespace VHACD
 {
 
+
 class Timer
 {
 public:
@@ -59,7 +60,7 @@ private:
 class ScopedTime
 {
 public:
-    ScopedTime(const char *action,VHACD::IVHACD::IUserLogger *logger) : mAction(action)
+    ScopedTime(const char *action,VHACD::IVHACD::IUserLogger *logger) : mAction(action), mLogger(logger)
     {
         mTimer.reset();
     }
@@ -8823,6 +8824,32 @@ using AABBTreeVector = std::vector< VHACD::AABBTree *>;
 using VoxelVector = std::vector< VHACD::Voxel >;
 using ConvexHullVector = std::vector< IVHACD::ConvexHull *>;
 
+enum class Stages
+{
+    COMPUTE_BOUNDS_OF_INPUT_MESH,
+    REINDEXING_INPUT_MESH,
+    CREATE_RAYCAST_MESH,
+    VOXELIZING_INPUT_MESH,
+    BUILD_INITIAL_CONVEX_HULL,
+    PERFORMING_DECOMPOSITION,
+    INITIALIZING_CONVEX_HULLS_FOR_MERGING,
+    COMPUTING_COST_MATRIX,
+    MERGING_CONVEX_HULLS,
+    FINALIZING_RESULTS,
+    NUM_STAGES
+};
+
+class VHACDCallbacks
+{
+public:
+    virtual void progressUpdate(Stages stage,double stageProgress,const char *operation) = 0;
+    virtual bool isCanceled(void) const = 0;
+
+};
+
+
+
+
 enum class SplitAxis
 {
     X_AXIS_NEGATIVE,
@@ -9034,7 +9061,7 @@ public:
     // entire voxel set
     VoxelHull(Voxelize *voxels,
               const SimpleMesh &inputMesh,
-              const IVHACD::Parameters &params) : mVoxels(voxels), mParams(params)
+              const IVHACD::Parameters &params,VHACDCallbacks *callbacks) : mVoxels(voxels), mParams(params), mCallbacks(callbacks)
     {
         mVoxelHullCount++;
         mIndex = mVoxelHullCount;
@@ -9410,6 +9437,7 @@ public:
     std::vector<uint32_t>   mIndices;   // indices for the voxelized mesh
     static uint32_t         mVoxelHullCount;
     IVHACD::Parameters      mParams;
+    VHACDCallbacks          *mCallbacks{nullptr};
 };
 
 uint32_t VoxelHull::mVoxelHullCount=0;
@@ -9520,22 +9548,7 @@ public:
 
 void jobCallback(void *userPtr);
 
-enum class Stages
-{
-    COMPUTE_BOUNDS_OF_INPUT_MESH,
-    REINDEXING_INPUT_MESH,
-    CREATE_RAYCAST_MESH,
-    VOXELIZING_INPUT_MESH,
-    BUILD_INITIAL_CONVEX_HULL,
-    PERFORMING_DECOMPOSITION,
-    INITIALIZING_CONVEX_HULLS_FOR_MERGING,
-    COMPUTING_COST_MATRIX,
-    MERGING_CONVEX_HULLS,
-    FINALIZING_RESULTS,
-    NUM_STAGES
-};
-
-class VHACDImpl : public IVHACD
+class VHACDImpl : public IVHACD, public VHACDCallbacks
 {
 public:
     VHACDImpl(void)
@@ -9549,6 +9562,7 @@ public:
 
     virtual void Cancel() final
     {
+        mCanceled = true;
     }
 
     virtual bool Compute(const float* const points,
@@ -9775,7 +9789,7 @@ public:
             if ( (i&255) == 0 )
             {
                 double percent = double(i)*100 / double(countPoints);
-                progressUpdate(Stages::COMPUTE_BOUNDS_OF_INPUT_MESH,percent);
+                progressUpdate(Stages::COMPUTE_BOUNDS_OF_INPUT_MESH,percent,"ComputingBounds");
             }
         }
 
@@ -9840,21 +9854,21 @@ public:
 
         // Create the raycast mesh
         {
-            progressUpdate(Stages::CREATE_RAYCAST_MESH,0);
+            progressUpdate(Stages::CREATE_RAYCAST_MESH,0,"Building RaycastMesh");
             mRaycastMesh = RaycastMesh::createRaycastMesh(uint32_t(mVertices.size())/3,&mVertices[0],uint32_t(mIndices.size())/3,&mIndices[0]);
-            progressUpdate(Stages::CREATE_RAYCAST_MESH,100);
+            progressUpdate(Stages::CREATE_RAYCAST_MESH,100,"RaycastMesh completed");
         }
 
 
         {
-            progressUpdate(Stages::VOXELIZING_INPUT_MESH,0);
+            progressUpdate(Stages::VOXELIZING_INPUT_MESH,0,"Voxelizing Input Mesh");
             mVoxelize = Voxelize::create();
             mVoxelize->voxelize(mRaycastMesh,&mVertices[0],uint32_t(mVertices.size())/3,&mIndices[0],uint32_t(mIndices.size())/3,mParams.m_resolution,(VoxelFillMode)mParams.m_fillMode);
             mVoxelScale = mVoxelize->getScale();
             mVoxelHalfScale = mVoxelScale*0.5;
             mVoxelize->getBoundsMin(mVoxelBmin);
             mVoxelize->getBoundsMax(mVoxelBmax);
-            progressUpdate(Stages::VOXELIZING_INPUT_MESH,100);
+            progressUpdate(Stages::VOXELIZING_INPUT_MESH,100,"Voxelization complete");
         }
 
         mInputMesh.mVertexCount = (uint32_t)mVertices.size()/3;
@@ -9863,11 +9877,11 @@ public:
         mInputMesh.mIndices = &mIndices[0];
 
         {
-            progressUpdate(Stages::BUILD_INITIAL_CONVEX_HULL,0);
-            VoxelHull *vh = new VoxelHull(mVoxelize,mInputMesh,mParams);
+            progressUpdate(Stages::BUILD_INITIAL_CONVEX_HULL,0,"Build initial ConvexHull");
+            VoxelHull *vh = new VoxelHull(mVoxelize,mInputMesh,mParams,this);
             mOverallHullVolume = vh->mConvexHull->m_volume;
             mPendingHulls.push_back(vh);
-            progressUpdate(Stages::BUILD_INITIAL_CONVEX_HULL,100);
+            progressUpdate(Stages::BUILD_INITIAL_CONVEX_HULL,100,"Initial ConvexHull complete");
         }
     }
 
@@ -9894,20 +9908,16 @@ public:
     void performConvexDecomposition(void)
     {
         {
-            ScopedTime st("Time Spend doing the decomposition",mParams.m_logger);
-
-
+            ScopedTime st("Convex Decompostion",mParams.m_logger);
             uint32_t maxHulls = (uint32_t)pow(2,mParams.m_maxRecursionDepth);
-            uint32_t count = 0;
             // We recursively split convex hulls until we can
             // no longer recurse further.
             while ( !mPendingHulls.empty() )
             {
-                count++;
-                if ( (count&15) == 0 )
                 {
-                    double stageProgress = double(count)*100 / maxHulls;
-                    progressUpdate(Stages::MERGING_CONVEX_HULLS,stageProgress);
+                    double count = double(mPendingHulls.size() + mVoxelHulls.size());
+                    double stageProgress = (count*100,0) / double(maxHulls);
+                    progressUpdate(Stages::MERGING_CONVEX_HULLS,stageProgress,"Merging Hulls");
                 }
                 // First we make a copy of the hulls we are processing
                 VoxelHullVector oldList = mPendingHulls;
@@ -9978,7 +9988,7 @@ public:
         // Build the convex hull id map
         std::vector< ConvexHull *> hulls;
 
-        progressUpdate(Stages::INITIALIZING_CONVEX_HULLS_FOR_MERGING,0);
+        progressUpdate(Stages::INITIALIZING_CONVEX_HULLS_FOR_MERGING,0,"Initializing ConvexHulls");
         for (auto &vh:mVoxelHulls)
         {
             ConvexHull *ch = copyConvexHull(*vh->mConvexHull);
@@ -9998,14 +10008,13 @@ public:
             delete vh;
             hulls.push_back(ch);
         }
-        progressUpdate(Stages::INITIALIZING_CONVEX_HULLS_FOR_MERGING,100);
+        progressUpdate(Stages::INITIALIZING_CONVEX_HULLS_FOR_MERGING,100,"ConvexHull initialization complete");
 
         mVoxelHulls.clear();
 
         // here we merge convex hulls as needed until the match the
         // desired maximum hull count.
         size_t hullCount = hulls.size();
-
         if ( hullCount > mParams.m_maxConvexHulls )
         {
             {
@@ -10016,7 +10025,7 @@ public:
                 // First thing we need to do is compute the cost matrix
                 // This is computed as the volume error of any two convex hulls
                 // combined
-                progressUpdate(Stages::COMPUTING_COST_MATRIX,0);
+                progressUpdate(Stages::COMPUTING_COST_MATRIX,0,"Computing Hull Merge Cost Matrix");
 
                 for (size_t i=1; i<hullCount; i++)
                 {
@@ -10070,7 +10079,7 @@ public:
                         task++;
                     }
                 }
-                progressUpdate(Stages::COMPUTING_COST_MATRIX,100);
+                progressUpdate(Stages::COMPUTING_COST_MATRIX,100,"Finished cost matrix");
 
             }
 
@@ -10080,15 +10089,18 @@ public:
             bool cancel = false;
 
             uint32_t maxMergeCount = uint32_t(mHulls.size()) - mParams.m_maxConvexHulls;
-            uint32_t counter = 0;
-
+            uint32_t startCount = uint32_t(mHulls.size());
+            uint32_t notifyCount = 0;
             while ( !cancel && mHulls.size() > mParams.m_maxConvexHulls && !mHullPairQueue.empty() )
             {
-
-                counter++;
-
-                double stageProgess = double(counter*100) / double(maxMergeCount);
-                progressUpdate(Stages::MERGING_CONVEX_HULLS,stageProgess);
+                notifyCount++;
+                if ( notifyCount == 256 )
+                {
+                    notifyCount = 0;
+                    uint32_t hullsProcessed = startCount - uint32_t(mHulls.size() );
+                    double stageProgess = double(hullsProcessed*100) / double(maxMergeCount);
+                    progressUpdate(Stages::MERGING_CONVEX_HULLS,stageProgess,"Merging Convex Hulls");
+                }
 
                 HullPair hp = mHullPairQueue.top();
                 mHullPairQueue.pop();
@@ -10140,7 +10152,7 @@ public:
             }
             // Ok...once we are done, we copy the results!
             mMeshId -= 0;
-            progressUpdate(Stages::FINALIZING_RESULTS,0);
+            progressUpdate(Stages::FINALIZING_RESULTS,0,"Finalizing results");
             for (auto &i:mHulls)
             {
                 ConvexHull *ch = i.second;
@@ -10157,11 +10169,11 @@ public:
                 mConvexHulls.push_back(ch);
             }
             mHulls.clear(); // since the hulls were moved into the output list, we don't need to delete them from this container
-            progressUpdate(Stages::FINALIZING_RESULTS,100);
+            progressUpdate(Stages::FINALIZING_RESULTS,100,"Finalized results complete");
         }
         else
         {
-            progressUpdate(Stages::FINALIZING_RESULTS,0);
+            progressUpdate(Stages::FINALIZING_RESULTS,0,"Finalizing results");
             mMeshId = 0;
             for (auto &ch:hulls)
             {
@@ -10177,7 +10189,7 @@ public:
                 mMeshId++;
                 mConvexHulls.push_back(ch);
             }
-            progressUpdate(Stages::FINALIZING_RESULTS,100);
+            progressUpdate(Stages::FINALIZING_RESULTS,100,"Finalized results");
         }
     }
 
@@ -10417,13 +10429,13 @@ public:
         delete ch;
     }
 
-    void progressUpdate(Stages stage,double stageProgress)
+    void progressUpdate(Stages stage,double stageProgress,const char *operation)
     {
         if ( mParams.m_callback )
         {
             double overallProgress = (double(stage)*100) / double(Stages::NUM_STAGES);
             const char *s = getStageName(stage);
-            mParams.m_callback->Update(overallProgress,stageProgress,s);
+            mParams.m_callback->Update(overallProgress,stageProgress,s,operation);
         }
     }
 
@@ -10466,6 +10478,12 @@ public:
         return ret;
     }
 
+    virtual bool isCanceled(void) const final
+    {
+        return mCanceled;
+    }
+
+    std::atomic<bool>                       mCanceled{false};
     Parameters                              mParams;                    // Convex decomposition parameters
 
     ConvexHullVector                        mConvexHulls;               // Finalized convex hulls
@@ -10518,6 +10536,16 @@ IVHACD* CreateVHACD(void)
 
 IVHACD* CreateVHACD(void);
 
+class LogMessage
+{
+public:
+    double  mOverallProgress{-1};
+    double  mStageProgress{-1};
+    std::string mStage;
+    std::string mOperation;
+};
+
+using LogMessageVector = std::vector< LogMessage >;
 
 class MyHACD_API : public VHACD::IVHACD,
                    public VHACD::IVHACD::IUserCallback,
@@ -10720,21 +10748,26 @@ public:
 
     virtual void Update(const double overallProgress,
                         const double stageProgress,
-                        const char* const stage) final
+                        const char* const stage,const char *operation) final
     {
         mMessageMutex.lock();
-        mHaveUpdateMessage = true;
-        mOverallProgress = overallProgress;
-        mStageProgress = stageProgress;
-        mStage = std::string(stage);
+        LogMessage m;
+        m.mOperation = std::string(operation);
+        m.mOverallProgress = overallProgress;
+        m.mStageProgress = stageProgress;
+        m.mStage = std::string(stage);
+        mMessages.push_back(m);
+        mHaveMessages = true;
         mMessageMutex.unlock();
     }
 
     virtual void Log(const char* const msg) final
     {
         mMessageMutex.lock();
-        mHaveLogMessage = true;
-        mMessage = std::string(msg);
+        LogMessage m;
+        m.mOperation = std::string(msg);
+        mHaveMessages = true;
+        mMessages.push_back(m);
         mMessageMutex.unlock();
     }
 
@@ -10753,22 +10786,25 @@ public:
         {
             return;
         }
-        // If we have a new update message and the user has specified a callback we send the message and clear the
-        // semaphore
-        if (mHaveUpdateMessage && mCallback)
+        if ( mHaveMessages )
         {
             mMessageMutex.lock();
-            mCallback->Update(mOverallProgress, mStageProgress, mStage.c_str());
-            mHaveUpdateMessage = false;
-            mMessageMutex.unlock();
-        }
-        // If we have a new log message and the user has specified a callback we send the message and clear the
-        // semaphore
-        if (mHaveLogMessage && mLogger)
-        {
-            mMessageMutex.lock();
-            mLogger->Log(mMessage.c_str());
-            mHaveLogMessage = false;
+            for (auto &i:mMessages)
+            {
+                if ( i.mOverallProgress == -1 )
+                {
+                    if ( mLogger )
+                    {
+                        mLogger->Log(i.mOperation.c_str());
+                    }
+                }
+                else if ( mCallback )
+                {
+                    mCallback->Update(i.mOverallProgress,i.mStageProgress,i.mStage.c_str(),i.mOperation.c_str());
+                }
+            }
+            mMessages.clear();
+            mHaveMessages = false;
             mMessageMutex.unlock();
         }
     }
@@ -10830,12 +10866,8 @@ private:
     // Member variables are marked as 'mutable' since the message dispatch function
     // is called from const query methods.
     mutable std::mutex mMessageMutex;
-    mutable std::atomic<bool> mHaveUpdateMessage{ false };
-    mutable std::atomic<bool> mHaveLogMessage{ false };
-    mutable double mOverallProgress{ 0 };
-    mutable double mStageProgress{ 0 };
-    mutable std::string mStage;
-    mutable std::string mMessage;
+    mutable LogMessageVector    mMessages;
+    mutable std::atomic<bool>   mHaveMessages{false};
 };
 
 IVHACD* CreateVHACD_ASYNC(void)

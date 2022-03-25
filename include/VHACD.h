@@ -150,7 +150,8 @@ public:
         // a different thread. So if your print/logging code isn't thread safe, take that into account.
         virtual void Update(const double overallProgress,
                             const double stageProgress,
-                            const char* const stage) = 0;
+                            const char* const stage,
+                            const char *operation) = 0;
 
         // This is an optional user callback which is only called when running V-HACD asynchronously.
         // This is a callback performed to notify the user that the
