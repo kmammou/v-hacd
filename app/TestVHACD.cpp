@@ -123,7 +123,7 @@ int main(int argc,const char **argv)
 		printf("\n");
 		printf("-h <n>                  : Maximum number of output convex hulls. Default is 32\n");
 		printf("-r <voxelresolution>    : Total number of voxels to use. Default is 100,000\n");
-		printf("-e <volumeErrorPercent> : Volume error allowed as a percentage. Default is 8%%\n");
+		printf("-e <volumeErrorPercent> : Volume error allowed as a percentage. Default is 4%%\n");
 		printf("-d <maxRecursionDepth>  : Maximum recursion depth. Default value is 12.\n");
 		printf("-s <true/false>         : Whether or not to shrinkwrap output to source mesh. Default is true.\n");
 		printf("-f <fillMode>           : Fill mode. Default is 'flood', also 'surface' and 'raycast' are valid.\n");
@@ -262,7 +262,7 @@ int main(int argc,const char **argv)
 						}
 						else
 						{
-							printf("Synchronous mode enabled\n");
+							printf("Synchronous mode disabled\n");
 						}
 					}
 				}
