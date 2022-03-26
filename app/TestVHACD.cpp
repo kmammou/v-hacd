@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 
+#define ENABLE_VHACD_IMPLEMENTATION 1
 #include "VHACD.h"
 #include "wavefront.h"
 #include "ScopedTime.h"
