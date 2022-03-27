@@ -283,7 +283,7 @@ int main(int argc,const char **argv)
 
 			VHACD::IVHACD *iface = VHACD::CreateVHACD_ASYNC();
 #ifdef _MSC_VER
-			printf("Press any key to cancel convex decomposition before it has completed.\n");
+			printf("Press the SPACEBAR to cancel convex decomposition before it has completed.\n");
 #endif
 			double *points = new double[w.mVertexCount*3];
 			for (uint32_t i=0; i<w.mVertexCount*3; i++)
@@ -300,10 +300,13 @@ int main(int argc,const char **argv)
 #ifdef _MSC_VER
 					if ( kbhit() )
 					{
-						printf("Canceling convex decomposition.\n");
-						iface->Cancel();
-						getch();
-						canceled = true;
+						char c = getch();
+						if ( c == 32 )
+						{
+							printf("Canceling convex decomposition.\n");
+							iface->Cancel();
+							canceled = true;
+						}
 					}
 #endif
 				}

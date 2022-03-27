@@ -10098,6 +10098,22 @@ public:
         mScale[1] = bmax[1] - bmin[1];
         mScale[2] = bmax[2] - bmin[2];
 
+        double scale = mScale[0];
+
+        if ( mScale[1] > scale )
+        {
+            scale = mScale[1];
+        }
+
+        if ( mScale[2] > scale )
+        {
+            scale = mScale[2];
+        }
+
+        mScale[0] = scale;
+        mScale[1] = scale;
+        mScale[2] = scale;
+
         mRecipScale[0] = mScale[0] > 0 ? 1.0 / mScale[0] : 0;
         mRecipScale[1] = mScale[1] > 0 ? 1.0 / mScale[1] : 0;
         mRecipScale[2] = mScale[2] > 0 ? 1.0 / mScale[2] : 0;
