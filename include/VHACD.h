@@ -9830,8 +9830,8 @@ public:
 
 void jobCallback(void *userPtr);
 
-// Don't consider more than 10,000 convex hulls.
-#define MAX_CONVEX_HULL_FRAGMENTS 10000
+// Don't consider more than 100,000 convex hulls.
+#define MAX_CONVEX_HULL_FRAGMENTS 100000
 
 class VHACDImpl : public IVHACD, public VHACDCallbacks
 {
@@ -10057,9 +10057,9 @@ public:
     uint32_t getIndex(VHACD::fm_VertexIndex *vi,const double *p)
     {
         double pos[3];
-        pos[0] = (p[0]-mCenter[0])*mRecipScale[0];
-        pos[1] = (p[1]-mCenter[1])*mRecipScale[1];
-        pos[2] = (p[2]-mCenter[2])*mRecipScale[2];
+        pos[0] = (p[0]-mCenter[0])*mRecipScale;
+        pos[1] = (p[1]-mCenter[1])*mRecipScale;
+        pos[2] = (p[2]-mCenter[2])*mRecipScale;
         bool newPos;
         uint32_t ret = vi->getIndex(pos,newPos);
         return ret;
@@ -10094,29 +10094,25 @@ public:
         mCenter[1] = (bmax[1]+bmin[1])*0.5;
         mCenter[2] = (bmax[2]+bmin[2])*0.5;
 
-        mScale[0] = bmax[0] - bmin[0];
-        mScale[1] = bmax[1] - bmin[1];
-        mScale[2] = bmax[2] - bmin[2];
+        double scaleX = bmax[0] - bmin[0];
+        double scaleY = bmax[1] - bmin[1];
+        double scaleZ = bmax[2] - bmin[2];
 
-        double scale = mScale[0];
+        double scale = scaleX;
 
-        if ( mScale[1] > scale )
+        if ( scaleY > scale )
         {
-            scale = mScale[1];
+            scale = scaleY;
         }
 
-        if ( mScale[2] > scale )
+        if ( scaleZ > scale )
         {
-            scale = mScale[2];
+            scale = scaleZ;
         }
 
-        mScale[0] = scale;
-        mScale[1] = scale;
-        mScale[2] = scale;
+        mScale = scale;
 
-        mRecipScale[0] = mScale[0] > 0 ? 1.0 / mScale[0] : 0;
-        mRecipScale[1] = mScale[1] > 0 ? 1.0 / mScale[1] : 0;
-        mRecipScale[2] = mScale[2] > 0 ? 1.0 / mScale[2] : 0;
+        mRecipScale = mScale > 0 ? 1.0 / mScale : 0;
 
         {
             VHACD::fm_VertexIndex *vi = VHACD::fm_createVertexIndex(0.001,false);
@@ -10206,9 +10202,9 @@ public:
         for (uint32_t i=0; i<ch.m_nPoints; i++)
         {
             double *p = &ch.m_points[i*3];
-            p[0] = (p[0]*mScale[0])+mCenter[0];
-            p[1] = (p[1]*mScale[1])+mCenter[1];
-            p[2] = (p[2]*mScale[2])+mCenter[2];
+            p[0] = (p[0]*mScale)+mCenter[0];
+            p[1] = (p[1]*mScale)+mCenter[1];
+            p[2] = (p[2]*mScale)+mCenter[2];
         }
         ch.m_volume = computeConvexHullVolume(ch); // get the combined volume
         fm_getAABB(ch.m_nPoints,ch.m_points,sizeof(double)*3,ch.mBmin,ch.mBmax);
@@ -10833,8 +10829,8 @@ public:
     RaycastMesh                             *mRaycastMesh{nullptr};
     Voxelize                                *mVoxelize{nullptr};
     double                                  mCenter[3];
-    double                                  mScale[3];
-    double                                  mRecipScale[3];
+    double                                  mScale{1};
+    double                                  mRecipScale{1};
     SimpleMesh                              mInputMesh;     // re-indexed and normalized input mesh
     std::vector< double >                   mVertices;
     std::vector< uint32_t >                 mIndices;
