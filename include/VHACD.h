@@ -9738,11 +9738,6 @@ public:
 
     double raycast(const IVec3 &p1,const IVec3& p2) const
     {
-//        static FILE *fph = nullptr;
-//        if ( fph == nullptr )
-//        {
-//            fph = fopen("d:\\raycast.txt","wb");
-//        }
         double ret;
         double from[3];
         double to[3];
@@ -9755,15 +9750,6 @@ public:
         if ( mRaycastMesh->raycast(from,to,outT,faceSign,hitLocation) )
         {
             ret = fm_distance(from,hitLocation);
-#if 0
-            if ( fph )
-            {
-                fprintf(fph,"%0.9f %0.9f %0.9f    %0.9f %0.9f %0.9f\n", 
-                    from[0],from[1],from[2],
-                    hitLocation[0],hitLocation[1],hitLocation[2]);
-                fflush(fph);
-            }
-#endif
         }
         else
         {
@@ -10116,6 +10102,40 @@ public:
                     mHullB = new VoxelHull(*this,SplitAxis::Z_AXIS_POSITIVE,splitLoc);
                     break;
             }
+#if 0 // for debugging only
+            static uint32_t count = 0;
+            count++;
+            if ( count < 16 )
+            {
+                char scratch[512];
+
+                snprintf(scratch,sizeof(scratch),"HullA%02d.obj",count);
+                mHullA->saveOBJ(scratch);
+
+                snprintf(scratch,sizeof(scratch),"HullB%02d.obj",count);
+                mHullB->saveOBJ(scratch);
+            }
+#endif
+        }
+    }
+
+    void saveOBJ(const char *fname)
+    {
+        FILE *fph = fopen(fname,"wb");
+        if ( fph )
+        {
+            size_t vcount = mVertices.size()/3;
+            size_t tcount = mIndices.size()/3;
+            printf("Saving '%s' with %d vertices and %d triangles\n", fname, uint32_t(vcount),uint32_t(tcount));
+            for (size_t i=0; i<vcount; i++)
+            {
+                fprintf(fph,"v %0.9f %0.9f %0.9f\n", mVertices[i*3+0],mVertices[i*3+1],mVertices[i*3+2]);
+            }
+            for (size_t i=0; i<tcount; i++)
+            {
+                fprintf(fph,"f %d %d %d\n", mIndices[i*3+0]+1,mIndices[i*3+1]+1,mIndices[i*3+2]+1);
+            }
+            fclose(fph);
         }
     }
 
