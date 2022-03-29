@@ -28,6 +28,60 @@
 #    define VHACD_VERSION_MAJOR 4
 #    define VHACD_VERSION_MINOR 0
 
+// Changes for version 4.0
+//
+// * The code has been significantly refactored to be cleaner and easier to maintain
+//      * All OpenCL related code removed
+//      * All Bullet code removed
+//      * Old plane splitting code removed
+// 
+// * The code is now delivered as a single hearder file 'VHACD.h' which has both the API
+// * declaration as well as the implementation.  Simply add '#define ENABLE_VHACD_IMPLEMENTATION 1'
+// * to any CPP in your application prior to including 'VHACD.h'. Only do this in one CPP though.
+// * If you do not have this define once, you will get link errors since the implementation code
+// * will not be compiled in. If you have this define more than once, you are likely to get
+// * duplicate symbol link errors.
+//
+// * Since the library is now delivered as a single header file, we do not provide binaries
+// * or build scripts as these are not needed.
+//
+// * The old DebugView and test code has all been removed and replaced with a much smaller and
+// * simpler test console application with some test meshes to work with.
+//
+// * The convex hull generation code has changed. The previous version came from Bullet. 
+// * However, the new version is courtesy of Julio Jerez, the author of the Newton
+// * physics engine. His new version is faster and more numerically stable.
+//
+// * The code can now detect if the input mesh is, itself, already a convex object and
+// * can early out.
+//
+// * Significant performance improvements have been made to the code and it is now much
+// * faster, stable, and is easier to tune than previous versions.
+//
+// * A bug was fixed with the shrink wrapping code (project hull vertices) that could
+// * sometime produce artifacts in the results. The new version uses a 'closest point'
+// * algorithm that is more reliable.
+//
+// * You can now select which 'fill mode' to use. For perfectly closed meshes, the default
+// * behavior using a flood fill generally works fine. However, some meshes have small 
+// * holes in them and therefore the flood fill will fail, treating the mesh as being
+// * hollow. In these cases, you can use the 'raycast' fill option to determine which 
+// * parts of the voxelized mesh are 'inside' versus being 'outside'. Finally, there
+// * are some rare instances where a user might actually want the mesh to be treated as
+// * hollow, in which case you can pass in 'surface' only.
+// *
+// * A new optional virtual interface called 'IUserProfiler' was provided.
+// * This allows the user to provide an optional profiling callback interface to assist in
+// * diagnosing performance issues. This change was made by Danny Couture at Epic for the UE4 integration.
+// * Some profiling macros were also declared in support of this feature.
+// *
+// * Another new optional virtual interface called 'IUserTaskRunner' was provided.
+// * This interface is used to run logical 'tasks' in a background thread. If none is provided
+// * then a default implementation using std::thread will be executed.
+// * This change was made by Danny Couture at Epic to speed up the voxelization step.
+// *
+
+
 // Changes for version 3.0 : April 17, 2020 : John W. Ratcliff mailto:jratcliffscarab@gmail.com
 //
 // * An optional callback method called 'NotifyVHACDComplete' was added to the IUserCallback interface.
@@ -217,6 +271,7 @@ public:
         uint32_t            m_maxNumVerticesPerCH{64};
         bool                m_asyncACD{ true };
         uint32_t            m_minEdgeLength{4};                     // Once a voxel patch has an edge length of less than 4 on all 3 sides, we don't keep recursing
+        bool                m_findBestPlane{true};
     };
 
     virtual void Cancel() = 0;
@@ -294,7 +349,8 @@ IVHACD* CreateVHACD_ASYNC(void);
 
 
 #ifdef _MSC_VER
-#pragma warning(disable:4100 4189 4456 4701)
+#pragma warning(push)
+#pragma warning(disable:4100 4189 4456 4701 4702)
 #endif
 
 #define SAFE_RELEASE(x) if ( x ) { x->release(); x = nullptr; }
@@ -9123,8 +9179,6 @@ public:
 };
 
 
-
-
 enum class SplitAxis
 {
     X_AXIS_NEGATIVE,
@@ -9342,9 +9396,11 @@ public:
         mIndex = mVoxelHullCount;
         uint32_t dimensions[3];
         mVoxels->getDimensions(dimensions);
+
         mX2 = dimensions[0]-1;
         mY2 = dimensions[1]-1;
         mZ2 = dimensions[2]-1;
+
         mVoxelScale = mVoxels->getScale();
         mVoxels->getBoundsMin(mVoxelBmin);
         mVoxels->getBoundsMax(mVoxelBmax);
@@ -9456,7 +9512,7 @@ public:
                   const int32_t z,
                   const double scale,
                   const double *bmin,
-                  double *dest)
+                  double *dest) const
     {
         dest[0] = (double(x)*scale + bmin[0]);
         dest[1] = (double(y)*scale + bmin[1]);
@@ -9625,29 +9681,408 @@ public:
         }
     }
 
+    // When computing the split plane, we start by simply 
+    // taking the midpoint of the longest side. However,
+    // we can also search the surface and look for the greatest
+    // spot of concavity and use that as the split location.
+    // This will make the convex decomposition more efficient
+    // as it will tend to cut across the greatest point of
+    // concavity on the surface.
     SplitAxis computeSplitPlane(uint32_t &location)
     {
         SplitAxis ret = SplitAxis::X_AXIS_NEGATIVE;
+
         uint32_t dx = mX2-mX1;
         uint32_t dy = mY2-mY1;
         uint32_t dz = mZ2-mZ1;
-        if ( dx >= dy && dx >= dz )
+
+        if (  dx >= dy && dx >= dz )
         {
             ret = SplitAxis::X_AXIS_NEGATIVE;
             location = (mX2-mX1)/2+mX1;
+            uint32_t edgeLoc;
+            if ( mParams.m_findBestPlane && findConcavityX(edgeLoc) )
+            {
+                location = edgeLoc;
+            }
         }
         else if ( dy >= dx && dy >= dz )
         {
             ret = SplitAxis::Y_AXIS_NEGATIVE;
             location = (mY2-mY1)/2+mY1;
+            uint32_t edgeLoc;
+            if ( mParams.m_findBestPlane &&  findConcavityY(edgeLoc) )
+            {
+                location = edgeLoc;
+            }
         }
         else
         {
             ret = SplitAxis::Z_AXIS_NEGATIVE;
             location = (mZ2-mZ1)/2+mZ1;
+            uint32_t edgeLoc;
+            if ( mParams.m_findBestPlane &&  findConcavityZ(edgeLoc) )
+            {
+                location = edgeLoc;
+            }
         }
+
+
         return ret;
     }
+
+    inline void getDoublePosition(const IVec3 &ip,double *p) const
+    {
+        getPoint(ip.x,ip.y,ip.z,mVoxelScale,mVoxelAdjust,p);
+    }
+
+    double raycast(const IVec3 &p1,const IVec3& p2) const
+    {
+//        static FILE *fph = nullptr;
+//        if ( fph == nullptr )
+//        {
+//            fph = fopen("d:\\raycast.txt","wb");
+//        }
+        double ret;
+        double from[3];
+        double to[3];
+        getDoublePosition(p1,from);
+        getDoublePosition(p2,to);
+
+        double outT;
+        double faceSign;
+        double hitLocation[3];
+        if ( mRaycastMesh->raycast(from,to,outT,faceSign,hitLocation) )
+        {
+            ret = fm_distance(from,hitLocation);
+#if 0
+            if ( fph )
+            {
+                fprintf(fph,"%0.9f %0.9f %0.9f    %0.9f %0.9f %0.9f\n", 
+                    from[0],from[1],from[2],
+                    hitLocation[0],hitLocation[1],hitLocation[2]);
+                fflush(fph);
+            }
+#endif
+        }
+        else
+        {
+            ret = fm_distance(from,to);
+        }
+
+        return ret;
+    }
+
+    // Finding the greatest area of concavity..
+    bool findConcavityX(uint32_t &splitLoc)
+    {
+        bool ret = false;
+
+        int32_t dx = (mX2-mX1)+1; // The length of the X axis in voxel space
+
+        // We will compute the edge error on the XY plane and the XZ plane
+        // searching for the greatest location of concavity
+
+        double *edgeErrorZ = new double[dx];
+        double *edgeErrorY = new double[dx];
+
+        // Counter of number of voxel samples on the XY plane we have accumulated
+        uint32_t indexZ = 0;
+
+        // Compute Edge Error on the XY plane
+        for (int32_t x=(int32_t)mX1; x<=(int32_t)mX2; x++)
+        {
+
+            double errorTotal = 0;
+            // We now perform a raycast from the sides inward on the XY plane to
+            // determine the total error (distance of the surface from the sides)
+            // along this X position.
+            for (int32_t y=(int32_t)mY1; y<=(int32_t)mY2; y++)
+            {
+                IVec3 p1(x,y,mZ1-2);
+                IVec3 p2(x,y,mZ2+2);
+
+                double e1 = raycast(p1,p2);
+                double e2 = raycast(p2,p1);
+
+                errorTotal = errorTotal+e1+e2;
+            }
+            // The total amount of edge error along this voxel location
+            edgeErrorZ[indexZ] = errorTotal;
+            indexZ++;
+        }
+
+        // Compute edge error along the XZ plane
+        uint32_t indexY = 0;
+
+        for (int32_t x=(int32_t)mX1; x<=(int32_t)mX2; x++)
+        {
+
+            double errorTotal = 0;
+
+            for (int32_t z=(int32_t)mZ1; z<=(int32_t)mZ2; z++)
+            {
+                IVec3 p1(x,mY1-2,z);
+                IVec3 p2(x,mY2+2,z);
+
+                double e1 = raycast(p1,p2); // raycast from one side to the interior
+                double e2 = raycast(p2,p1); // raycast from the other side to the interior
+
+                errorTotal = errorTotal+e1+e2;
+            }
+            edgeErrorY[indexY] = errorTotal;
+            indexY++;
+        }
+
+
+        // we now compute the first derivitave to find the greatest spot of concavity on the XY plane
+        double maxDiff = 0;
+        uint32_t maxC = 0;
+
+        for (uint32_t x=1; x<indexZ; x++)
+        {
+            double diff = abs(edgeErrorZ[x] - edgeErrorZ[x-1]);
+            if ( diff > maxDiff )
+            {
+                maxDiff = diff;
+                maxC = x-1;
+            }
+        }
+        // Now see if there is a greater concavity on the XZ plane
+        for (uint32_t x=1; x<indexY; x++)
+        {
+            double diff = abs(edgeErrorY[x] - edgeErrorY[x-1]);
+            if ( diff > maxDiff )
+            {
+                maxDiff = diff;
+                maxC = x-1;
+            }
+        }
+
+
+        delete []edgeErrorZ;
+        delete []edgeErrorY;
+
+        splitLoc = maxC+mX1;
+
+        // we do not allow an edge split if it is too close to the ends
+        if ( splitLoc > (mX1+1) && splitLoc < (mX2-1) )
+        {
+            ret = true;
+        }
+
+
+        return ret;
+    }
+
+
+    // Finding the greatest area of concavity..
+    bool findConcavityY(uint32_t &splitLoc)
+    {
+        bool ret = false;
+
+        int32_t dy = (mY2-mY1)+1; // The length of the X axis in voxel space
+
+        // We will compute the edge error on the XY plane and the XZ plane
+        // searching for the greatest location of concavity
+
+        double *edgeErrorZ = new double[dy];
+        double *edgeErrorX = new double[dy];
+
+        // Counter of number of voxel samples on the XY plane we have accumulated
+        uint32_t indexZ = 0;
+
+        // Compute Edge Error on the XY plane
+        for (int32_t y=(int32_t)mY1; y<=(int32_t)mY2; y++)
+        {
+
+            double errorTotal = 0;
+            // We now perform a raycast from the sides inward on the XY plane to
+            // determine the total error (distance of the surface from the sides)
+            // along this X position.
+            for (int32_t x=(int32_t)mX1; x<=(int32_t)mX2; x++)
+            {
+                IVec3 p1(x,y,mZ1-2);
+                IVec3 p2(x,y,mZ2+2);
+
+                double e1 = raycast(p1,p2);
+                double e2 = raycast(p2,p1);
+
+                errorTotal = errorTotal+e1+e2;
+            }
+            // The total amount of edge error along this voxel location
+            edgeErrorZ[indexZ] = errorTotal;
+            indexZ++;
+        }
+
+        // Compute edge error along the XZ plane
+        uint32_t indexX = 0;
+
+        for (int32_t y=(int32_t)mY1; y<=(int32_t)mY2; y++)
+        {
+
+            double errorTotal = 0;
+
+            for (int32_t z=(int32_t)mZ1; z<=(int32_t)mZ2; z++)
+            {
+                IVec3 p1(mX1-2,y,z);
+                IVec3 p2(mX2+2,y,z);
+
+                double e1 = raycast(p1,p2); // raycast from one side to the interior
+                double e2 = raycast(p2,p1); // raycast from the other side to the interior
+
+                errorTotal = errorTotal+e1+e2;
+            }
+            edgeErrorX[indexX] = errorTotal;
+            indexX++;
+        }
+
+
+        // we now compute the first derivitave to find the greatest spot of concavity on the XY plane
+        double maxDiff = 0;
+        uint32_t maxC = 0;
+
+        for (uint32_t y=1; y<indexZ; y++)
+        {
+            double diff = abs(edgeErrorZ[y] - edgeErrorZ[y-1]);
+            if ( diff > maxDiff )
+            {
+                maxDiff = diff;
+                maxC = y-1;
+            }
+        }
+        // Now see if there is a greater concavity on the XZ plane
+        for (uint32_t y=1; y<indexX; y++)
+        {
+            double diff = abs(edgeErrorX[y] - edgeErrorX[y-1]);
+            if ( diff > maxDiff )
+            {
+                maxDiff = diff;
+                maxC = y-1;
+            }
+        }
+
+
+        delete []edgeErrorZ;
+        delete []edgeErrorX;
+
+        splitLoc = maxC+mY1;
+
+        // we do not allow an edge split if it is too close to the ends
+        if ( splitLoc > (mY1+1) && splitLoc < (mY2-1) )
+        {
+            ret = true;
+        }
+
+
+        return ret;
+    }
+
+
+    // Finding the greatest area of concavity..
+    bool findConcavityZ(uint32_t &splitLoc)
+    {
+        bool ret = false;
+
+        int32_t dz = (mZ2-mZ1)+1; // The length of the X axis in voxel space
+
+        // We will compute the edge error on the XY plane and the XZ plane
+        // searching for the greatest location of concavity
+
+        double *edgeErrorX = new double[dz];
+        double *edgeErrorY = new double[dz];
+
+        // Counter of number of voxel samples on the XY plane we have accumulated
+        uint32_t indexX = 0;
+
+        // Compute Edge Error on the XY plane
+        for (int32_t z=(int32_t)mZ1; z<=(int32_t)mZ2; z++)
+        {
+
+            double errorTotal = 0;
+            // We now perform a raycast from the sides inward on the XY plane to
+            // determine the total error (distance of the surface from the sides)
+            // along this X position.
+            for (int32_t y=(int32_t)mY1; y<=(int32_t)mY2; y++)
+            {
+                IVec3 p1(mX1-2,y,z);
+                IVec3 p2(mX2+1,y,z);
+
+                double e1 = raycast(p1,p2);
+                double e2 = raycast(p2,p1);
+
+                errorTotal = errorTotal+e1+e2;
+            }
+            // The total amount of edge error along this voxel location
+            edgeErrorX[indexX] = errorTotal;
+            indexX++;
+        }
+
+        // Compute edge error along the XZ plane
+        uint32_t indexY = 0;
+
+        for (int32_t z=(int32_t)mZ1; z<=(int32_t)mZ2; z++)
+        {
+
+            double errorTotal = 0;
+
+            for (int32_t x=(int32_t)mX1; x<=(int32_t)mX2; x++)
+            {
+                IVec3 p1(x,mY1-2,z);
+                IVec3 p2(x,mY2+2,z);
+
+                double e1 = raycast(p1,p2); // raycast from one side to the interior
+                double e2 = raycast(p2,p1); // raycast from the other side to the interior
+
+                errorTotal = errorTotal+e1+e2;
+            }
+            edgeErrorY[indexY] = errorTotal;
+            indexY++;
+        }
+
+
+        // we now compute the first derivitave to find the greatest spot of concavity on the XY plane
+        double maxDiff = 0;
+        uint32_t maxC = 0;
+
+        for (uint32_t z=1; z<indexX; z++)
+        {
+            double diff = abs(edgeErrorX[z] - edgeErrorX[z-1]);
+            if ( diff > maxDiff )
+            {
+                maxDiff = diff;
+                maxC = z-1;
+            }
+        }
+        // Now see if there is a greater concavity on the XZ plane
+        for (uint32_t z=1; z<indexY; z++)
+        {
+            double diff = abs(edgeErrorY[z] - edgeErrorY[z-1]);
+            if ( diff > maxDiff )
+            {
+                maxDiff = diff;
+                maxC = z-1;
+            }
+        }
+
+
+        delete []edgeErrorX;
+        delete []edgeErrorY;
+
+        splitLoc = maxC+mX1;
+
+        // we do not allow an edge split if it is too close to the ends
+        if ( splitLoc > (mZ1+1) && splitLoc < (mZ2-1) )
+        {
+            ret = true;
+        }
+
+
+        return ret;
+    }
+
+
+
 
     // This operation is performed in a background thread.
     //It splits the voxels by a plane
@@ -11213,6 +11648,10 @@ IVHACD* CreateVHACD_ASYNC(void)
 
 
 };
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #endif
 

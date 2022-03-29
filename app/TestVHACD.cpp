@@ -130,6 +130,7 @@ int main(int argc,const char **argv)
 		printf("-v <maxHullVertCount>   : Maximum number of vertices in the output convex hull. Default value is 64\n");
 		printf("-a <true/false>         : Whether or not to run asynchronously. Default is 'true'\n");
 		printf("-l <minEdgeLength>      : Minimum size of a voxel edge. Default value is 4 voxels.\n");
+		printf("-p <true/false>         : If false, splits hulls in the middle. If true, tries to find optimal split plane location.\n");
 	}
 	else
 	{
@@ -266,6 +267,20 @@ int main(int argc,const char **argv)
 						}
 					}
 				}
+				else if ( strcmp(option,"-p") == 0 )
+				{
+					if ( getTrueFalse(value,p.m_findBestPlane) )
+					{
+						if ( p.m_asyncACD )
+						{
+							printf("Find best split plane location enabled\n");
+						}
+						else
+						{
+							printf("Using binary plane split\n");
+						}
+					}
+				}
 				else if ( strcmp(option,"-l") == 0 )
 				{
 					int32_t r = atoi(value);
@@ -300,7 +315,7 @@ int main(int argc,const char **argv)
 #ifdef _MSC_VER
 					if ( kbhit() )
 					{
-						char c = getch();
+						char c = (char)getch();
 						if ( c == 32 )
 						{
 							printf("Canceling convex decomposition.\n");
