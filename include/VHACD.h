@@ -263,7 +263,7 @@ public:
         IUserLogger*        m_logger{nullptr};
         IUserTaskRunner*    m_taskRunner{nullptr};
         uint32_t            m_maxConvexHulls{64};
-        uint32_t            m_resolution{100000};
+        uint32_t            m_resolution{400000};
         double              m_minimumVolumePercentErrorAllowed{4}; // if the voxels are within 4% of the volume of the hull, we consider this a close enough approximation
         uint32_t            m_maxRecursionDepth{12};
         bool                m_shrinkWrap{true};
@@ -271,7 +271,7 @@ public:
         uint32_t            m_maxNumVerticesPerCH{64};
         bool                m_asyncACD{ true };
         uint32_t            m_minEdgeLength{4};                     // Once a voxel patch has an edge length of less than 4 on all 3 sides, we don't keep recursing
-        bool                m_findBestPlane{true};
+        bool                m_findBestPlane{false};
     };
 
     virtual void Cancel() = 0;
@@ -9696,7 +9696,7 @@ public:
         uint32_t dy = mY2-mY1;
         uint32_t dz = mZ2-mZ1;
 
-        if (  dx >= dy && dx >= dz )
+        if ( dx >= dy && dx >= dz )
         {
             ret = SplitAxis::X_AXIS_NEGATIVE;
             location = (mX2-mX1)/2+mX1;
@@ -9727,7 +9727,6 @@ public:
             }
         }
 
-
         return ret;
     }
 
@@ -9753,7 +9752,7 @@ public:
         }
         else
         {
-            ret = fm_distance(from,to);
+            ret = 0; // if it doesn't hit anything, just assign it to zero.
         }
 
         return ret;
@@ -9824,24 +9823,30 @@ public:
         // we now compute the first derivitave to find the greatest spot of concavity on the XY plane
         double maxDiff = 0;
         uint32_t maxC = 0;
-
+        int32_t wid = (mX2-mX1)/2+1;
         for (uint32_t x=1; x<indexZ; x++)
         {
-            double diff = abs(edgeErrorZ[x] - edgeErrorZ[x-1]);
-            if ( diff > maxDiff )
+            if ( edgeErrorZ[x] > 0 &&  edgeErrorZ[x-1] > 0 )
             {
-                maxDiff = diff;
-                maxC = x-1;
+                double diff = abs(edgeErrorZ[x] - edgeErrorZ[x-1]);
+                if ( diff > maxDiff )
+                {
+                    maxDiff = diff;
+                    maxC = x-1;
+                }
             }
         }
         // Now see if there is a greater concavity on the XZ plane
         for (uint32_t x=1; x<indexY; x++)
         {
-            double diff = abs(edgeErrorY[x] - edgeErrorY[x-1]);
-            if ( diff > maxDiff )
+            if ( edgeErrorY[x] > 0 && edgeErrorY[x-1] > 0 )
             {
-                maxDiff = diff;
-                maxC = x-1;
+                double diff = abs(edgeErrorY[x] - edgeErrorY[x-1]);
+                if ( diff > maxDiff )
+                {
+                    maxDiff = diff;
+                    maxC = x-1;
+                }
             }
         }
 
@@ -9852,7 +9857,7 @@ public:
         splitLoc = maxC+mX1;
 
         // we do not allow an edge split if it is too close to the ends
-        if ( splitLoc > (mX1+1) && splitLoc < (mX2-1) )
+        if ( splitLoc > (mX1+4) && splitLoc < (mX2-4) )
         {
             ret = true;
         }
@@ -9923,31 +9928,35 @@ public:
             indexX++;
         }
 
-
         // we now compute the first derivitave to find the greatest spot of concavity on the XY plane
         double maxDiff = 0;
         uint32_t maxC = 0;
-
+        int32_t wid = (mY2-mY1)/2+1;
         for (uint32_t y=1; y<indexZ; y++)
         {
-            double diff = abs(edgeErrorZ[y] - edgeErrorZ[y-1]);
-            if ( diff > maxDiff )
+            if ( edgeErrorZ[y] > 0 && edgeErrorZ[y-1] > 0 )
             {
-                maxDiff = diff;
-                maxC = y-1;
+                double diff = abs(edgeErrorZ[y] - edgeErrorZ[y-1]);
+                if ( diff > maxDiff )
+                {
+                    maxDiff = diff;
+                    maxC = y-1;
+                }
             }
         }
         // Now see if there is a greater concavity on the XZ plane
         for (uint32_t y=1; y<indexX; y++)
         {
-            double diff = abs(edgeErrorX[y] - edgeErrorX[y-1]);
-            if ( diff > maxDiff )
+            if ( edgeErrorX[y] >0 &&  edgeErrorX[y-1] > 0 )
             {
-                maxDiff = diff;
-                maxC = y-1;
+                double diff = abs(edgeErrorX[y] - edgeErrorX[y-1]);
+                if ( diff > maxDiff )
+                {
+                    maxDiff = diff;
+                    maxC = y-1;
+                }
             }
         }
-
 
         delete []edgeErrorZ;
         delete []edgeErrorX;
@@ -9955,7 +9964,7 @@ public:
         splitLoc = maxC+mY1;
 
         // we do not allow an edge split if it is too close to the ends
-        if ( splitLoc > (mY1+1) && splitLoc < (mY2-1) )
+        if ( splitLoc > (mY1+4) && splitLoc < (mY2-4) )
         {
             ret = true;
         }
@@ -10030,24 +10039,30 @@ public:
         // we now compute the first derivitave to find the greatest spot of concavity on the XY plane
         double maxDiff = 0;
         uint32_t maxC = 0;
-
+        int32_t wid = (mZ2 - mZ1)/2+1;
         for (uint32_t z=1; z<indexX; z++)
         {
-            double diff = abs(edgeErrorX[z] - edgeErrorX[z-1]);
-            if ( diff > maxDiff )
+            if ( edgeErrorX[z] > 0 && edgeErrorX[z-1] > 0 )
             {
-                maxDiff = diff;
-                maxC = z-1;
+                double diff = abs(edgeErrorX[z] - edgeErrorX[z-1]);
+                if ( diff > maxDiff )
+                {
+                    maxDiff = diff;
+                    maxC = z-1;
+                }
             }
         }
         // Now see if there is a greater concavity on the XZ plane
         for (uint32_t z=1; z<indexY; z++)
         {
-            double diff = abs(edgeErrorY[z] - edgeErrorY[z-1]);
-            if ( diff > maxDiff )
+            if ( edgeErrorY[z] > 0 &&- edgeErrorY[z-1] > 0 )
             {
-                maxDiff = diff;
-                maxC = z-1;
+                double diff = abs(edgeErrorY[z] - edgeErrorY[z-1]);
+                if ( diff > maxDiff )
+                {
+                    maxDiff = diff;
+                    maxC = z-1;
+                }
             }
         }
 
@@ -10058,7 +10073,7 @@ public:
         splitLoc = maxC+mX1;
 
         // we do not allow an edge split if it is too close to the ends
-        if ( splitLoc > (mZ1+1) && splitLoc < (mZ2-1) )
+        if ( splitLoc > (mZ1+4) && splitLoc < (mZ2-4) )
         {
             ret = true;
         }
@@ -10114,8 +10129,59 @@ public:
 
                 snprintf(scratch,sizeof(scratch),"HullB%02d.obj",count);
                 mHullB->saveOBJ(scratch);
+
+                snprintf(scratch,sizeof(scratch),"HullCombined%02d.obj",count);
+                mHullA->saveOBJ(scratch,mHullB);
             }
 #endif
+        }
+    }
+
+    void saveOBJ(const char *fname,VoxelHull *h)
+    {
+        FILE *fph = fopen(fname,"wb");
+        if ( fph )
+        {
+            uint32_t baseIndex = 1;
+            size_t vcount = mVertices.size()/3;
+            size_t tcount = mIndices.size()/3;
+
+            for (size_t i=0; i<vcount; i++)
+            {
+                fprintf(fph,"v %0.9f %0.9f %0.9f\n", 
+                    mVertices[i*3+0],
+                    mVertices[i*3+1],
+                    mVertices[i*3+2]);
+            }
+            for (size_t i=0; i<tcount; i++)
+            {
+                fprintf(fph,"f %d %d %d\n", 
+                    mIndices[i*3+0]+baseIndex,
+                    mIndices[i*3+1]+baseIndex,
+                    mIndices[i*3+2]+baseIndex);
+            }
+
+            baseIndex+=uint32_t(vcount);
+
+            vcount = h->mVertices.size()/3;
+            tcount = h->mIndices.size()/3;
+
+            for (size_t i=0; i<vcount; i++)
+            {
+                fprintf(fph,"v %0.9f %0.9f %0.9f\n", 
+                    h->mVertices[i*3+0],
+                    h->mVertices[i*3+1]+0.1,
+                    h->mVertices[i*3+2]);
+            }
+
+            for (size_t i=0; i<tcount; i++)
+            {
+                fprintf(fph,"f %d %d %d\n", 
+                    h->mIndices[i*3+0]+baseIndex,
+                    h->mIndices[i*3+1]+baseIndex,
+                    h->mIndices[i*3+2]+baseIndex);
+            }
+            fclose(fph);
         }
     }
 
