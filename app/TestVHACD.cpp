@@ -1,5 +1,14 @@
 #include <stdio.h>
+
+#define TEST_FOR_MEMORY_LEAKS 0 // set to 1, on Windows only, to enable memory leak checking on application exit
+#if TEST_FOR_MEMORY_LEAKS
+#define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
+#include <crtdbg.h>
+#else
+#include <stdlib.h>
+#endif
+
 #include <string.h>
 #include <stdint.h>
 
@@ -117,6 +126,9 @@ public:
 
 int main(int argc,const char **argv)
 {
+#if TEST_FOR_MEMORY_LEAKS
+	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif
 	if ( argc < 2 )
 	{
 		printf("Usage: TestVHACD <wavefront.obj> (options)\n");
@@ -130,7 +142,7 @@ int main(int argc,const char **argv)
 		printf("-v <maxHullVertCount>   : Maximum number of vertices in the output convex hull. Default value is 64\n");
 		printf("-a <true/false>         : Whether or not to run asynchronously. Default is 'true'\n");
 		printf("-l <minEdgeLength>      : Minimum size of a voxel edge. Default value is 4 voxels.\n");
-		printf("-p <true/false>         : If false, splits hulls in the middle. If true, tries to find optimal split plane location.\n");
+		printf("-p <true/false>         : If false, splits hulls in the middle. If true, tries to find optimal split plane location. False by default.\n");
 	}
 	else
 	{

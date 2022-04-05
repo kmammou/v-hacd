@@ -350,7 +350,7 @@ IVHACD* CreateVHACD_ASYNC(void);
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100 4189 4456 4701 4702)
+#pragma warning(disable:4100 4189 4456 4701 4702 4127)
 #endif
 
 #define SAFE_RELEASE(x) if ( x ) { x->release(); x = nullptr; }
@@ -9390,7 +9390,8 @@ public:
     // entire voxel set
     VoxelHull(Voxelize *voxels,
               const SimpleMesh &inputMesh,
-              const IVHACD::Parameters &params,VHACDCallbacks *callbacks) : mVoxels(voxels), mParams(params), mCallbacks(callbacks)
+              const IVHACD::Parameters &params,
+              VHACDCallbacks *callbacks) : mVoxels(voxels), mParams(params), mCallbacks(callbacks)
     {
         mVoxelHullCount++;
         mIndex = mVoxelHullCount;
@@ -9420,6 +9421,20 @@ public:
         computeConvexHull();
     }
 
+    virtual ~VoxelHull(void)
+    {
+        if ( mConvexHull )
+        {
+            delete []mConvexHull->m_points;
+            delete []mConvexHull->m_triangles;
+            delete mConvexHull;
+            mConvexHull = nullptr;
+        }
+        delete mHullA;
+        delete mHullB;
+        SAFE_RELEASE(mRaycastMesh);
+    }
+
     void buildRaycastMesh(void)
     {
         // Create a raycast mesh representation of the voxelized surface mesh
@@ -9435,6 +9450,7 @@ public:
     {
         // we compute the convex hull as follows...
         VHACD::QuickHull *qh = VHACD::QuickHull::create();
+
         VHACD::HullPoints hp;
         hp.mVertexCount = (uint32_t)mVertices.size()/3;
         hp.mVertices = &mVertices[0];
@@ -9454,7 +9470,6 @@ public:
 
             VHACD::fm_computeCentroid(mConvexHull->m_nPoints,mConvexHull->m_points,mConvexHull->m_nTriangles,mConvexHull->m_triangles, mConvexHull->m_center);
             mConvexHull->m_volume = VHACD::fm_computeMeshVolume(mConvexHull->m_points,mConvexHull->m_nTriangles,mConvexHull->m_triangles);
-
         }
         SAFE_RELEASE(qh);
         if ( mConvexHull )
@@ -10411,7 +10426,6 @@ public:
         }
 
         copyInputMesh(points,countPoints,triangles,countTriangles);
-
         if ( !mCanceled )
         {
             // We now recursively perform convex decomposition until complete
@@ -10472,6 +10486,12 @@ public:
             releaseConvexHull(ch);
         }
         mConvexHulls.clear();
+
+        for (auto &ch:mHulls)
+        {
+            releaseConvexHull(ch.second);
+        }
+        mHulls.clear();
 
         for (auto &ch:mVoxelHulls)
         {
@@ -10689,7 +10709,6 @@ public:
             mRaycastMesh = RaycastMesh::createRaycastMesh(uint32_t(mVertices.size())/3,&mVertices[0],uint32_t(mIndices.size())/3,&mIndices[0]);
             progressUpdate(Stages::CREATE_RAYCAST_MESH,100,"RaycastMesh completed");
         }
-
         if ( !mCanceled )
         {
             progressUpdate(Stages::VOXELIZING_INPUT_MESH,0,"Voxelizing Input Mesh");
@@ -10707,12 +10726,14 @@ public:
         mInputMesh.mVertices = &mVertices[0];
         mInputMesh.mTriangleCount = (uint32_t)mIndices.size()/3;
         mInputMesh.mIndices = &mIndices[0];
-
         if ( !mCanceled )
         {
             progressUpdate(Stages::BUILD_INITIAL_CONVEX_HULL,0,"Build initial ConvexHull");
             VoxelHull *vh = new VoxelHull(mVoxelize,mInputMesh,mParams,this);
-            mOverallHullVolume = vh->mConvexHull->m_volume;
+            if ( vh->mConvexHull )
+            {
+                mOverallHullVolume = vh->mConvexHull->m_volume;
+            }
             mPendingHulls.push_back(vh);
             progressUpdate(Stages::BUILD_INITIAL_CONVEX_HULL,100,"Initial ConvexHull complete");
         }
@@ -10736,6 +10757,16 @@ public:
     {
         HullPair hp(task->mHullA->m_meshId,task->mHullB->m_meshId,task->mConcavity);
         mHullPairQueue.push(hp);
+    }
+
+    void releaseConvexHull(ConvexHull *ch)
+    {
+        if ( ch )
+        {
+            delete []ch->m_points;
+            delete []ch->m_triangles;
+            delete ch;
+        }
     }
 
     void performConvexDecomposition(void)
@@ -10814,15 +10845,18 @@ public:
                 }
             }
         }
+
         if ( !mCanceled )
         {
             // Give each convex hull a unique guid
             mMeshId = 0;
             mHulls.clear();
+
             // Build the convex hull id map
             std::vector< ConvexHull *> hulls;
 
             progressUpdate(Stages::INITIALIZING_CONVEX_HULLS_FOR_MERGING,0,"Initializing ConvexHulls");
+
             for (auto &vh:mVoxelHulls)
             {
                 if ( mCanceled )
@@ -10842,7 +10876,6 @@ public:
 
                 fm_computeCentroid(ch->m_nPoints,ch->m_points,ch->m_nTriangles,ch->m_triangles,ch->m_center);
 
-
                 delete vh;
                 hulls.push_back(ch);
             }
@@ -10856,73 +10889,71 @@ public:
 
             if ( hullCount > mParams.m_maxConvexHulls && !mCanceled)
             {
+                size_t costMatrixSize = ((hullCount*hullCount)-hullCount)>>1;
+                CostTask *tasks = new CostTask[costMatrixSize];
+                CostTask *task = tasks;
+                ScopedTime st("Computing the Cost Matrix",mParams.m_logger);
+                // First thing we need to do is compute the cost matrix
+                // This is computed as the volume error of any two convex hulls
+                // combined
+                progressUpdate(Stages::COMPUTING_COST_MATRIX,0,"Computing Hull Merge Cost Matrix");
+
+                for (size_t i=1; i<hullCount && !mCanceled; i++)
                 {
-                    size_t costMatrixSize = ((hullCount*hullCount)-hullCount)>>1;
-                    CostTask *tasks = new CostTask[costMatrixSize];
-                    CostTask *task = tasks;
-                    ScopedTime st("Computing the Cost Matrix",mParams.m_logger);
-                    // First thing we need to do is compute the cost matrix
-                    // This is computed as the volume error of any two convex hulls
-                    // combined
-                    progressUpdate(Stages::COMPUTING_COST_MATRIX,0,"Computing Hull Merge Cost Matrix");
+                    ConvexHull *chA = hulls[i];
 
-                    for (size_t i=1; i<hullCount && !mCanceled; i++)
+                    for (size_t j=0; j<i && !mCanceled; j++)
                     {
-                        ConvexHull *chA = hulls[i];
+                        ConvexHull *chB = hulls[j];
 
-                        for (size_t j=0; j<i && !mCanceled; j++)
+                        task->mHullA = chA;
+                        task->mHullB = chB;
+                        task->mThis = this;
+
+                        if ( doFastCost(task) )
                         {
-                            ConvexHull *chB = hulls[j];
-
-                            task->mHullA = chA;
-                            task->mHullB = chB;
-                            task->mThis = this;
-
-                            if ( doFastCost(task) )
-                            {
-                            }
-                            else
-                            {
-                                if ( mSimpleJobSystem )
-                                {
-                                    mSimpleJobSystem->addJob(task,computeMergeCostTask);
-                                }
-                                task++;
-                            }
-                        }
-                    }
-                    if ( !mCanceled )
-                    {
-                        size_t taskCount = task - tasks;
-
-                        if ( mSimpleJobSystem )
-                        {
-                            if ( taskCount )
-                            {
-                                mSimpleJobSystem->startJobs();
-                                mSimpleJobSystem->waitForJobsToComplete();
-                            }
-                            task = tasks;
-                            for (size_t i=0; i<taskCount; i++)
-                            {
-                                addCostToPriorityQueue(task);
-                                task++;
-                            }
                         }
                         else
                         {
-                            task = tasks;
-                            for (size_t i=0; i<taskCount; i++)
+                            if ( mSimpleJobSystem )
                             {
-                                performMergeCostTask(task);
-                                addCostToPriorityQueue(task);
-                                task++;
+                                mSimpleJobSystem->addJob(task,computeMergeCostTask);
                             }
+                            task++;
                         }
-                        progressUpdate(Stages::COMPUTING_COST_MATRIX,100,"Finished cost matrix");
                     }
-                    delete []tasks;
                 }
+                if ( !mCanceled )
+                {
+                    size_t taskCount = task - tasks;
+
+                    if ( mSimpleJobSystem )
+                    {
+                        if ( taskCount )
+                        {
+                            mSimpleJobSystem->startJobs();
+                            mSimpleJobSystem->waitForJobsToComplete();
+                        }
+                        task = tasks;
+                        for (size_t i=0; i<taskCount; i++)
+                        {
+                            addCostToPriorityQueue(task);
+                            task++;
+                        }
+                    }
+                    else
+                    {
+                        task = tasks;
+                        for (size_t i=0; i<taskCount; i++)
+                        {
+                            performMergeCostTask(task);
+                            addCostToPriorityQueue(task);
+                            task++;
+                        }
+                    }
+                    progressUpdate(Stages::COMPUTING_COST_MATRIX,100,"Finished cost matrix");
+                }
+                delete []tasks;
                 if ( !mCanceled )
                 {
                     ScopedTime st("Merging Convex Hulls",mParams.m_logger);
@@ -10956,6 +10987,7 @@ public:
                         // Look up this pair of hulls by ID
                         ConvexHull *ch1 = getHull(hp.mHullA);
                         ConvexHull *ch2 = getHull(hp.mHullB);
+
                         // If both hulls are still valid, then we merge them, delete the old
                         // two hulls and recompute the cost matrix for the new combined hull
                         // we have created
@@ -10967,6 +10999,7 @@ public:
                             // The two old convex hulls are going to get removed
                             removeHull(hp.mHullA);
                             removeHull(hp.mHullB);
+
                             mMeshId++;
                             combinedHull->m_meshId = mMeshId;
                             CostTask task;
@@ -11010,7 +11043,7 @@ public:
                         if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH || mParams.m_shrinkWrap)
                         {
                             ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH,mParams.m_shrinkWrap);
-                            delete ch;
+                            releaseConvexHull(ch);
                             ch = reduce;
                         }
                         scaleOutputConvexHull(*ch);
@@ -11021,31 +11054,29 @@ public:
                     mHulls.clear(); // since the hulls were moved into the output list, we don't need to delete them from this container
                     progressUpdate(Stages::FINALIZING_RESULTS,100,"Finalized results complete");
                 }
-                else
-                {
-                    progressUpdate(Stages::FINALIZING_RESULTS,0,"Finalizing results");
-                    mMeshId = 0;
-                    for (auto &ch:hulls)
-                    {
-                        if ( mCanceled )
-                        {
-                            break;
-                        }
-                        // We now must reduce the convex hull 
-                        if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH  || mParams.m_shrinkWrap )
-                        {
-                            ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH,mParams.m_shrinkWrap);
-                            delete ch;
-                            ch = reduce;
-                        }
-                        scaleOutputConvexHull(*ch);
-                        ch->m_meshId = mMeshId;
-                        mMeshId++;
-                        mConvexHulls.push_back(ch);
-                    }
-                    progressUpdate(Stages::FINALIZING_RESULTS,100,"Finalized results");
-                }
             }
+            else
+            {
+                progressUpdate(Stages::FINALIZING_RESULTS,0,"Finalizing results");
+                mMeshId = 0;
+                for (auto &ch:hulls)
+                {
+                    // We now must reduce the convex hull 
+                    if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH  || mParams.m_shrinkWrap )
+                    {
+                        ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH,mParams.m_shrinkWrap);
+                        releaseConvexHull(ch);
+                        ch = reduce;
+                    }
+                    scaleOutputConvexHull(*ch);
+                    ch->m_meshId = mMeshId;
+                    mMeshId++;
+                    mConvexHulls.push_back(ch);
+                }
+                mHulls.clear();
+                progressUpdate(Stages::FINALIZING_RESULTS,100,"Finalized results");
+            }
+
         }
     }
 
@@ -11134,7 +11165,7 @@ public:
         ConvexHull *combined = computeCombinedConvexHull(*ch1, *ch2); // Build the combined convex hull
         double combinedVolume = computeConvexHullVolume(*combined); // get the combined volume
         mt->mConcavity = computeConcavity(volume1 + volume2, combinedVolume, mOverallHullVolume);
-        delete combined; // done with it
+        releaseConvexHull(combined);
     }
 
     ConvexHull *computeReducedConvexHull(const ConvexHull &ch,uint32_t maxVerts,bool projectHullVertices)
@@ -11211,7 +11242,7 @@ public:
         fm_computeCentroid(ret->m_nPoints,ret->m_points,ret->m_nTriangles,ret->m_triangles,ret->m_center);
 
         qh->release();
-
+        delete []vertices;
 
         // Return the convex hull 
         return ret;
@@ -11234,7 +11265,6 @@ public:
     bool removeHull(uint32_t index)
     {
         bool ret = false;
-
         HullMap::iterator found = mHulls.find(index);
         if ( found != mHulls.end() )
         {
@@ -11242,8 +11272,6 @@ public:
             releaseConvexHull((*found).second);
             mHulls.erase(found);
         }
-
-
         return ret;
     }
 
@@ -11276,13 +11304,6 @@ public:
         ch->m_volume = source.m_volume;
 
         return ch;
-    }
-
-    void releaseConvexHull(ConvexHull *ch)
-    {
-        delete []ch->m_triangles;
-        delete []ch->m_points;
-        delete ch;
     }
 
     void progressUpdate(Stages stage,double stageProgress,const char *operation)
