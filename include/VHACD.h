@@ -33,6 +33,7 @@
 // * The code has been significantly refactored to be cleaner and easier to maintain
 //      * All OpenCL related code removed
 //      * All Bullet code removed
+//      * All SIMD code removed
 //      * Old plane splitting code removed
 // 
 // * The code is now delivered as a single hearder file 'VHACD.h' which has both the API
@@ -174,6 +175,26 @@
 // * introduced called 'aabbtree', originally written by Miles Macklin, that can compute the closest point on a triangle
 // * mesh, within a radius, in a highly efficient manner.
 
+// The history of V-HACD:
+//
+// The initial version was written by John W. Ratcliff and was called 'ACD'
+// This version did not perform CSG operations on the source mesh, so if you 
+// recursed too deeply it would produce hollow results.
+//
+// The next version was written by Khaled Mamou and was called 'HACD'
+// In this version Khaled tried to perform a CSG operation on the source 
+// mesh to produce more robust results. Howerver, Khaled learned that the
+// CSG library he was using had licensing issues so he started work on the
+// next version.
+//
+// The next version was called 'V-HACD' because Khaled made the observation
+// that plane splitting would be far easier to implement working in voxel space.
+// 
+// V-HACD has been integrated into UE4, Blender, and a number of other projects.
+// This new release, version4, is a siginficant refactor of the code to fix 
+// some bugs, improve performance, and to make the codebase easier to maintain
+// going forward.
+
 
 #include <stdint.h>
 #include <functional>
@@ -204,13 +225,24 @@ enum class FillMode
 class IVHACD
 {
 public:
+    /**
+    * This optional pure virtual interface is used to notify the caller of the progress
+    * of convex decomposition as well as a signal when it is complete when running in
+    * a background thread
+    */
     class IUserCallback
     {
     public:
         virtual ~IUserCallback(){};
 
-        // Be aware that if you are running V-HACD asynchronously (in a background thread) this callback will come from
-        // a different thread. So if your print/logging code isn't thread safe, take that into account.
+        /**
+        * Notifies the appliication of the current state of the convex decomposition operation
+        * 
+        * @param overallProgress : Total progress from 0-100%
+        * @param stageProgress : Progress of the current stage 0-100%
+        * @param stage : A text description of the current stage we are in
+        * @param operatoin : A text description of what operation is currently being performed.
+        */
         virtual void Update(const double overallProgress,
                             const double stageProgress,
                             const char* const stage,
@@ -225,6 +257,9 @@ public:
         }
     };
 
+    /**
+    * Optional user provided pure virtual interface to be notified of warning or informational messages
+    */
     class IUserLogger
     {
     public:
@@ -232,6 +267,11 @@ public:
         virtual void Log(const char* const msg) = 0;
     };
 
+    /**
+    * An optional user provided pure virtual interface to perform a background task.
+    * This was added by Danny Couture at Epic as they wanted to use their own
+    * threading system instead of the standard library version which is the default.
+    */
     class IUserTaskRunner
     {
     public:
@@ -240,6 +280,10 @@ public:
         virtual void JoinTask(void* Task) = 0;
     };
 
+    /**
+    * A simple class that represents a convex hull as a triangle mesh with 
+    * double precision vertices. Polygons are not currently provided.
+    */
     class ConvexHull
     {
     public:
@@ -252,48 +296,92 @@ public:
         double m_volume{0};                     // The volume of the convex hull
         double m_center[3]{0,0,0};              // The centroid of the convex hull
         uint32_t    m_meshId{0};                // A unique id for this convex hull
-        double  mBmin[3];
-        double  mBmax[3];
+        double  mBmin[3];                       // Bounding box minimum of the AABB
+        double  mBmax[3];                       // Bounding box maximum of he AABB
     };
 
+    /**
+    * This class provides the parameters controlling the convex decomposition operation
+    */
     class Parameters
     {
     public:
-        IUserCallback*      m_callback{nullptr};
-        IUserLogger*        m_logger{nullptr};
-        IUserTaskRunner*    m_taskRunner{nullptr};
-        uint32_t            m_maxConvexHulls{64};
-        uint32_t            m_resolution{400000};
+        IUserCallback*      m_callback{nullptr};            // Optional user provided callback interface for progress
+        IUserLogger*        m_logger{nullptr};              // Optional user provided callback interface for log messages
+        IUserTaskRunner*    m_taskRunner{nullptr};          // Optional user provided interface for creating tasks
+        uint32_t            m_maxConvexHulls{64};           // The maximum number of convex hulls to produce
+        uint32_t            m_resolution{400000};           // The voxel resolution to use
         double              m_minimumVolumePercentErrorAllowed{4}; // if the voxels are within 4% of the volume of the hull, we consider this a close enough approximation
-        uint32_t            m_maxRecursionDepth{12};
-        bool                m_shrinkWrap{true};
-        FillMode            m_fillMode{ FillMode::FLOOD_FILL };
-        uint32_t            m_maxNumVerticesPerCH{64};
-        bool                m_asyncACD{ true };
+        uint32_t            m_maxRecursionDepth{12};        // The maximum recursion depth
+        bool                m_shrinkWrap{true};             // Whether or not to shrinkwrap the voxel positions to the source mesh on output
+        FillMode            m_fillMode{ FillMode::FLOOD_FILL }; // How to fill the interior of the voxelized mesh
+        uint32_t            m_maxNumVerticesPerCH{64};      // The maximum number of vertices allowed in any output convex hull
+        bool                m_asyncACD{ true };             // Whether or not to run asynchronously, taking advantage of additonal cores
         uint32_t            m_minEdgeLength{4};                     // Once a voxel patch has an edge length of less than 4 on all 3 sides, we don't keep recursing
-        bool                m_findBestPlane{false};
+        bool                m_findBestPlane{false};         // Whether or not to attempt to split planes along the best location. Experimental feature. False by default.
     };
 
+    /**
+    * Will cause the convex decomposition operation to be canceled early. No results will be produced but the background operaiton will end as soon as it can.
+    */
     virtual void Cancel() = 0;
 
+    /**
+    * Compute a convex decomposition of a triangle mesh using float vertices and the provided user parameters.
+    * 
+    * @param points : The vertices of the source mesh as floats in the form of X1,Y1,Z1,  X2,Y2,Z2,.. etc.
+    * @param countPoints : The number of vertices in the source mesh.
+    * @param triangles : The indices of triangles in the source mesh in the form of I1,I2,I3, .... 
+    * @param countTriangles : The number of triangles in the source mesh
+    * @param params : The convex decomposition parameters to apply
+    * @return : Returns true if the convex decomposition operation can be started
+    */
     virtual bool Compute(const float* const points,
                          const uint32_t countPoints,
                          const uint32_t* const triangles,
                          const uint32_t countTriangles,
                          const Parameters& params) = 0;
 
+    /**
+    * Compute a convex decomposition of a triangle mesh using double vertices and the provided user parameters.
+    * 
+    * @param points : The vertices of the source mesh as floats in the form of X1,Y1,Z1,  X2,Y2,Z2,.. etc.
+    * @param countPoints : The number of vertices in the source mesh.
+    * @param triangles : The indices of triangles in the source mesh in the form of I1,I2,I3, .... 
+    * @param countTriangles : The number of triangles in the source mesh
+    * @param params : The convex decomposition parameters to apply
+    * @return : Returns true if the convex decomposition operation can be started
+    */
     virtual bool Compute(const double* const points,
                          const uint32_t countPoints,
                          const uint32_t* const triangles,
                          const uint32_t countTriangles,
                          const Parameters& params) = 0;
 
+    /**
+    * Returns the number of convex hulls that were produced.
+    * 
+    * @return : Returns the number of convex hulls produced, or zero if it failed or was canceled
+    */
     virtual uint32_t GetNConvexHulls() const = 0;
 
+    /**
+    * Retrieves one of the convex hulls in the solution set
+    * 
+    * @param index : Which convex hull to retrieve
+    * @param ch : The convex hull descriptor to return
+    * @return : Returns true if the convex hull exists and could be retrieved
+    */
     virtual bool GetConvexHull(const uint32_t index, ConvexHull& ch) const = 0;
 
+    /**
+    * Releases any memory allocated by the V-HACD class
+    */
     virtual void Clean(void) = 0; // release internally allocated memory
 
+    /**
+    * Releases this instance of the V-HACD class
+    */
     virtual void Release(void) = 0; // release IVHACD
 
     // Will compute the center of mass of the convex hull decomposition results and return it
@@ -327,14 +415,18 @@ protected:
     }
 };
 
-IVHACD* CreateVHACD(void);
-IVHACD* CreateVHACD_ASYNC(void);
+IVHACD* CreateVHACD(void);      // Create a synchronous (blocking) implementation of V-HACD
+IVHACD* CreateVHACD_ASYNC(void);    // Create an asynchronous (non-blocking) implementation of V-HACD
 } // namespace VHACD
 
 
 #if ENABLE_VHACD_IMPLEMENTATION
 #include <assert.h>
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <float.h>
+#include <limits.h>
 
 #include <chrono>
 #include <iostream>
@@ -343,6 +435,7 @@ IVHACD* CreateVHACD_ASYNC(void);
 #include <mutex>
 #include <atomic>
 #include <thread>
+#include <algorithm>
 #include <condition_variable>
 #include <unordered_set>
 #include <unordered_map>
@@ -1448,7 +1541,7 @@ namespace nd
 						stack[stackIndex][1] = j;
 						stackIndex++;
 					}
-					_ASSERT(stackIndex < int(sizeof(stack) / (2 * sizeof(stack[0][0]))));
+					assert(stackIndex < int(sizeof(stack) / (2 * sizeof(stack[0][0]))));
 				}
 			}
 
@@ -1471,7 +1564,7 @@ namespace nd
 				const T tmp(array[i]);
 				for (; comparator.Compare(array[j - 1], tmp) > 0; --j)
 				{
-					_ASSERT(j > 0);
+					assert(j > 0);
 					array[j] = array[j - 1];
 				}
 				array[j] = tmp;
@@ -1480,7 +1573,7 @@ namespace nd
 			#if 0
 			for (int i = 0; i < (elements - 1); ++i)
 			{
-				_ASSERT(comparator.Compare(array[i], array[i + 1], context) <= 0);
+				assert(comparator.Compare(array[i], array[i + 1], context) <= 0);
 			}
 			#endif
 		}
@@ -2270,9 +2363,9 @@ namespace nd
 			{
 				if (level) 
 				{
-					_ASSERT(fabs(p0.DotProduct(p0) - double(1.0f)) < double(1.0e-4f));
-					_ASSERT(fabs(p1.DotProduct(p1) - double(1.0f)) < double(1.0e-4f));
-					_ASSERT(fabs(p2.DotProduct(p2) - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p0.DotProduct(p0) - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p1.DotProduct(p1) - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p2.DotProduct(p2) - double(1.0f)) < double(1.0e-4f));
 					hullVector p01(p0 + p1);
 					hullVector p12(p1 + p2);
 					hullVector p20(p2 + p0);
@@ -2281,9 +2374,9 @@ namespace nd
 					p12 = p12.Scale(1.0 / sqrt(p12.DotProduct(p12)));
 					p20 = p20.Scale(1.0 / sqrt(p20.DotProduct(p20)));
 
-					_ASSERT(fabs(p01.DotProduct(p01) - double(1.0f)) < double(1.0e-4f));
-					_ASSERT(fabs(p12.DotProduct(p12) - double(1.0f)) < double(1.0e-4f));
-					_ASSERT(fabs(p20.DotProduct(p20) - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p01.DotProduct(p01) - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p12.DotProduct(p12) - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p20.DotProduct(p20) - double(1.0f)) < double(1.0e-4f));
 
 					TessellateTriangle(level - 1, p0, p01, p20, count);
 					TessellateTriangle(level - 1, p1, p12, p01, count);
@@ -2298,7 +2391,7 @@ namespace nd
 					int index = dBitReversal(count, sizeof(m_normal) / sizeof(m_normal[0]));
 					m_normal[index] = n;
 					count++;
-					_ASSERT(count <= int(sizeof(m_normal) / sizeof(m_normal[0])));
+					assert(count <= int(sizeof(m_normal) / sizeof(m_normal[0])));
 				}
 			}
 
@@ -2406,7 +2499,7 @@ namespace nd
 		{
 			ConvexHullAABBTreeNode* tree = nullptr;
 
-			_ASSERT(count);
+			assert(count);
 			hullVector minP(double(1.0e15f));
 			hullVector maxP(-double(1.0e15f));
 			if (count <= VHACD_CONVEXHULL_3D_VERTEX_CLUSTER_SIZE)
@@ -2414,9 +2507,9 @@ namespace nd
 				ConvexHull3dPointCluster* const clump = new (*memoryPool) ConvexHull3dPointCluster();
 				*memoryPool += sizeof(ConvexHull3dPointCluster);
 				maxMemSize -= sizeof(ConvexHull3dPointCluster);
-				_ASSERT(maxMemSize >= 0);
+				assert(maxMemSize >= 0);
 
-				_ASSERT(clump);
+				assert(clump);
 				clump->m_count = count;
 				for (int i = 0; i < count; ++i)
 				{
@@ -2501,16 +2594,16 @@ namespace nd
 				tree = new (*memoryPool) ConvexHullAABBTreeNode();
 				*memoryPool += sizeof(ConvexHullAABBTreeNode);
 				maxMemSize -= sizeof(ConvexHullAABBTreeNode);
-				_ASSERT(maxMemSize >= 0);
+				assert(maxMemSize >= 0);
 
-				_ASSERT(i0);
-				_ASSERT(count - i0);
+				assert(i0);
+				assert(count - i0);
 
 				tree->m_left = BuildTreeRecurse(tree, points, i0, baseIndex, memoryPool, maxMemSize);
 				tree->m_right = BuildTreeRecurse(tree, &points[i0], count - i0, i0 + baseIndex, memoryPool, maxMemSize);
 			}
 
-			_ASSERT(tree);
+			assert(tree);
 			tree->m_parent = parent;
 			tree->m_box[0] = minP - hullVector(double(1.0e-3f));
 			tree->m_box[1] = maxP + hullVector(double(1.0e-3f));
@@ -2592,7 +2685,7 @@ namespace nd
 						//	ConvexHullVertex tmp(points[cluster.m_start + i]);
 						//	for (; points[cluster.m_start + j - 1].X() > tmp.X(); --j)
 						//	{
-						//		_ASSERT(j > 0);
+						//		assert(j > 0);
 						//		points[cluster.m_start + j] = points[cluster.m_start + j - 1];
 						//	}
 						//	points[cluster.m_start + j] = tmp;
@@ -2614,7 +2707,7 @@ namespace nd
 							}
 						}
 
-						_ASSERT(baseCount <= cluster.m_start);
+						assert(baseCount <= cluster.m_start);
 						for (int i = 0; i < count; ++i)
 						{
 							points[baseCount] = points[cluster.m_start + i];
@@ -2650,7 +2743,7 @@ namespace nd
 								--i1;
 							}
 
-							_ASSERT(i0 <= i1);
+							assert(i0 <= i1);
 							if (i0 < i1)
 							{
 								Swap(points[start + i0], points[start + i1]);
@@ -2667,12 +2760,12 @@ namespace nd
 						#ifdef _DEBUG
 						for (int i = 0; i < i0; ++i)
 						{
-							_ASSERT(points[start + i][firstSortAxis] <= axisVal);
+							assert(points[start + i][firstSortAxis] <= axisVal);
 						}
 
 						for (int i = i0; i < cluster.m_count; ++i)
 						{
-							_ASSERT(points[start + i][firstSortAxis] > axisVal);
+							assert(points[start + i][firstSortAxis] > axisVal);
 						}
 						#endif
 
@@ -2691,7 +2784,7 @@ namespace nd
 						cluster_i1.m_sum -= xc;
 						cluster_i1.m_sum2 -= x2c;
 						spliteStack[stack] = cluster_i1;
-						_ASSERT(cluster_i1.m_count > 0);
+						assert(cluster_i1.m_count > 0);
 						stack++;
 
 						dCluster cluster_i0(cluster);
@@ -2699,7 +2792,7 @@ namespace nd
 						cluster_i0.m_count = i0;
 						cluster_i0.m_sum = xc;
 						cluster_i0.m_sum2 = x2c;
-						_ASSERT(cluster_i0.m_count > 0);
+						assert(cluster_i0.m_count > 0);
 						spliteStack[stack] = cluster_i0;
 						stack++;
 					}
@@ -2759,9 +2852,9 @@ namespace nd
 					ConvexHull3dPointCluster* const clump = new (*memoryPool) ConvexHull3dPointCluster(box.m_parent);
 					*memoryPool += sizeof(ConvexHull3dPointCluster);
 					maxMemSize -= sizeof(ConvexHull3dPointCluster);
-					_ASSERT(maxMemSize >= 0);
+					assert(maxMemSize >= 0);
 		
-					_ASSERT(clump);
+					assert(clump);
 					clump->m_count = box.m_count;
 					for (int i = 0; i < box.m_count; ++i)
 					{
@@ -2812,7 +2905,7 @@ namespace nd
 							--i1;
 						}
 
-						_ASSERT(i0 <= i1);
+						assert(i0 <= i1);
 						if (i0 < i1)
 						{
 							Swap(points[start + i0], points[start + i1]);
@@ -2829,19 +2922,19 @@ namespace nd
 					#ifdef _DEBUG
 					for (int i = 0; i < i0; ++i)
 					{
-						_ASSERT(points[start + i][firstSortAxis] <= axisVal);
+						assert(points[start + i][firstSortAxis] <= axisVal);
 					}
 
 					for (int i = i0; i < box.m_count; ++i)
 					{
-						_ASSERT(points[start + i][firstSortAxis] > axisVal);
+						assert(points[start + i][firstSortAxis] > axisVal);
 					}
 					#endif
 
 					ConvexHullAABBTreeNode* const node = new (*memoryPool) ConvexHullAABBTreeNode(box.m_parent);
 					*memoryPool += sizeof(ConvexHullAABBTreeNode);
 					maxMemSize -= sizeof(ConvexHullAABBTreeNode);
-					_ASSERT(maxMemSize >= 0);
+					assert(maxMemSize >= 0);
 
 					node->m_box[0] = box.m_min;
 					node->m_box[1] = box.m_max;
@@ -2879,7 +2972,7 @@ namespace nd
 						cluster_i1.m_parent = node;
 						cluster_i1.m_child = &node->m_right;
 						treeBoxStack[stack] = cluster_i1;
-						_ASSERT(cluster_i1.m_count > 0);
+						assert(cluster_i1.m_count > 0);
 						stack++;
 					}
 
@@ -2906,7 +2999,7 @@ namespace nd
 						cluster_i0.m_sum2 = x2c;
 						cluster_i0.m_parent = node;
 						cluster_i0.m_child = &node->m_left;
-						_ASSERT(cluster_i0.m_count > 0);
+						assert(cluster_i0.m_count > 0);
 						treeBoxStack[stack] = cluster_i0;
 						stack++;
 					}
@@ -2953,22 +3046,22 @@ namespace nd
 							aabbProjection[stack] = leftSupportDist;
 							stackPool[stack] = me->m_left;
 							stack++;
-							_ASSERT(stack < DG_STACK_DEPTH_3D);
+							assert(stack < DG_STACK_DEPTH_3D);
 							aabbProjection[stack] = rightSupportDist;
 							stackPool[stack] = me->m_right;
 							stack++;
-							_ASSERT(stack < DG_STACK_DEPTH_3D);
+							assert(stack < DG_STACK_DEPTH_3D);
 						}
 						else
 						{
 							aabbProjection[stack] = rightSupportDist;
 							stackPool[stack] = me->m_right;
 							stack++;
-							_ASSERT(stack < DG_STACK_DEPTH_3D);
+							assert(stack < DG_STACK_DEPTH_3D);
 							aabbProjection[stack] = leftSupportDist;
 							stackPool[stack] = me->m_left;
 							stack++;
-							_ASSERT(stack < DG_STACK_DEPTH_3D);
+							assert(stack < DG_STACK_DEPTH_3D);
 						}
 					}
 					else
@@ -2977,15 +3070,15 @@ namespace nd
 						for (int i = 0; i < cluster->m_count; ++i)
 						{
 							const ConvexHullVertex& p = points[cluster->m_indices[i]];
-							_ASSERT(p.X() >= cluster->m_box[0].X());
-							_ASSERT(p.X() <= cluster->m_box[1].X());
-							_ASSERT(p.Y() >= cluster->m_box[0].Y());
-							_ASSERT(p.Y() <= cluster->m_box[1].Y());
-							_ASSERT(p.Z() >= cluster->m_box[0].Z());
-							_ASSERT(p.Z() <= cluster->m_box[1].Z());
+							assert(p.X() >= cluster->m_box[0].X());
+							assert(p.X() <= cluster->m_box[1].X());
+							assert(p.Y() >= cluster->m_box[0].Y());
+							assert(p.Y() <= cluster->m_box[1].Y());
+							assert(p.Z() >= cluster->m_box[0].Z());
+							assert(p.Z() <= cluster->m_box[1].Z());
 							if (!p.m_mark)
 							{
-								//_ASSERT(p.m_w == double(0.0f));
+								//assert(p.m_w == double(0.0f));
 								double dist = p.DotProduct(dir);
 								if (dist > maxProj)
 								{
@@ -3007,7 +3100,7 @@ namespace nd
 							if (parent)
 							{
 								ConvexHullAABBTreeNode* const sibling = (parent->m_left != cluster) ? parent->m_left : parent->m_right;
-								_ASSERT(sibling != cluster);
+								assert(sibling != cluster);
 								ConvexHullAABBTreeNode* const grandParent = parent->m_parent;
 								if (grandParent)
 								{
@@ -3032,7 +3125,7 @@ namespace nd
 				}
 			}
 
-			_ASSERT(index != -1);
+			assert(index != -1);
 			return index;
 		}
 
@@ -3075,7 +3168,7 @@ namespace nd
 			for (int i = 1; i < normalMap.m_count; ++i)
 			{
 				int index = SupportVertex(&tree, points, normalMap.m_normal[i]);
-				_ASSERT(index >= 0);
+				assert(index >= 0);
 	
 				e1 = points[index] - m_points[0];
 				double error2 = e1.DotProduct(e1);
@@ -3090,7 +3183,7 @@ namespace nd
 			if (!validTetrahedrum)
 			{
 				m_points.resize(0);
-				_ASSERT(0);
+				assert(0);
 				return count;
 			}
 	
@@ -3100,7 +3193,7 @@ namespace nd
 			for (int i = 2; i < normalMap.m_count; ++i)
 			{
 				int index = SupportVertex(&tree, points, normalMap.m_normal[i]);
-				_ASSERT(index >= 0);
+				assert(index >= 0);
 				e2 = points[index] - m_points[0];
 				normal = e1.CrossProduct(e2);
 				double error2 = sqrt(normal.DotProduct(normal));
@@ -3116,7 +3209,7 @@ namespace nd
 			if (!validTetrahedrum)
 			{
 				m_points.resize(0);
-				_ASSERT(0);
+				assert(0);
 				return count;
 			}
 	
@@ -3153,7 +3246,7 @@ namespace nd
 				for (int i = 3; i < normalMap.m_count; ++i)
 				{
 					int index = SupportVertex(&tree, points, normalMap.m_normal[i]);
-					_ASSERT(index >= 0);
+					assert(index >= 0);
 	
 					//make sure the volume of the fist tetrahedral is no negative
 					e3 = points[index] - m_points[0];
@@ -3181,7 +3274,7 @@ namespace nd
 			{
 				Swap(m_points[2], m_points[3]);
 			}
-			_ASSERT(TetrahedrumVolume(m_points[0], m_points[1], m_points[2], m_points[3]) < double(0.0f));
+			assert(TetrahedrumVolume(m_points[0], m_points[1], m_points[2], m_points[3]) < double(0.0f));
 			return count;
 		}
 
@@ -3299,24 +3392,24 @@ namespace nd
 							#ifdef _DEBUG
 							for (int i = 0; i < deletedCount; ++i)
 							{
-								_ASSERT(deleteList[i] != node1);
+								assert(deleteList[i] != node1);
 							}
 							#endif
 			
 							deleteList[deletedCount] = node1;
 							deletedCount++;
-							_ASSERT(deletedCount < int(deleteListPool.size()));
+							assert(deletedCount < int(deleteListPool.size()));
 							face1->m_mark = 1;
 							for (int i = 0; i < 3; ++i)
 							{
 								ndNode* const twinNode = face1->m_twin[i];
-								_ASSERT(twinNode);
+								assert(twinNode);
 								ConvexHullFace* const twinFace = &twinNode->GetInfo();
 								if (!twinFace->m_mark)
 								{
 									stack[stackIndex] = twinNode;
 									stackIndex++;
-									_ASSERT(stackIndex < int(stackPool.size()));
+									assert(stackIndex < int(stackPool.size()));
 								}
 							}
 						}
@@ -3330,7 +3423,7 @@ namespace nd
 					{
 						ndNode* const node1 = deleteList[i];
 						ConvexHullFace* const face1 = &node1->GetInfo();
-						_ASSERT(face1->m_mark == 1);
+						assert(face1->m_mark == 1);
 						for (int j0 = 0; j0 < 3; j0++)
 						{
 							ndNode* const twinNode = face1->m_twin[j0];
@@ -3352,7 +3445,7 @@ namespace nd
 								}
 								coneList[newCount] = newNode;
 								newCount++;
-								_ASSERT(newCount < int(coneListPool.size()));
+								assert(newCount < int(coneListPool.size()));
 							}
 						}
 					}
@@ -3361,12 +3454,12 @@ namespace nd
 					{
 						ndNode* const nodeA = coneList[i];
 						ConvexHullFace* const faceA = &nodeA->GetInfo();
-						_ASSERT(faceA->m_mark == 0);
+						assert(faceA->m_mark == 0);
 						for (int j = i + 1; j < newCount; j++) 
 						{
 							ndNode* const nodeB = coneList[j];
 							ConvexHullFace* const faceB = &nodeB->GetInfo();
-							_ASSERT(faceB->m_mark == 0);
+							assert(faceB->m_mark == 0);
 							if (faceA->m_index[2] == faceB->m_index[1])
 							{
 								faceA->m_twin[2] = nodeB;
@@ -3379,7 +3472,7 @@ namespace nd
 						{
 							ndNode* const nodeB = coneList[j];
 							ConvexHullFace* const faceB = &nodeB->GetInfo();
-							_ASSERT(faceB->m_mark == 0);
+							assert(faceB->m_mark == 0);
 							if (faceA->m_index[1] == faceB->m_index[2])
 							{
 								faceA->m_twin[0] = nodeB;
