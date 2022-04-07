@@ -37,3 +37,20 @@ Going forward version 4.0 and higher are the only versions which will receive te
 
 The earlier versions are now completely deprecated and will not be supported anymore.
 
+# Porting guide
+
+The new version is a single header file. You simply need to define '#define ENABLE_VHACD_IMPLEMENTATION 1' prior to including 'VHACD.h' in *one* CPP file in your project.
+
+There are no link libraries for V-HACD. There are no CPP files either. Just the one header file.
+
+The tuning parameter 'm_concavity' has been removed and is now replaced by 'm_minimumVolumePercentErrorAllowed'
+
+The tuning parameters 'm_alpha' and 'm_beta' are gone and no longer used.
+
+The tuning parameter 'm_projectHullVertices' has been renamed 'm_shrinkWrap'
+
+The function signature for the Update call in IUserCallback has changed slightly to the following:
+
+        virtual void Update(const double overallProgress,
+                            const double stageProgress,
+                            const char* const stage,const char *operation) final
