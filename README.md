@@ -18,3 +18,22 @@ On Windows, go to the ./app directory and run 'cmake CMakeLists.txt' and then lo
 On Linux, go to the ./app directory and run 'cmake CmakeLists.txt' and then run 'cmake --build .' to build the test app
 
 ![Documentation](https://docs.google.com/presentation/d/1OZ4mtZYrGEC8qffqb8F7Le2xzufiqvaPpRbLHKKgTIM/edit?usp=sharing)
+
+# Announcing Version 4.0 release!!
+
+Version 4.0 of V-HACD was officially released on April 7, 2022
+
+The previous version has been archived on a branch called 'version.3.1' should you need it.
+
+Version 4.0 is a near complete rewrite of the V-HACD code. 
+
+The API is mostly the same with just some minor changes.
+
+V-HACD version 4.0 is now a header file only library!  Just one source file is needed.
+
+V-HACD version 4.0 is faster, more robust, stable, and has fewer bugs than the older version.
+
+Going forward version 4.0 and higher are the only versions which will receive technical support.
+
+The earlier versions are now completely deprecated and will not be supported anymore.
+
