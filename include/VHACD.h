@@ -9310,6 +9310,7 @@ public:
               SplitAxis axis,
               uint32_t splitLoc) : mAxis(axis)
     {
+        mDepth = parent.mDepth+1;
         mVoxelHullCount++;  // Each VoxelHull is given a unique index number to distinguish it from the rest. Primarily used for debugging
         mIndex = mVoxelHullCount;   
         mVoxels = parent.mVoxels;   // Copy the parent's voxels pointer
