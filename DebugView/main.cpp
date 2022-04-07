@@ -4,22 +4,24 @@
 #include <vector>
 #include <math.h>
 #include <string>
+#include <string>
 #include <assert.h>
 #include <unordered_map>
+
+#define ENABLE_VHACD_IMPLEMENTATION 1
+#include "VHACD.h"
+
 
 #include "wavefront.h"
 #include "NvRenderDebug.h"
 #include "NvPhysicsDOM.h"
 #include "FloatMath.h"
 #include "TestHACD.h"
-#include "TestRaycast.h"
-#include "VHACD.h"
 #include "FastXml.h"
 #include "InspectXml.h"
 #include "ImportURDF.h"
 #include "MeshFactory.h"
 #include "DisplayURDF.h"
-#include "VoxelizeMesh.h"
 
 #pragma warning(disable:4456 4457)
 
@@ -81,7 +83,7 @@ void createMenus(void)
     gRenderDebug->sendRemoteCommand("Combo VoxelFillMode VoxelFillMode FLOOD_FILL SURFACE_ONLY RAYCAST_FILL");
 	gRenderDebug->sendRemoteCommand("SliderInt MaxHullVertices 32 5 512 MaxHullVertices");
 	gRenderDebug->sendRemoteCommand("SliderInt MaxConvexHulls 32 1 2048 MaxConvexHulls");
-	gRenderDebug->sendRemoteCommand("Slider Concavity 0.001 0 0.1 Concavity");
+	gRenderDebug->sendRemoteCommand("Slider VolumeError 4 0 10 VolumeError");
 	gRenderDebug->sendRemoteCommand("Button PerformConvexDecomposition decomp");
 	gRenderDebug->sendRemoteCommand("Button Cancel \"cancel\"");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'HACD settings'
@@ -117,16 +119,6 @@ void createMenus(void)
         // Debug the V-HACD code
     gRenderDebug->sendRemoteCommand("BeginTab \"V-HACD Debugging\"");	// Mark the beginning of a new tab display in the DebugView application
 
-    gRenderDebug->sendRemoteCommand("BeginGroup \"Voxelization\"");
-    gRenderDebug->sendRemoteCommand("Button Voxelize Voxelize");
-    gRenderDebug->sendRemoteCommand("Button ComputeInsideVoxels ComputeInsideVoxels");
-    gRenderDebug->sendRemoteCommand("Button SnapVoxels SnapVoxels");
-    gRenderDebug->sendRemoteCommand("CheckBox ShowVoxelSurface true ShowVoxelSurface");
-    gRenderDebug->sendRemoteCommand("CheckBox ShowVoxelInside false ShowVoxelInside");
-    gRenderDebug->sendRemoteCommand("CheckBox ShowVoxelOutside false ShowVoxelOutside");
-    gRenderDebug->sendRemoteCommand("CheckBox ShowVoxelUndefined false ShowVoxelUndefined");
-    gRenderDebug->sendRemoteCommand("EndGroup"); //
-
 	gRenderDebug->sendRemoteCommand("BeginGroup \"LegionFu\"");	// Mark the beginning of a group of controls.
 	gRenderDebug->sendRemoteCommand("Button MeshVertsToHulls MeshVertsToHulls");
 	gRenderDebug->sendRemoteCommand("EndGroup"); // End the group called 'controls'
@@ -151,7 +143,6 @@ public:
 
 	~ConvexDecomposition(void)
 	{
-        SAFE_RELEASE(mVoxelizeMesh);
         SAFE_RELEASE(mTestHACD);
 		delete[]mMeshVertices;
 	}
@@ -240,13 +231,6 @@ public:
 			{
 				mTestHACD->meshVertsToHulls(gVertexCount,gVertices);
 			}
-			else if (strcmp(cmd, "raycast") == 0 && mTestHACD)
-			{
-				printf("Testing RaycastMesh\n");
-				TestRaycast *r = TestRaycast::create();
-				r->testRaycast(gVertexCount, gTriangleCount, gVertices, gIndices, gRenderDebug);
-				r->release();
-			}
 			else if (strcmp(cmd, "cancel") == 0 && mTestHACD)
 			{
 				printf("Canceling Convex Decomposition\n");
@@ -327,29 +311,29 @@ public:
 				gShowConvexDecomposition = strcmp(value, "true") == 0;
 				printf("ShowConvexDecomposition=%s\n", value);
 			}
-			else if (strcmp(cmd, "Concavity") == 0 && argc == 2)
+			else if (strcmp(cmd, "VolumeError") == 0 && argc == 2)
 			{
 				const char *value = argv[1];
-				gDesc.m_concavity = (float)atof(value);
-				printf("Concavity=%0.5f\n", gDesc.m_concavity);
+				gDesc.m_minimumVolumePercentErrorAllowed = (float)atof(value);
+				printf("VolumeError=%0.5f\n", gDesc.m_minimumVolumePercentErrorAllowed);
 			}
 			else if (strcmp(cmd, "Alpha") == 0 && argc == 2)
 			{
-				const char *value = argv[1];
-				gDesc.m_alpha = (float)atof(value);
-				printf("Alpha=%0.5f\n", gDesc.m_alpha);
+//TODO				const char *value = argv[1];
+//				gDesc.m_alpha = (float)atof(value);
+//				printf("Alpha=%0.5f\n", gDesc.m_alpha);
 			}
 			else if (strcmp(cmd, "Beta") == 0 && argc == 2)
 			{
-				const char *value = argv[1];
-				gDesc.m_beta = (float)atof(value);
-				printf("Beta=%0.5f\n", gDesc.m_beta);
+//TODO				const char *value = argv[1];
+//				gDesc.m_beta = (float)atof(value);
+//				printf("Beta=%0.5f\n", gDesc.m_beta);
 			}
 			else if (strcmp(cmd, "ProjectHullVertices") == 0 && argc == 2)
 			{
 				const char *value = argv[1];
-				gDesc.m_projectHullVertices = strcmp(value, "true") == 0;
-				printf("ProjectHullVertices=%s\n", gDesc.m_projectHullVertices ? "true" : "false");
+				gDesc.m_shrinkWrap = strcmp(value, "true") == 0;
+				printf("ProjectHullVertices=%s\n", gDesc.m_shrinkWrap ? "true" : "false");
 			}
             else if (strcmp(cmd, "AsyncACD") == 0 && argc == 2)
             {
@@ -409,49 +393,6 @@ public:
 					mTestHACD->saveConvexDecomposition("ConvexDecomposition.obj", gSourceMeshName.c_str());
 				}
 			}
-            else if (strcmp(cmd, "Voxelize") == 0)
-            {
-            SAFE_RELEASE(mVoxelizeMesh);
-            mVoxelizeMesh = voxelizemesh::VoxelizeMesh::create(gVertexCount, gTriangleCount, gVertices, gIndices, gDesc.m_resolution, gRenderDebug, gDesc);
-            }
-            else if (strcmp(cmd, "ComputeInsideVoxels") == 0)
-            {
-            if (mVoxelizeMesh)
-            {
-                mVoxelizeMesh->computeInsideVoxels();
-            }
-            }
-            else if (strcmp(cmd, "SnapVoxels") == 0)
-            {
-                if (mVoxelizeMesh)
-                {
-                    mVoxelizeMesh->snapVoxelToMesh();
-                }
-            }
-            else if (strcmp(cmd, "ShowVoxelSurface") == 0 && argc == 2)
-            {
-                const char *value = argv[1];
-                gShowVoxelSurface = strcmp(value, "true") == 0;
-                printf("ShowVoxelSurface=%s\n", value);
-            }
-            else if (strcmp(cmd, "ShowVoxelInside") == 0 && argc == 2)
-            {
-                const char *value = argv[1];
-                gShowVoxelInside = strcmp(value, "true") == 0;
-                printf("ShowVoxelInside=%s\n", value);
-            }
-            else if (strcmp(cmd, "ShowVoxelOutside") == 0 && argc == 2)
-            {
-                const char *value = argv[1];
-                gShowVoxelOutside = strcmp(value, "true") == 0;
-                printf("ShowVoxelOutside=%s\n", value);
-            }
-            else if (strcmp(cmd, "ShowVoxelUndefined") == 0 && argc == 2)
-            {
-                const char *value = argv[1];
-                gShowVoxelUndefined = strcmp(value, "true") == 0;
-                printf("ShowVoxelUndefined=%s\n", value);
-            }
             else if (strcmp(cmd, "VoxelFillMode") == 0 && argc == 2)
             {
                 const char *fmode = argv[1];
@@ -527,11 +468,6 @@ public:
 				mShowSelectedVerts,
 				mForwardAxis);
 		}
-
-        if (mVoxelizeMesh)
-        {
-            mVoxelizeMesh->visualize(gShowVoxelSurface, gShowVoxelInside, gShowVoxelOutside, gShowVoxelUndefined);
-        }
 
 		gNvPhysicsDOM->simulate(mShowPhysics);
 
@@ -612,7 +548,6 @@ public:
     void releaseMesh(void)
     {
         SAFE_RELEASE(mTestHACD);
-        SAFE_RELEASE(mVoxelizeMesh);
     }
 
 	uint32_t	mLimitRangeDegrees{ 45 };
@@ -627,7 +562,6 @@ public:
 	bool		mShowSelectedVerts{ false };
 	bool		mWireframeSourceMesh{ false };
 	TestHACD	*mTestHACD{ nullptr };
-    voxelizemesh::VoxelizeMesh *mVoxelizeMesh{nullptr};
 	bool		mExit{ false };
 	WavefrontObj mSourceMesh;
 	WavefrontObj mWavefront;

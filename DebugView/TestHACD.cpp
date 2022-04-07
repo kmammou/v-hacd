@@ -729,16 +729,13 @@ public:
 	}
 
 	virtual void Update(const double overallProgress,
-		const double stageProgress,
-		const double operationProgress,
-		const char* const stage,
-		const char* const operation) final
+                            const double stageProgress,
+                            const char* const stage,
+                            const char *operationn) final
 	{
 		mOverallProgress = overallProgress;
 		mStageProgress = stageProgress;
-		mOperationProgress = operationProgress;
 		mStage = std::string(stage);
-		mOperation = std::string(operation);
 	}
 
 	virtual void Log(const char* const msg) final
