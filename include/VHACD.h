@@ -443,7 +443,7 @@ IVHACD* CreateVHACD_ASYNC(void);    // Create an asynchronous (non-blocking) imp
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100 4189 4456 4701 4702 4127)
+#pragma warning(disable:4100 4189 4456 4701 4702 4127 4996)
 #endif
 
 #define SAFE_RELEASE(x) if ( x ) { x->release(); x = nullptr; }

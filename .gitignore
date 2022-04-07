@@ -177,3 +177,16 @@ build/
 /app/compiler/vc14win64/decomp.obj
 /app/compiler/vc14win64/x64/TestVHACD/debug/TestVHACD.vcxproj.FileListAbsolute.txt
 /app/compiler/vc14win64/x64/TestVHACD/debug/TestVHACDDEBUG.Build.CppClean.log
+/app/.vs/TestVHACD/v16
+/app/CMakeCache.txt
+/app/CMakeFiles/3.22.0-rc1
+/app/CMakeFiles/39ddef21748f7d13f6f046c00e7a347e
+/app/CMakeFiles
+/app/Makefile
+/app/Release
+/app/TestVHACD.dir/Debug
+/app/TestVHACD.dir/Release
+/app/cmake_install.cmake
+/app/compiler/vc14win64/.vs/TestVHACD/v16/ipch/AutoPCH/ea55e35d3718268a
+/app/x64/Debug/ZERO_CHECK
+/app/x64/Release/ZERO_CHECK
