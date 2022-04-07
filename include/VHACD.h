@@ -16,6 +16,9 @@
 #ifndef VHACD_H
 #    define VHACD_H
 
+// Please view this slide deck which describes usage and how the algorithm works.
+// https://docs.google.com/presentation/d/1OZ4mtZYrGEC8qffqb8F7Le2xzufiqvaPpRbLHKKgTIM/edit?usp=sharing
+
 // VHACD is now a header only library.
 // In just *one* of your CPP files *before* you include 'VHACD.h' you must declare
 // #define ENABLE_VHACD_IMPLEMENTATION 1
