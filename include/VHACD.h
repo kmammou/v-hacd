@@ -1572,13 +1572,6 @@ namespace nd
 				}
 				array[j] = tmp;
 			}
-
-			#if 0
-			for (int i = 0; i < (elements - 1); ++i)
-			{
-				assert(comparator.Compare(array[i], array[i + 1], context) <= 0);
-			}
-			#endif
 		}
 	}
 }
@@ -10229,23 +10222,6 @@ public:
                     mHullB = new VoxelHull(*this,SplitAxis::Z_AXIS_POSITIVE,splitLoc);
                     break;
             }
-#if 0 // for debugging only
-            static uint32_t count = 0;
-            count++;
-            if ( count < 16 )
-            {
-                char scratch[512];
-
-                snprintf(scratch,sizeof(scratch),"HullA%02d.obj",count);
-                mHullA->saveOBJ(scratch);
-
-                snprintf(scratch,sizeof(scratch),"HullB%02d.obj",count);
-                mHullB->saveOBJ(scratch);
-
-                snprintf(scratch,sizeof(scratch),"HullCombined%02d.obj",count);
-                mHullA->saveOBJ(scratch,mHullB);
-            }
-#endif
         }
     }
 
