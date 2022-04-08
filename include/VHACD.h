@@ -10846,15 +10846,22 @@ public:
     {
         {
             ScopedTime st("Convex Decompostion",mParams.m_logger);
-            uint32_t maxHulls = (uint32_t)pow(2,mParams.m_maxRecursionDepth);
+            double maxHulls = pow(2,mParams.m_maxRecursionDepth);
             // We recursively split convex hulls until we can
             // no longer recurse further.
+            Timer t;
+
             while ( !mPendingHulls.empty() && !mCanceled )
             {
-                double count = double(mPendingHulls.size() + mVoxelHulls.size());
+                size_t count = mPendingHulls.size() + mVoxelHulls.size();
+                double e = t.peekElapsedSeconds();
+                if ( e >= 0.1 )
                 {
-                    double stageProgress = (count*100.0) / double(maxHulls);
-                    progressUpdate(Stages::PERFORMING_DECOMPOSITION,stageProgress,"Performing recursive decomposition of convex hulls");
+                    t.reset();
+                    {
+                        double stageProgress = (double(count)*100.0) / maxHulls;
+                        progressUpdate(Stages::PERFORMING_DECOMPOSITION,stageProgress,"Performing recursive decomposition of convex hulls");
+                    }
                 }
                 // First we make a copy of the hulls we are processing
                 VoxelHullVector oldList = mPendingHulls;
@@ -11026,23 +11033,21 @@ public:
                     }
                     progressUpdate(Stages::COMPUTING_COST_MATRIX,100,"Finished cost matrix");
                 }
-                delete []tasks;
                 if ( !mCanceled )
                 {
                     ScopedTime st("Merging Convex Hulls",mParams.m_logger);
-
+                    Timer t;
                     // Now that we know the cost to merge each hull, we can begin merging them.
                     bool cancel = false;
 
                     uint32_t maxMergeCount = uint32_t(mHulls.size()) - mParams.m_maxConvexHulls;
                     uint32_t startCount = uint32_t(mHulls.size());
-                    uint32_t notifyCount = 0;
                     while ( !cancel && mHulls.size() > mParams.m_maxConvexHulls && !mHullPairQueue.empty() && !mCanceled)
                     {
-                        notifyCount++;
-                        if ( notifyCount == 256 )
+                        double e = t.peekElapsedSeconds();
+                        if ( e >= 0.1 )
                         {
-                            notifyCount = 0;
+                            t.reset();
                             uint32_t hullsProcessed = startCount - uint32_t(mHulls.size() );
                             double stageProgess = double(hullsProcessed*100) / double(maxMergeCount);
                             progressUpdate(Stages::MERGING_CONVEX_HULLS,stageProgess,"Merging Convex Hulls");
@@ -11075,7 +11080,7 @@ public:
 
                             mMeshId++;
                             combinedHull->m_meshId = mMeshId;
-                            CostTask task;
+                            CostTask *task = tasks;
 
                             // Compute the cost between this new merged hull
                             // and all existing convex hulls and then 
@@ -11087,19 +11092,45 @@ public:
                                     break;
                                 }
                                 ConvexHull *secondHull = i.second;
-                                task.mHullA = combinedHull;
-                                task.mHullB = secondHull;
-                                task.mThis = this;
-                                if ( doFastCost(&task) )
+                                task->mHullA = combinedHull;
+                                task->mHullB = secondHull;
+                                task->mThis = this;
+                                if ( doFastCost(task) )
                                 {
                                 }
                                 else
                                 {
-                                    performMergeCostTask(&task);
-                                    addCostToPriorityQueue(&task);
+                                    if ( mSimpleJobSystem )
+                                    {
+                                        mSimpleJobSystem->addJob(task,computeMergeCostTask);
+                                    }
+                                    task++;
                                 }
                             }
                             mHulls[combinedHull->m_meshId] = combinedHull;
+                            // See how many merge cost tasks were posted
+                            // If there are 8 or more and we are running asynchronously, then do them that way.
+                            size_t tcount = task - tasks;
+                            if ( tcount >= 32 && mSimpleJobSystem )
+                            {
+                                mSimpleJobSystem->startJobs();
+                                mSimpleJobSystem->waitForJobsToComplete();
+                            }
+                            else
+                            {
+                                task = tasks;
+                                for (size_t i=0; i<tcount; i++)
+                                {
+                                    performMergeCostTask(task);
+                                    task++;
+                                }
+                            }
+                            task = tasks;
+                            for (size_t i=0; i<tcount; i++)
+                            {
+                                addCostToPriorityQueue(task);
+                                task++;
+                            }
                         }
                     }
                     // Ok...once we are done, we copy the results!
@@ -11127,6 +11158,8 @@ public:
                     mHulls.clear(); // since the hulls were moved into the output list, we don't need to delete them from this container
                     progressUpdate(Stages::FINALIZING_RESULTS,100,"Finalized results complete");
                 }
+                delete []tasks;
+
             }
             else
             {
