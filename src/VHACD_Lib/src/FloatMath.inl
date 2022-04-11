@@ -1365,7 +1365,7 @@ public:
 		int32_t i2;
 		for (i2 = i0; i2 <= (3-2); i2++)
 		{
-		  Type fTmp = fabs(m_afDiag[i2]) + fabs(m_afDiag[i2+1]);
+		  Type fTmp = (Type)(fabs(m_afDiag[i2]) + fabs(m_afDiag[i2+1]));
 		  if ( fabs(m_afSubd[i2]) + fTmp == fTmp )
 			break;
 		}
