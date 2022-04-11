@@ -86,97 +86,6 @@
 // *
 
 
-// Changes for version 3.0 : April 17, 2020 : John W. Ratcliff mailto:jratcliffscarab@gmail.com
-//
-// * An optional callback method called 'NotifyVHACDComplete' was added to the IUserCallback interface.
-// * This method is called when an asynchronous V-HACD operation is been completed. The application can
-// * use this call back as a trigger to wake up the app to start processing the V-HACD results. The
-// * original polled method 'IsReady' is still valid and can continue to be used.
-//
-// * Some code cleanup was done, removed obsolete OpenCL, OpenMP and SIMD code.
-// * The purpose of this change was to make the code more vanilla C++ and to make it easier to maintain
-// * Removed the obsolete tetrahedral 'mode' as the library currently only supports voxels.
-// * Again this was to make the code base smaller and easier to maintain.
-// *
-// * A new optional virtual interface called 'IUserProfiler' was provided.
-// * This allows the user to provide an optional profiling callback interface to assist in
-// * diagnosing performance issues. This change was made by Danny Couture at Epic for the UE4 integration.
-// * Some profiling macros were also declared in support of this feature.
-// *
-// * Another new optional virtual interface called 'IUserTaskRunner' was provided.
-// * This interface is used to run logical 'tasks' in a background thread. If none is provided
-// * then a default implementation using std::thread will be executed.
-// * This change was made by Danny Couture at Epic to speed up the voxelization step.
-// *
-// * Some performance optimizations were made to the code. They include the following:
-// *
-// * During the voxelization step there was code to rotate every point in the source mesh.
-// * However this feature was not actually being used, so it was removed to improve performance
-// * during the voxelization stage.
-// *
-// * Optimizations made to the voxelization step by Danny Couture at Epic include:
-// * -Fix a comparison bug in VHACD Volume::Voxelize causing the number of
-// *   voxels to explode when x == y and z < x.
-// * - Rewrite voxel flood fill algorithm toward cache friendliness and get
-// *      rid of extra data structure causing high memory usage on large voxels.
-// * - Make the data ordering in vhacdVolume GetVoxel more cache friendly
-// *   toward loops iterating over(i, j, k) in that order.
-// *
-// * During the voxelization phase, the original implementation would attempt to voxelize the input mesh
-// * multiple times until it hit some target number of voxels. This step was not needed, as the number of
-// * of desired voxels implies a certain voxel resolution so instead it just does the voxelization step
-// * in a single pass at the specified detail level.
-// *
-// * The final performance optimization was to unroll the ComputeACD step so it can be run in parallel.
-// * A new helper class was introduced called 'SimpleJobSystem' which can run micro-tasks across multiple threads.
-// * When computing the ACD (approximate convex decomposition) the code iterates through all input sub-meshes
-// * and computes the concavity, the optimal splitting plane and, optionally, splits the input mesh by a plane.
-// * This can happen hundreds of even thousands of times. The original code did this in a for loop using a single
-// * thread. The change made was so that this operation could be done in parallel. Since this operation is extremely
-// * memory bound, it only provides about a 2x performance improvement, but that is still twice as fast at least.
-// * After the voxelization optimizations the ComputeACD step remained slowest part of V-HACD.
-// *
-// * A new feature was introduced called the 'FillMode'. By default V-HACD performs a flood fill operation after
-// * the voxelization step to determine which voxels lie 'inside' the source mesh surface and which are 'outside'.
-// * Most of the time this flood fill approach works fine. However, if the source mesh has a hole anywhere in it
-// * it can result in no voxels being marked as 'inside the surface'.  When this happens the convex decomposition
-// * will treat the mesh as being 'hollow' inside. A good example of this failure case is the Stanford bunny which
-// * has a hole on the bottom.
-// *
-// * A new FillMode was introduced called 'RAYCAST_FILL' which can correct for this. If the FillMode is set to
-// * 'RAYCAST_FILL' then rather than doing a flood fill, instead each voxel will be categorized by performing
-// * a raycast in the six cardinal directions. If 3 or more of those raycasts hit the 'inside' of the source mesh
-// * then that voxel will be marked as being 'inside'. This can correct for the edge case when the source mesh has
-// * a voxel sized hole in it.
-// *
-// * Finally, there are some cases where you might actually want the source mesh to be treated as being a 'hollow'
-// * object.  For certain types of simulations this is actually desirable. So, there is a new FillMode called
-// * 'SURFACE_ONLY' which will not mark any voxel as being 'inside' which will treat any source mesh as being 'hollow'
-// * inside and any deep recursion of the convex decomposition will converge towards the 'skin' of the object.
-// * For example, here is a video clip showing a simulation of a torus, without any holes, as a hollow object.
-// *     https://www.youtube.com/watch?v=CIOoWN4CDb4
-// *
-// * Finally an important bug fix is included with this update.
-// * When using V-HACD by default, it works by converting the source mesh into a voxel grid and the performing
-// * the convex decomposition relative to that voxelization. This has a number of benefits, both performance as
-// * well as it greatly simplifies the plane splitting step vs. trying to perform a full CSG operation on an
-// * arbitrary triangle mesh.
-// *
-// * However, one downside of doing this is that the resulting convex hulls suffer a loss of precision. Each
-// * point in the final convex hull does not rest on the original source mesh but, instead, is based on the voxel
-// * resolution. If you use extremely high voxel resolutions then this loss of precision is less of an issue but
-// * using high voxel resolutions can make V-HACD run much more slowly.  If you use a low voxel resolution V-HACD
-// * can run much more quickly but the output convex hull points will not be coplanar to the original source mesh
-// * and can result in poor simulation behavior.
-// *
-// * To fix this a new option was introduced called 'm_projectHullVertices'. If th is bool is set to true then
-// * as a final step each point on the convex hull output will be 'projected' onto the source mesh. In the previous
-// * release of V-HACD this 'projection' was done by performing a raycast operation. However, it was discovered that
-// * on some types of meshes this operation could fail producing completely bad convex hulls.
-// *
-// * This bug was fixed by switching to a 'closest point' algorithm instead of a raycast. A new code snippet was
-// * introduced called 'aabbtree', originally written by Miles Macklin, that can compute the closest point on a triangle
-// * mesh, within a radius, in a highly efficient manner.
 
 // The history of V-HACD:
 //
@@ -8991,30 +8900,29 @@ class ThreadPool {
     int count;
 };
 
-ThreadPool::ThreadPool(int worker) : closed(false), count(0){
+ThreadPool::ThreadPool(int worker) : closed(false), count(0)
+{
     workers.reserve(worker);
-    for(int i=0; i<worker; i++) {
+    for(int i=0; i<worker; i++) 
+    {
         workers.emplace_back(
-            [this]{
-                // std::cout << "worker waiting for init" << std::endl;
+            [this]
+        {
                 std::unique_lock<std::mutex> lock(this->task_mutex);
-                // int thread_count = ++this->count;
-                // std::cout << "worker " << thread_count << " started" << std::endl;
-                while(true) {
-                    while (this->tasks.empty()) {
-                        if (this->closed) {
-                            // std::cout << "worker " << thread_count << " closed" << std::endl;
+                while(true) 
+                {
+                    while (this->tasks.empty()) 
+                    {
+                        if (this->closed) 
+                        {
                             return;
                         }
-                        // std::cout << "worker " << thread_count << " waiting for notify" << std::endl;
                         this->cv.wait(lock);
                     }
-                    // std::cout << "worker " << thread_count << " get a task" << std::endl;
                     auto task = this->tasks.front();
                     this->tasks.pop_front();
                     lock.unlock();
                     task();
-                    // std::cout << "worker " << thread_count << " finished task" << std::endl;
                     lock.lock();
                 }
             }
@@ -9037,8 +8945,12 @@ auto ThreadPool::enqueue(F&& f, Args&& ... args)
 
     {
         std::unique_lock<std::mutex> lock(task_mutex);
-        if (!closed) {
-            tasks.emplace_back([task]{ (*task)();});
+        if (!closed) 
+        {
+            tasks.emplace_back([task]
+            { 
+                (*task)();
+            });
             cv.notify_one();
         }
     }
@@ -9052,7 +8964,8 @@ ThreadPool::~ThreadPool() {
         closed = true;
     }
     cv.notify_all();
-    for (auto && worker : workers) {
+    for (auto && worker : workers) 
+    {
         worker.join();
     }
 }
@@ -9080,258 +8993,6 @@ ThreadPool::~ThreadPool() {
 
 // Callback to actually perform the job
 typedef void(SJS_ABI* SJS_jobCallback)(void* userPtr);
-
-
-namespace VHACD
-{
-
-class SimpleJobSystem
-{
-public:
-    // Create in instance of the SimpleJobSystem with the number of threads specified.
-    // More threads than available cores is not particularly beneficial.
-    static SimpleJobSystem* create(uint32_t maxThreads, VHACD::IVHACD::IUserTaskRunner* taskRunner);
-
-    // Add a job to the queue of jobs to be performed, does not actually start the job yet.
-    virtual void addJob(void* userPtr, SJS_jobCallback callback) = 0;
-
-    // Start the jobs that have been posted, returns how many jobs are pending.
-    virtual uint32_t startJobs(void) = 0;
-
-    // Sleeps until all of the pending jobs have completed.
-    virtual void waitForJobsToComplete(void) = 0;
-
-    // Releases the SimpleJobSystem instance
-    virtual void release(void) = 0;
-};
-
-} 
-
-//************************************************************************
-// Implementation of the SimpleJobSystem
-//************************************************************************
-
-#ifdef _MSC_VER
-#    pragma warning(disable : 4100)
-#endif
-
-// Scoped mutex lock
-using lock_guard = std::lock_guard<std::mutex>;
-
-namespace VHACD
-{
-
-
-class SimpleJob
-{
-public:
-    SimpleJob(void* userPtr, SJS_jobCallback callback) : mUserPointer(userPtr), mCallback(callback)
-    {
-    }
-
-    void execute(void)
-    {
-        (mCallback)(mUserPointer);
-    }
-
-    void* mUserPointer{ nullptr };
-    SJS_jobCallback mCallback;
-};
-
-typedef std::queue<SimpleJob*> SimpleJobQueue;
-
-class FindJobs
-{
-public:
-    virtual SimpleJob* getSimpleJob(void) = 0;
-    virtual void simpleJobComplete(SimpleJob* sj) = 0;
-};
-
-class SimpleJobThread
-{
-public:
-    SimpleJobThread(void)
-    {
-    }
-
-    ~SimpleJobThread(void)
-    {
-        stopThread();
-    }
-
-    void stopThread(void)
-    {
-        if (mTaskRunnerThread)
-        {
-            mExit = true;
-            mHaveWork.notify_one();
-            mTaskRunner->JoinTask(mTaskRunnerThread);
-            mTaskRunnerThread = nullptr;
-        }
-        else if (mThread)
-        {
-            mExit = true;
-            mHaveWork.notify_one();
-            mThread->join();
-            delete mThread;
-            mThread = nullptr;
-        }
-    }
-
-    void start(FindJobs* fj, VHACD::IVHACD::IUserTaskRunner* taskRunner)
-    {
-        mTaskRunner = taskRunner;
-        mFindJobs = fj;
-        if (mTaskRunner)
-        {
-            if (mTaskRunnerThread == nullptr)
-            {
-                mExit = false;
-                mTaskRunnerThread = mTaskRunner->StartTask([this]() { runThread(); });
-            }
-        }
-        else
-        {
-            if (mThread == nullptr)
-            {
-                mThread = new std::thread([this]() { runThread(); });
-            }
-        }
-        mHaveWork.notify_all();
-    }
-
-    void runThread(void)
-    {
-        while (!mExit)
-        {
-            // Process jobs while jobs are available.
-            // If no more jobs are available, go to sleep until fresh work is provided
-            SimpleJob* sj = mFindJobs->getSimpleJob();
-            while (sj)
-            {
-                sj->execute();
-                mFindJobs->simpleJobComplete(sj);
-                sj = mFindJobs->getSimpleJob();
-            }
-            {
-                std::unique_lock<std::mutex> lock(mWorkMutex);
-                mHaveWork.wait(lock);
-            }
-        }
-    }
-
-
-    FindJobs* mFindJobs{ nullptr };
-    std::atomic<bool> mExit{ false };
-    void* mTaskRunnerThread{ nullptr };
-    std::thread* mThread{ nullptr };
-    std::mutex mWorkMutex;
-    std::condition_variable mHaveWork;
-    VHACD::IVHACD::IUserTaskRunner* mTaskRunner{ nullptr };
-};
-
-class SimpleJobSystemImpl : public SimpleJobSystem, public FindJobs
-{
-public:
-    SimpleJobSystemImpl(uint32_t maxThreads, VHACD::IVHACD::IUserTaskRunner* taskRunner)
-        : mMaxThreads(maxThreads), mTaskRunner(taskRunner)
-    {
-        mThreads = new SimpleJobThread[mMaxThreads];
-    }
-
-    virtual ~SimpleJobSystemImpl(void)
-    {
-        waitForJobsToComplete();
-        delete[] mThreads;
-    }
-
-    // Add a job to the queue of jobs to be performed, does not actually start the job yet.
-    virtual void addJob(void* userPtr, SJS_jobCallback callback) final
-    {
-        lock_guard _lock(mSimpleJobMutex);
-        SimpleJob* sj = new SimpleJob(userPtr, callback);
-        mPendingJobs.push(sj);
-    }
-
-    // Start the jobs that have been posted, returns how many jobs are pending.
-    virtual uint32_t startJobs(void) final
-    {
-        lock_guard _lock(mSimpleJobMutex);
-        mPendingJobCount += uint32_t(mPendingJobs.size()); // Set the number of pending jobs counter.
-        uint32_t ret = mPendingJobCount;
-        // Start all threads working on the available jobs
-        for (uint32_t i = 0; i < mMaxThreads; i++)
-        {
-            mThreads[i].start(this, mTaskRunner);
-        }
-        return ret;
-    }
-
-    // Sleeps until all of the pending jobs have completed.
-    virtual void waitForJobsToComplete(void) final
-    {
-        if (mPendingJobCount == 0)
-        {
-            return;
-        }
-        while (mPendingJobCount.load() )
-        {
-            std::this_thread::sleep_for(std::chrono::nanoseconds(10000)); // s
-        }
-    }
-
-    // Releases the SimpleJobSystem instance
-    virtual void release(void) final
-    {
-        delete this;
-    }
-
-    virtual SimpleJob* getSimpleJob(void) final
-    {
-        SimpleJob* ret = nullptr;
-        lock_guard _lock(mSimpleJobMutex);
-        if (!mPendingJobs.empty())
-        {
-            ret = mPendingJobs.front();
-            mPendingJobs.pop();
-        }
-        return ret;
-    }
-
-    // This job is complete, delete the pointer and decrement
-    // the total pending job count. If it goes to zero, then raise the 'mHaveWork'
-    virtual void simpleJobComplete(SimpleJob* sj) final
-    {
-        delete sj;
-        mPendingJobCount--;
-        if (mPendingJobCount == 0)
-        {
-            mWorkComplete.notify_all(); // wake up when job count goes to zero
-        }
-    }
-
-    std::atomic<uint32_t> mPendingJobCount{ 0 };
-    std::mutex mWorkCompleteMutex;
-    std::condition_variable mWorkComplete;
-    uint32_t mMaxThreads{ 8 };
-    std::mutex mSimpleJobMutex;
-    SimpleJobQueue mPendingJobs;
-    SimpleJobThread* mThreads{ nullptr };
-    VHACD::IVHACD::IUserTaskRunner* mTaskRunner{ nullptr };
-};
-
-// Create in instance of the SimpleJobSystem with the number of threads specified.
-// More threads than available cores is not particularly beneficial.
-SimpleJobSystem* SimpleJobSystem::create(uint32_t maxThreads, VHACD::IVHACD::IUserTaskRunner* taskRunner)
-{
-    auto ret = new SimpleJobSystemImpl(maxThreads, taskRunner);
-    return static_cast<SimpleJobSystem*>(ret);
-}
-
-
-} // namespace VHACD
-
-//***********************************************************
 
 namespace VHACD
 {
@@ -11215,13 +10876,6 @@ public:
                                 }
                                 else
                                 {
-                                    if ( mThreadPool )
-                                    {
-                                        task->mFuture = mThreadPool->enqueue([task]
-                                        {
-                                            computeMergeCostTask(task);
-                                        });
-                                    }
                                     task++;
                                 }
                             }
@@ -11229,8 +10883,17 @@ public:
                             // See how many merge cost tasks were posted
                             // If there are 8 or more and we are running asynchronously, then do them that way.
                             size_t tcount = task - tasks;
-                            if ( mThreadPool )
+                            if ( mThreadPool && tcount >= 2 )
                             {
+                                task = tasks;
+                                for (uint32_t i=0; i<tcount; i++)
+                                {
+                                    task->mFuture = mThreadPool->enqueue([task]
+                                    {
+                                        computeMergeCostTask(task);
+                                    });
+                                    task++;
+                                }
                                 for (uint32_t i=0; i<tcount; i++)
                                 {
                                     tasks[i].mFuture.get();
