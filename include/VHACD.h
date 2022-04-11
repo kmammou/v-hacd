@@ -442,7 +442,10 @@ IVHACD* CreateVHACD_ASYNC(void);    // Create an asynchronous (non-blocking) imp
 #include <condition_variable>
 #include <unordered_set>
 #include <unordered_map>
-
+#include <future>
+#include <memory>
+#include <array>
+#include <deque>
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -8965,6 +8968,100 @@ ShrinkWrap *ShrinkWrap::create(void)
 //********************************************************************************************************************
 
 //********************************************************************************************************************
+// Definition of the ThreadPool
+//********************************************************************************************************************
+
+namespace VHACD
+{
+
+class ThreadPool {
+ public:
+    ThreadPool() : ThreadPool(1) {};
+    ThreadPool(int worker);
+    ~ThreadPool();
+    template<typename F, typename... Args>
+    auto enqueue(F&& f, Args&& ... args)
+        -> std::future< typename std::result_of< F( Args... ) >::type>;
+ private:
+    std::vector<std::thread> workers;
+    std::deque<std::function<void()>> tasks;
+    std::mutex task_mutex;
+    std::condition_variable cv;
+    bool closed;
+    int count;
+};
+
+ThreadPool::ThreadPool(int worker) : closed(false), count(0){
+    workers.reserve(worker);
+    for(int i=0; i<worker; i++) {
+        workers.emplace_back(
+            [this]{
+                // std::cout << "worker waiting for init" << std::endl;
+                std::unique_lock<std::mutex> lock(this->task_mutex);
+                // int thread_count = ++this->count;
+                // std::cout << "worker " << thread_count << " started" << std::endl;
+                while(true) {
+                    while (this->tasks.empty()) {
+                        if (this->closed) {
+                            // std::cout << "worker " << thread_count << " closed" << std::endl;
+                            return;
+                        }
+                        // std::cout << "worker " << thread_count << " waiting for notify" << std::endl;
+                        this->cv.wait(lock);
+                    }
+                    // std::cout << "worker " << thread_count << " get a task" << std::endl;
+                    auto task = this->tasks.front();
+                    this->tasks.pop_front();
+                    lock.unlock();
+                    task();
+                    // std::cout << "worker " << thread_count << " finished task" << std::endl;
+                    lock.lock();
+                }
+            }
+        );
+    }
+}
+
+
+
+template<typename F, typename... Args>
+auto ThreadPool::enqueue(F&& f, Args&& ... args)
+    -> std::future< typename std::result_of< F( Args... ) >::type>
+{
+
+    using return_type = typename std::result_of< F( Args...) >::type;
+    auto task = std::make_shared<std::packaged_task<return_type()> > (
+        std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+    );
+    auto result = task->get_future();
+
+    {
+        std::unique_lock<std::mutex> lock(task_mutex);
+        if (!closed) {
+            tasks.emplace_back([task]{ (*task)();});
+            cv.notify_one();
+        }
+    }
+
+    return result;
+}
+
+ThreadPool::~ThreadPool() {
+    {
+        std::unique_lock<std::mutex> lock(task_mutex);
+        closed = true;
+    }
+    cv.notify_all();
+    for (auto && worker : workers) {
+        worker.join();
+    }
+}
+
+
+}
+
+
+//********************************************************************************************************************
 // Definition of the SimpleJobSystem
 //********************************************************************************************************************
 
@@ -9538,30 +9635,33 @@ public:
     // from the voxels
     void computeConvexHull(void)
     {
-        // we compute the convex hull as follows...
-        VHACD::QuickHull *qh = VHACD::QuickHull::create();
-
-        VHACD::HullPoints hp;
-        hp.mVertexCount = (uint32_t)mVertices.size()/3;
-        hp.mVertices = &mVertices[0];
-        hp.mMaxHullVertices = hp.mVertexCount;
-        uint32_t tcount = qh->computeConvexHull(hp);
-        if ( tcount )
+        if ( !mVertices.empty() )
         {
-            mConvexHull = new IVHACD::ConvexHull;
+            // we compute the convex hull as follows...
+            VHACD::QuickHull *qh = VHACD::QuickHull::create();
 
-            const double *vertices = qh->getVertices(mConvexHull->m_nPoints);
-            mConvexHull->m_points = new double[mConvexHull->m_nPoints*3];
-            memcpy(mConvexHull->m_points,vertices,sizeof(double)*mConvexHull->m_nPoints*3);
+            VHACD::HullPoints hp;
+            hp.mVertexCount = (uint32_t)mVertices.size()/3;
+            hp.mVertices = &mVertices[0];
+            hp.mMaxHullVertices = hp.mVertexCount;
+            uint32_t tcount = qh->computeConvexHull(hp);
+            if ( tcount )
+            {
+                mConvexHull = new IVHACD::ConvexHull;
 
-            const uint32_t *indices = qh->getIndices(mConvexHull->m_nTriangles);
-            mConvexHull->m_triangles = new uint32_t[mConvexHull->m_nTriangles*3];
-            memcpy(mConvexHull->m_triangles,indices,mConvexHull->m_nTriangles*sizeof(uint32_t)*3);
+                const double *vertices = qh->getVertices(mConvexHull->m_nPoints);
+                mConvexHull->m_points = new double[mConvexHull->m_nPoints*3];
+                memcpy(mConvexHull->m_points,vertices,sizeof(double)*mConvexHull->m_nPoints*3);
 
-            VHACD::fm_computeCentroid(mConvexHull->m_nPoints,mConvexHull->m_points,mConvexHull->m_nTriangles,mConvexHull->m_triangles, mConvexHull->m_center);
-            mConvexHull->m_volume = VHACD::fm_computeMeshVolume(mConvexHull->m_points,mConvexHull->m_nTriangles,mConvexHull->m_triangles);
+                const uint32_t *indices = qh->getIndices(mConvexHull->m_nTriangles);
+                mConvexHull->m_triangles = new uint32_t[mConvexHull->m_nTriangles*3];
+                memcpy(mConvexHull->m_triangles,indices,mConvexHull->m_nTriangles*sizeof(uint32_t)*3);
+
+                VHACD::fm_computeCentroid(mConvexHull->m_nPoints,mConvexHull->m_points,mConvexHull->m_nTriangles,mConvexHull->m_triangles, mConvexHull->m_center);
+                mConvexHull->m_volume = VHACD::fm_computeMeshVolume(mConvexHull->m_points,mConvexHull->m_nTriangles,mConvexHull->m_triangles);
+            }
+            SAFE_RELEASE(qh);
         }
-        SAFE_RELEASE(qh);
         if ( mConvexHull )
         {
             mHullVolume = mConvexHull->m_volume;
@@ -10346,7 +10446,8 @@ public:
     VHACDImpl   *mThis{nullptr};
     IVHACD::ConvexHull  *mHullA{nullptr};
     IVHACD::ConvexHull  *mHullB{nullptr};
-    double      mConcavity{0}; // concavity of the two combined
+    double      mConcavity{0}; // concavity of the two combineds
+    std::future<void>   mFuture;
 };
 
 void computeMergeCostTask(void *ptr);
@@ -10495,7 +10596,7 @@ public:
 
         if ( mParams.m_asyncACD )
         {
-            mSimpleJobSystem = SimpleJobSystem::create(8,mParams.m_taskRunner);
+            mThreadPool = new ThreadPool(8);
         }
 
         copyInputMesh(points,countPoints,triangles,countTriangles);
@@ -10519,7 +10620,8 @@ public:
             ret = true;
         }
 
-        SAFE_RELEASE(mSimpleJobSystem);
+        delete mThreadPool;
+        mThreadPool = nullptr;
 
         return ret;
     }
@@ -10544,7 +10646,8 @@ public:
 
     virtual void Clean(void) final  // release internally allocated memory
     {
-        SAFE_RELEASE(mSimpleJobSystem);
+        delete mThreadPool;
+        mThreadPool = nullptr;
         SAFE_RELEASE(mRaycastMesh);
         SAFE_RELEASE(mVoxelize);
 
@@ -10868,6 +10971,8 @@ public:
                 // For each hull we want to split, we either
                 // immediately perform the plane split or we post it as
                 // a job to be performed in a background thread
+                std::future<void> *futures = new std::future<void>[mPendingHulls.size()];
+                uint32_t futureCount = 0;
                 for (auto &i:mPendingHulls)
                 {
                     if ( i->isComplete() || count > MAX_CONVEX_HULL_FRAGMENTS )
@@ -10875,9 +10980,13 @@ public:
                     }
                     else
                     {
-                        if ( mSimpleJobSystem )
+                        if ( mThreadPool )
                         {
-                            mSimpleJobSystem->addJob(i,jobCallback);
+                            futures[futureCount] = mThreadPool->enqueue([i]
+                            {
+                                jobCallback(i);
+                            });
+                            futureCount++;
                         }
                         else
                         {
@@ -10886,11 +10995,14 @@ public:
                     }
                 }
                 // Wait for any outstanding jobs to complete in the background threads
-                if ( mSimpleJobSystem )
+                if ( futureCount )
                 {
-                    mSimpleJobSystem->startJobs();
-                    mSimpleJobSystem->waitForJobsToComplete();
+                    for (uint32_t i=0; i<futureCount; i++)
+                    {
+                        futures[i].get();
+                    }
                 }
+                delete []futures;
                 // Now, we rebuild the pending convex hulls list by
                 // adding the two children to the output list if
                 // we need to recurse them further
@@ -10977,7 +11089,6 @@ public:
                 // This is computed as the volume error of any two convex hulls
                 // combined
                 progressUpdate(Stages::COMPUTING_COST_MATRIX,0,"Computing Hull Merge Cost Matrix");
-
                 for (size_t i=1; i<hullCount && !mCanceled; i++)
                 {
                     ConvexHull *chA = hulls[i];
@@ -10995,9 +11106,12 @@ public:
                         }
                         else
                         {
-                            if ( mSimpleJobSystem )
+                            if ( mThreadPool )
                             {
-                                mSimpleJobSystem->addJob(task,computeMergeCostTask);
+                                task->mFuture = mThreadPool->enqueue([task]
+                                {
+                                    computeMergeCostTask(task);
+                                });
                             }
                             task++;
                         }
@@ -11007,18 +11121,18 @@ public:
                 {
                     size_t taskCount = task - tasks;
 
-                    if ( mSimpleJobSystem )
+                    if ( mThreadPool )
                     {
                         if ( taskCount )
                         {
-                            mSimpleJobSystem->startJobs();
-                            mSimpleJobSystem->waitForJobsToComplete();
+                            for (uint32_t i=0; i<taskCount; i++)
+                            {
+                                tasks[i].mFuture.get();
+                            }
                         }
-                        task = tasks;
                         for (size_t i=0; i<taskCount; i++)
                         {
-                            addCostToPriorityQueue(task);
-                            task++;
+                            addCostToPriorityQueue(&tasks[i]);
                         }
                     }
                     else
@@ -11042,6 +11156,7 @@ public:
 
                     uint32_t maxMergeCount = uint32_t(mHulls.size()) - mParams.m_maxConvexHulls;
                     uint32_t startCount = uint32_t(mHulls.size());
+
                     while ( !cancel && mHulls.size() > mParams.m_maxConvexHulls && !mHullPairQueue.empty() && !mCanceled)
                     {
                         double e = t.peekElapsedSeconds();
@@ -11100,9 +11215,12 @@ public:
                                 }
                                 else
                                 {
-                                    if ( mSimpleJobSystem )
+                                    if ( mThreadPool )
                                     {
-                                        mSimpleJobSystem->addJob(task,computeMergeCostTask);
+                                        task->mFuture = mThreadPool->enqueue([task]
+                                        {
+                                            computeMergeCostTask(task);
+                                        });
                                     }
                                     task++;
                                 }
@@ -11111,10 +11229,12 @@ public:
                             // See how many merge cost tasks were posted
                             // If there are 8 or more and we are running asynchronously, then do them that way.
                             size_t tcount = task - tasks;
-                            if ( tcount >= 32 && mSimpleJobSystem )
+                            if ( mThreadPool )
                             {
-                                mSimpleJobSystem->startJobs();
-                                mSimpleJobSystem->waitForJobsToComplete();
+                                for (uint32_t i=0; i<tcount; i++)
+                                {
+                                    tasks[i].mFuture.get();
+                                }
                             }
                             else
                             {
@@ -11125,11 +11245,9 @@ public:
                                     task++;
                                 }
                             }
-                            task = tasks;
                             for (size_t i=0; i<tcount; i++)
                             {
-                                addCostToPriorityQueue(task);
-                                task++;
+                                addCostToPriorityQueue(&tasks[i]);
                             }
                         }
                     }
@@ -11490,7 +11608,7 @@ public:
     double                                  mVoxelBmax[3];
     uint32_t                                mMeshId{0};
     HullPairQueue       mHullPairQueue;
-    SimpleJobSystem        *mSimpleJobSystem{nullptr};
+    ThreadPool              *mThreadPool{nullptr};
     HullMap             mHulls;
 
     // 
