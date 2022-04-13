@@ -190,3 +190,4 @@ build/
 /app/compiler/vc14win64/.vs/TestVHACD/v16/ipch/AutoPCH/ea55e35d3718268a
 /app/x64/Debug/ZERO_CHECK
 /app/x64/Release/ZERO_CHECK
+/*.bak

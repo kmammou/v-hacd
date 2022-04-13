@@ -17,7 +17,10 @@ A second approach consists in computing an exact convex decomposition of a surfa
 On Windows, go to the ./app directory and run 'cmake CMakeLists.txt' and then load the solution file
 On Linux, go to the ./app directory and run 'cmake CmakeLists.txt' and then run 'cmake --build .' to build the test app
 
-![Documentation](https://docs.google.com/presentation/d/1OZ4mtZYrGEC8qffqb8F7Le2xzufiqvaPpRbLHKKgTIM/edit?usp=sharing)
+# Documentation
+Click this link to find detailed documentation for how to use the library:
+
+(https://docs.google.com/presentation/d/1OZ4mtZYrGEC8qffqb8F7Le2xzufiqvaPpRbLHKKgTIM/edit?usp=sharing)
 
 # Announcing Version 4.0 release!!
 
@@ -25,7 +28,7 @@ Version 4.0 of V-HACD was officially released on April 7, 2022
 
 The previous version has been archived on a branch called 'version.3.1' should you need it.
 
-Version 4.0 is a near complete rewrite of the V-HACD code. 
+Version 4.0 is a near complete rewrite of the V-HACD code.
 
 The API is mostly the same with just some minor changes.
 
