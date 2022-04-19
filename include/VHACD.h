@@ -361,7 +361,7 @@ IVHACD* CreateVHACD_ASYNC(void);    // Create an asynchronous (non-blocking) imp
 #pragma warning(disable:4100 4189 4456 4701 4702 4127 4996)
 #endif
 
-#define SAFE_RELEASE(x) if ( x ) { x->release(); x = nullptr; }
+#define VHACD_SAFE_RELEASE(x) if ( x ) { x->release(); x = nullptr; }
 
 // Scoped Timer
 namespace VHACD
@@ -1493,7 +1493,7 @@ namespace nd
 {
 	namespace VHACD
 	{
-		#define Absolute(a)  ((a) >= 0.0 ? (a) : -(a))
+		#define VHACD_ABS(a)  ((a) >= 0.0 ? (a) : -(a))
 
 		Googol Googol::m_zero(0.0);
 		Googol Googol::m_one(1.0);
@@ -1827,7 +1827,7 @@ namespace nd
 
 		int Googol::LeadingZeros(uint64_t a) const
 		{
-			#define dgCOUNTBIT(mask,add)		\
+			#define VHACD_COUNTBIT(mask,add)		\
 			{									\
 				uint64_t test = a & mask;		\
 				n += test ? 0 : add;			\
@@ -1835,12 +1835,12 @@ namespace nd
 			}
 
 			int n = 0;
-			dgCOUNTBIT(0xffffffff00000000LL, 32);
-			dgCOUNTBIT(0xffff0000ffff0000LL, 16);
-			dgCOUNTBIT(0xff00ff00ff00ff00LL, 8);
-			dgCOUNTBIT(0xf0f0f0f0f0f0f0f0LL, 4);
-			dgCOUNTBIT(0xccccccccccccccccLL, 2);
-			dgCOUNTBIT(0xaaaaaaaaaaaaaaaaLL, 1);
+			VHACD_COUNTBIT(0xffffffff00000000LL, 32);
+			VHACD_COUNTBIT(0xffff0000ffff0000LL, 16);
+			VHACD_COUNTBIT(0xff00ff00ff00ff00LL, 8);
+			VHACD_COUNTBIT(0xf0f0f0f0f0f0f0f0LL, 4);
+			VHACD_COUNTBIT(0xccccccccccccccccLL, 2);
+			VHACD_COUNTBIT(0xaaaaaaaaaaaaaaaaLL, 1);
 
 			return n;
 		}
@@ -1983,7 +1983,7 @@ namespace nd
 		{
 			double a00xa11 = matrix[0][0] * matrix[1][1];
 			double a01xa10 = matrix[0][1] * matrix[1][0];
-			*error = Absolute(a00xa11) + Absolute(a01xa10);
+			*error = VHACD_ABS(a00xa11) + VHACD_ABS(a01xa10);
 			return a00xa11 - a01xa10;
 		}
 
@@ -2010,7 +2010,7 @@ namespace nd
 
 				double parcialError;
 				double minorDet = Determinant2x2(cofactor, &parcialError);
-				accError += parcialError * Absolute(matrix[2][i]);
+				accError += parcialError * VHACD_ABS(matrix[2][i]);
 				det += sign * minorDet * matrix[2][i];
 				sign *= double(-1.0f);
 			}
@@ -2919,9 +2919,9 @@ namespace nd
 
 		int ConvexHull::SupportVertex(ConvexHullAABBTreeNode** const treePointer, const std::vector<ConvexHullVertex>& points, const hullVector& dirPlane, const bool removeEntry) const
 		{
-		#define DG_STACK_DEPTH_3D 64
-			double aabbProjection[DG_STACK_DEPTH_3D];
-			const ConvexHullAABBTreeNode *stackPool[DG_STACK_DEPTH_3D];
+		#define VHACD_STACK_DEPTH_3D 64
+			double aabbProjection[VHACD_STACK_DEPTH_3D];
+			const ConvexHullAABBTreeNode *stackPool[VHACD_STACK_DEPTH_3D];
 
 			hullVector dir(dirPlane);
 
@@ -2954,22 +2954,22 @@ namespace nd
 							aabbProjection[stack] = leftSupportDist;
 							stackPool[stack] = me->m_left;
 							stack++;
-							assert(stack < DG_STACK_DEPTH_3D);
+							assert(stack < VHACD_STACK_DEPTH_3D);
 							aabbProjection[stack] = rightSupportDist;
 							stackPool[stack] = me->m_right;
 							stack++;
-							assert(stack < DG_STACK_DEPTH_3D);
+							assert(stack < VHACD_STACK_DEPTH_3D);
 						}
 						else
 						{
 							aabbProjection[stack] = rightSupportDist;
 							stackPool[stack] = me->m_right;
 							stack++;
-							assert(stack < DG_STACK_DEPTH_3D);
+							assert(stack < VHACD_STACK_DEPTH_3D);
 							aabbProjection[stack] = leftSupportDist;
 							stackPool[stack] = me->m_left;
 							stack++;
-							assert(stack < DG_STACK_DEPTH_3D);
+							assert(stack < VHACD_STACK_DEPTH_3D);
 						}
 					}
 					else
@@ -4175,10 +4175,6 @@ bool fm_intersectAABB(const double bmin1[3], const double bmax1[3], const double
 void fm_combineAABB(const double bmin1[3], const double bmax1[3], const double bmin2[3], const double bmax2[3],double bmin[3],double bmax[3]);
 double fm_volumeAABB(const double bmin[3],const double bmax[3]);
 
-
-
-#define FM_DEFAULT_GRANULARITY 0.001f // 1 millimeter is the default granularity
-
 class fm_VertexIndex
 {
 public:
@@ -4812,9 +4808,9 @@ enum class VoxelFillMode
 };
 
 
-#define VOXEL_BITS 10
-#define VOXEL_BITS2 20
-#define VOXEL_BIT_MASK ((1<<VOXEL_BITS)-1)
+#define VHACD_VOXEL_BITS 10
+#define VHACD_VOXEL_BITS2 20
+#define VHACD_VOXEL_BIT_MASK ((1<<VHACD_VOXEL_BITS)-1)
 
     class Voxel
     {
@@ -4827,7 +4823,7 @@ enum class VoxelFillMode
         }
         inline Voxel(uint32_t x, uint32_t y, uint32_t z)
         {
-            mVoxel = (x<<VOXEL_BITS2)|(y<<VOXEL_BITS)|z;
+            mVoxel = (x<<VHACD_VOXEL_BITS2)|(y<<VHACD_VOXEL_BITS)|z;
         }
         inline bool operator==(const Voxel &v) const
         {
@@ -4836,31 +4832,31 @@ enum class VoxelFillMode
 
         inline void getVoxel(uint32_t &x,uint32_t &y,uint32_t &z) const
         {
-            x = (mVoxel>>VOXEL_BITS2);
-            y = (mVoxel>>VOXEL_BITS)&VOXEL_BIT_MASK;
-            z = mVoxel & VOXEL_BIT_MASK;
+            x = (mVoxel>>VHACD_VOXEL_BITS2);
+            y = (mVoxel>>VHACD_VOXEL_BITS)&VHACD_VOXEL_BIT_MASK;
+            z = mVoxel & VHACD_VOXEL_BIT_MASK;
         }
 
         inline void getVoxel(int32_t &x, int32_t &y, int32_t &z) const
         {
-            x = (int32_t) (mVoxel >> VOXEL_BITS2);
-            y = (int32_t)((mVoxel >> VOXEL_BITS)&VOXEL_BIT_MASK);
-            z = (int32_t)(mVoxel & VOXEL_BIT_MASK);
+            x = (int32_t) (mVoxel >> VHACD_VOXEL_BITS2);
+            y = (int32_t)((mVoxel >> VHACD_VOXEL_BITS)&VHACD_VOXEL_BIT_MASK);
+            z = (int32_t)(mVoxel & VHACD_VOXEL_BIT_MASK);
         }
 
         inline uint32_t getX(void) const
         {
-            return (mVoxel>>VOXEL_BITS2);
+            return (mVoxel>>VHACD_VOXEL_BITS2);
         }
 
         inline uint32_t getY(void) const
         {
-            return (mVoxel>>VOXEL_BITS)&VOXEL_BIT_MASK;
+            return (mVoxel>>VHACD_VOXEL_BITS)&VHACD_VOXEL_BIT_MASK;
         }
 
         inline uint32_t getZ(void) const
         {
-            return mVoxel & VOXEL_BIT_MASK;
+            return mVoxel & VHACD_VOXEL_BIT_MASK;
         }
 
         inline uint32_t getVoxelAddress(void) const
@@ -5584,12 +5580,12 @@ inline T Max(T a, T b)
     return a > b ? a : b;
 }
 
-#define kPi 3.141592653589f
-const double k2Pi = 2.0f * kPi;
-const double kInvPi = 1.0f / kPi;
-const double kInv2Pi = 0.5f / kPi;
-const double kDegToRad = kPi / 180.0f;
-const double kRadToDeg = 180.0f / kPi;
+#define VHACD_PI 3.141592653589f
+const double k2Pi = 2.0f * VHACD_PI;
+const double kInvPi = 1.0f / VHACD_PI;
+const double kInv2Pi = 0.5f / VHACD_PI;
+const double kDegToRad = VHACD_PI / 180.0f;
+const double kRadToDeg = 180.0f / VHACD_PI;
 
 inline double DegToRad(double t)
 {
@@ -6036,23 +6032,21 @@ inline Bounds Intersection(const Bounds& a, const Bounds& b)
     return Bounds(Max(a.lower, b.lower), Min(a.upper, b.upper));
 }
 
-#define X_INDEX 0
-#define Y_INDEX 1
-#define Z_INDEX 2
 
-#define CROSS(dest, v1, v2)                                                                                            \
+
+#define VHACD_CROSS(dest, v1, v2)                                                                                            \
     dest[0] = v1[1] * v2[2] - v1[2] * v2[1];                                                                           \
     dest[1] = v1[2] * v2[0] - v1[0] * v2[2];                                                                           \
     dest[2] = v1[0] * v2[1] - v1[1] * v2[0];
 
-#define DOT(v1, v2) (v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2])
+#define VHACD_DOT(v1, v2) (v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2])
 
-#define SUB(dest, v1, v2)                                                                                              \
+#define VHACD_SUB(dest, v1, v2)                                                                                              \
     dest[0] = v1[0] - v2[0];                                                                                           \
     dest[1] = v1[1] - v2[1];                                                                                           \
     dest[2] = v1[2] - v2[2];
 
-#define FINDMINMAX(x0, x1, x2, min, max)                                                                               \
+#define VHACD_FINDMINMAX(x0, x1, x2, min, max)                                                                               \
     min = max = x0;                                                                                                    \
     if (x1 < min)                                                                                                      \
         min = x1;                                                                                                      \
@@ -6064,11 +6058,11 @@ inline Bounds Intersection(const Bounds& a, const Bounds& b)
         max = x2;
 
 
-/*======================== X_INDEX-tests ========================*/
+/*======================== 0-tests ========================*/
 
-#define AXISTEST_X01(a, b, fa, fb)                                                                                     \
-    p0 = a * v0[Y_INDEX] - b * v0[Z_INDEX];                                                                                        \
-    p2 = a * v2[Y_INDEX] - b * v2[Z_INDEX];                                                                                        \
+#define VHACD_AXISTEST_X01(a, b, fa, fb)                                                                                     \
+    p0 = a * v0[1] - b * v0[2];                                                                                        \
+    p2 = a * v2[1] - b * v2[2];                                                                                        \
     if (p0 < p2)                                                                                                       \
     {                                                                                                                  \
         min = p0;                                                                                                      \
@@ -6079,13 +6073,13 @@ inline Bounds Intersection(const Bounds& a, const Bounds& b)
         min = p2;                                                                                                      \
         max = p0;                                                                                                      \
     }                                                                                                                  \
-    rad = fa * boxhalfsize[Y_INDEX] + fb * boxhalfsize[Z_INDEX];                                                                   \
+    rad = fa * boxhalfsize[1] + fb * boxhalfsize[2];                                                                   \
     if (min > rad || max < -rad)                                                                                       \
         return 0;
 
-#define AXISTEST_X2(a, b, fa, fb)                                                                                      \
-    p0 = a * v0[Y_INDEX] - b * v0[Z_INDEX];                                                                                        \
-    p1 = a * v1[Y_INDEX] - b * v1[Z_INDEX];                                                                                        \
+#define VHACD_AXISTEST_X2(a, b, fa, fb)                                                                                      \
+    p0 = a * v0[1] - b * v0[2];                                                                                        \
+    p1 = a * v1[1] - b * v1[2];                                                                                        \
     if (p0 < p1)                                                                                                       \
     {                                                                                                                  \
         min = p0;                                                                                                      \
@@ -6096,15 +6090,15 @@ inline Bounds Intersection(const Bounds& a, const Bounds& b)
         min = p1;                                                                                                      \
         max = p0;                                                                                                      \
     }                                                                                                                  \
-    rad = fa * boxhalfsize[Y_INDEX] + fb * boxhalfsize[Z_INDEX];                                                                   \
+    rad = fa * boxhalfsize[1] + fb * boxhalfsize[2];                                                                   \
     if (min > rad || max < -rad)                                                                                       \
         return 0;
 
-/*======================== Y_INDEX-tests ========================*/
+/*======================== 1-tests ========================*/
 
-#define AXISTEST_Y02(a, b, fa, fb)                                                                                     \
-    p0 = -a * v0[X_INDEX] + b * v0[Z_INDEX];                                                                                       \
-    p2 = -a * v2[X_INDEX] + b * v2[Z_INDEX];                                                                                       \
+#define VHACD_AXISTEST_Y02(a, b, fa, fb)                                                                                     \
+    p0 = -a * v0[0] + b * v0[2];                                                                                       \
+    p2 = -a * v2[0] + b * v2[2];                                                                                       \
     if (p0 < p2)                                                                                                       \
     {                                                                                                                  \
         min = p0;                                                                                                      \
@@ -6115,13 +6109,13 @@ inline Bounds Intersection(const Bounds& a, const Bounds& b)
         min = p2;                                                                                                      \
         max = p0;                                                                                                      \
     }                                                                                                                  \
-    rad = fa * boxhalfsize[X_INDEX] + fb * boxhalfsize[Z_INDEX];                                                                   \
+    rad = fa * boxhalfsize[0] + fb * boxhalfsize[2];                                                                   \
     if (min > rad || max < -rad)                                                                                       \
         return 0;
 
-#define AXISTEST_Y1(a, b, fa, fb)                                                                                      \
-    p0 = -a * v0[X_INDEX] + b * v0[Z_INDEX];                                                                                       \
-    p1 = -a * v1[X_INDEX] + b * v1[Z_INDEX];                                                                                       \
+#define VHACD_AXISTEST_Y1(a, b, fa, fb)                                                                                      \
+    p0 = -a * v0[0] + b * v0[2];                                                                                       \
+    p1 = -a * v1[0] + b * v1[2];                                                                                       \
     if (p0 < p1)                                                                                                       \
     {                                                                                                                  \
         min = p0;                                                                                                      \
@@ -6132,16 +6126,16 @@ inline Bounds Intersection(const Bounds& a, const Bounds& b)
         min = p1;                                                                                                      \
         max = p0;                                                                                                      \
     }                                                                                                                  \
-    rad = fa * boxhalfsize[X_INDEX] + fb * boxhalfsize[Z_INDEX];                                                                   \
+    rad = fa * boxhalfsize[0] + fb * boxhalfsize[2];                                                                   \
     if (min > rad || max < -rad)                                                                                       \
         return 0;
 
-/*======================== Z_INDEX-tests ========================*/
+/*======================== 2-tests ========================*/
 
 
-#define AXISTEST_Z12(a, b, fa, fb)                                                                                     \
-    p1 = a * v1[X_INDEX] - b * v1[Y_INDEX];                                                                                        \
-    p2 = a * v2[X_INDEX] - b * v2[Y_INDEX];                                                                                        \
+#define VHACD_AXISTEST_Z12(a, b, fa, fb)                                                                                     \
+    p1 = a * v1[0] - b * v1[1];                                                                                        \
+    p2 = a * v2[0] - b * v2[1];                                                                                        \
     if (p2 < p1)                                                                                                       \
     {                                                                                                                  \
         min = p2;                                                                                                      \
@@ -6152,13 +6146,13 @@ inline Bounds Intersection(const Bounds& a, const Bounds& b)
         min = p1;                                                                                                      \
         max = p2;                                                                                                      \
     }                                                                                                                  \
-    rad = fa * boxhalfsize[X_INDEX] + fb * boxhalfsize[Y_INDEX];                                                                   \
+    rad = fa * boxhalfsize[0] + fb * boxhalfsize[1];                                                                   \
     if (min > rad || max < -rad)                                                                                       \
         return 0;
 
-#define AXISTEST_Z0(a, b, fa, fb)                                                                                      \
-    p0 = a * v0[X_INDEX] - b * v0[Y_INDEX];                                                                                        \
-    p1 = a * v1[X_INDEX] - b * v1[Y_INDEX];                                                                                        \
+#define VHACD_AXISTEST_Z0(a, b, fa, fb)                                                                                      \
+    p0 = a * v0[0] - b * v0[1];                                                                                        \
+    p1 = a * v1[0] - b * v1[1];                                                                                        \
     if (p0 < p1)                                                                                                       \
     {                                                                                                                  \
         min = p0;                                                                                                      \
@@ -6169,7 +6163,7 @@ inline Bounds Intersection(const Bounds& a, const Bounds& b)
         min = p1;                                                                                                      \
         max = p0;                                                                                                      \
     }                                                                                                                  \
-    rad = fa * boxhalfsize[X_INDEX] + fb * boxhalfsize[Y_INDEX];                                                                   \
+    rad = fa * boxhalfsize[0] + fb * boxhalfsize[1];                                                                   \
     if (min > rad || max < -rad)                                                                                       \
         return 0;
 
@@ -6180,7 +6174,7 @@ int planeBoxOverlap(double normal[3], double vert[3], double maxbox[3]) // -NJMP
 
     double vmin[3], vmax[3], v;
 
-    for (q = X_INDEX; q <= Z_INDEX; q++)
+    for (q = 0; q <= 2; q++)
     {
         v = vert[q]; // -NJMP-
 
@@ -6196,9 +6190,9 @@ int planeBoxOverlap(double normal[3], double vert[3], double maxbox[3]) // -NJMP
         }
     }
 
-    if (DOT(normal, vmin) > 0.0f)
+    if (VHACD_DOT(normal, vmin) > 0.0f)
         return 0; // -NJMP-
-    if (DOT(normal, vmax) >= 0.0f)
+    if (VHACD_DOT(normal, vmax) >= 0.0f)
         return 1; // -NJMP-
 
     return 0;
@@ -6230,63 +6224,63 @@ int triBoxOverlap(double boxcenter[3], double boxhalfsize[3], double triverts[3]
 
     /* move everything so that the boxcenter is in (0,0,0) */
 
-    SUB(v0, triverts[0], boxcenter);
+    VHACD_SUB(v0, triverts[0], boxcenter);
 
-    SUB(v1, triverts[1], boxcenter);
+    VHACD_SUB(v1, triverts[1], boxcenter);
 
-    SUB(v2, triverts[2], boxcenter);
+    VHACD_SUB(v2, triverts[2], boxcenter);
 
 
     /* compute triangle edges */
 
-    SUB(e0, v1, v0); /* tri edge 0 */
+    VHACD_SUB(e0, v1, v0); /* tri edge 0 */
 
-    SUB(e1, v2, v1); /* tri edge 1 */
+    VHACD_SUB(e1, v2, v1); /* tri edge 1 */
 
-    SUB(e2, v0, v2); /* tri edge 2 */
+    VHACD_SUB(e2, v0, v2); /* tri edge 2 */
 
 
     /* Bullet 3:  */
 
     /*  test the 9 tests first (this was faster) */
 
-    fex = fabs(e0[X_INDEX]);
+    fex = fabs(e0[0]);
 
-    fey = fabs(e0[Y_INDEX]);
+    fey = fabs(e0[1]);
 
-    fez = fabs(e0[Z_INDEX]);
+    fez = fabs(e0[2]);
 
-    AXISTEST_X01(e0[Z_INDEX], e0[Y_INDEX], fez, fey);
+    VHACD_AXISTEST_X01(e0[2], e0[1], fez, fey);
 
-    AXISTEST_Y02(e0[Z_INDEX], e0[X_INDEX], fez, fex);
+    VHACD_AXISTEST_Y02(e0[2], e0[0], fez, fex);
 
-    AXISTEST_Z12(e0[Y_INDEX], e0[X_INDEX], fey, fex);
-
-
-    fex = fabs(e1[X_INDEX]);
-
-    fey = fabs(e1[Y_INDEX]);
-
-    fez = fabs(e1[Z_INDEX]);
-
-    AXISTEST_X01(e1[Z_INDEX], e1[Y_INDEX], fez, fey);
-
-    AXISTEST_Y02(e1[Z_INDEX], e1[X_INDEX], fez, fex);
-
-    AXISTEST_Z0(e1[Y_INDEX], e1[X_INDEX], fey, fex);
+    VHACD_AXISTEST_Z12(e0[1], e0[0], fey, fex);
 
 
-    fex = fabs(e2[X_INDEX]);
+    fex = fabs(e1[0]);
 
-    fey = fabs(e2[Y_INDEX]);
+    fey = fabs(e1[1]);
 
-    fez = fabs(e2[Z_INDEX]);
+    fez = fabs(e1[2]);
 
-    AXISTEST_X2(e2[Z_INDEX], e2[Y_INDEX], fez, fey);
+    VHACD_AXISTEST_X01(e1[2], e1[1], fez, fey);
 
-    AXISTEST_Y1(e2[Z_INDEX], e2[X_INDEX], fez, fex);
+    VHACD_AXISTEST_Y02(e1[2], e1[0], fez, fex);
 
-    AXISTEST_Z12(e2[Y_INDEX], e2[X_INDEX], fey, fex);
+    VHACD_AXISTEST_Z0(e1[1], e1[0], fey, fex);
+
+
+    fex = fabs(e2[0]);
+
+    fey = fabs(e2[1]);
+
+    fez = fabs(e2[2]);
+
+    VHACD_AXISTEST_X2(e2[2], e2[1], fez, fey);
+
+    VHACD_AXISTEST_Y1(e2[2], e2[0], fez, fex);
+
+    VHACD_AXISTEST_Z12(e2[1], e2[0], fey, fex);
 
 
     /* Bullet 1: */
@@ -6300,27 +6294,27 @@ int triBoxOverlap(double boxcenter[3], double boxhalfsize[3], double triverts[3]
     /*  the triangle against the AABB */
 
 
-    /* test in X_INDEX-direction */
+    /* test in 0-direction */
 
-    FINDMINMAX(v0[X_INDEX], v1[X_INDEX], v2[X_INDEX], min, max);
+    VHACD_FINDMINMAX(v0[0], v1[0], v2[0], min, max);
 
-    if (min > boxhalfsize[X_INDEX] || max < -boxhalfsize[X_INDEX])
+    if (min > boxhalfsize[0] || max < -boxhalfsize[0])
         return 0;
 
 
-    /* test in Y_INDEX-direction */
+    /* test in 1-direction */
 
-    FINDMINMAX(v0[Y_INDEX], v1[Y_INDEX], v2[Y_INDEX], min, max);
+    VHACD_FINDMINMAX(v0[1], v1[1], v2[1], min, max);
 
-    if (min > boxhalfsize[Y_INDEX] || max < -boxhalfsize[Y_INDEX])
+    if (min > boxhalfsize[1] || max < -boxhalfsize[1])
         return 0;
 
 
-    /* test in Z_INDEX-direction */
+    /* test in 2-direction */
 
-    FINDMINMAX(v0[Z_INDEX], v1[Z_INDEX], v2[Z_INDEX], min, max);
+    VHACD_FINDMINMAX(v0[2], v1[2], v2[2], min, max);
 
-    if (min > boxhalfsize[Z_INDEX] || max < -boxhalfsize[Z_INDEX])
+    if (min > boxhalfsize[2] || max < -boxhalfsize[2])
         return 0;
 
 
@@ -6330,7 +6324,7 @@ int triBoxOverlap(double boxcenter[3], double boxhalfsize[3], double triverts[3]
 
     /*  compute plane equation of triangle: normal*x+d=0 */
 
-    CROSS(normal, e0, e1);
+    VHACD_CROSS(normal, e0, e1);
 
     // -NJMP- (line removed here)
 
@@ -7725,139 +7719,12 @@ namespace VHACD
 
 
 
-/********************************************************/
-/* AABB-triangle overlap test code                      */
-/* by Tomas Akenine-M�ller                              */
-/* Function: int32_t triBoxOverlap(float boxcenter[3],      */
-/*          float boxhalfsize[3],float triverts[3][3]); */
-/* History:                                             */
-/*   2001-03-05: released the code in its first version */
-/*   2001-06-18: changed the order of the tests, faster */
-/*                                                      */
-/* Acknowledgement: Many thanks to Pierre Terdiman for  */
-/* suggestions and discussions on how to optimize code. */
-/* Thanks to David Hunt for finding a ">="-bug!         */
-/********************************************************/
-
-#define FINDMINMAX(x0, x1, x2, min, max)                                                                               \
-    min = max = x0;                                                                                                    \
-    if (x1 < min)                                                                                                      \
-        min = x1;                                                                                                      \
-    if (x1 > max)                                                                                                      \
-        max = x1;                                                                                                      \
-    if (x2 < min)                                                                                                      \
-        min = x2;                                                                                                      \
-    if (x2 > max)                                                                                                      \
-        max = x2;
-
-#define AXISTEST_X01(a, b, fa, fb)                                                                                     \
-    p0 = a * v0[Y_INDEX] - b * v0[Z_INDEX];                                                                                        \
-    p2 = a * v2[Y_INDEX] - b * v2[Z_INDEX];                                                                                        \
-    if (p0 < p2)                                                                                                       \
-    {                                                                                                                  \
-        min = p0;                                                                                                      \
-        max = p2;                                                                                                      \
-    }                                                                                                                  \
-    else                                                                                                               \
-    {                                                                                                                  \
-        min = p2;                                                                                                      \
-        max = p0;                                                                                                      \
-    }                                                                                                                  \
-    rad = fa * boxhalfsize[Y_INDEX] + fb * boxhalfsize[Z_INDEX];                                                                   \
-    if (min > rad || max < -rad)                                                                                       \
-        return 0;
-
-#define AXISTEST_X2(a, b, fa, fb)                                                                                      \
-    p0 = a * v0[Y_INDEX] - b * v0[Z_INDEX];                                                                                        \
-    p1 = a * v1[Y_INDEX] - b * v1[Z_INDEX];                                                                                        \
-    if (p0 < p1)                                                                                                       \
-    {                                                                                                                  \
-        min = p0;                                                                                                      \
-        max = p1;                                                                                                      \
-    }                                                                                                                  \
-    else                                                                                                               \
-    {                                                                                                                  \
-        min = p1;                                                                                                      \
-        max = p0;                                                                                                      \
-    }                                                                                                                  \
-    rad = fa * boxhalfsize[Y_INDEX] + fb * boxhalfsize[Z_INDEX];                                                                   \
-    if (min > rad || max < -rad)                                                                                       \
-        return 0;
-
-#define AXISTEST_Y02(a, b, fa, fb)                                                                                     \
-    p0 = -a * v0[X_INDEX] + b * v0[Z_INDEX];                                                                                       \
-    p2 = -a * v2[X_INDEX] + b * v2[Z_INDEX];                                                                                       \
-    if (p0 < p2)                                                                                                       \
-    {                                                                                                                  \
-        min = p0;                                                                                                      \
-        max = p2;                                                                                                      \
-    }                                                                                                                  \
-    else                                                                                                               \
-    {                                                                                                                  \
-        min = p2;                                                                                                      \
-        max = p0;                                                                                                      \
-    }                                                                                                                  \
-    rad = fa * boxhalfsize[X_INDEX] + fb * boxhalfsize[Z_INDEX];                                                                   \
-    if (min > rad || max < -rad)                                                                                       \
-        return 0;
-
-#define AXISTEST_Y1(a, b, fa, fb)                                                                                      \
-    p0 = -a * v0[X_INDEX] + b * v0[Z_INDEX];                                                                                       \
-    p1 = -a * v1[X_INDEX] + b * v1[Z_INDEX];                                                                                       \
-    if (p0 < p1)                                                                                                       \
-    {                                                                                                                  \
-        min = p0;                                                                                                      \
-        max = p1;                                                                                                      \
-    }                                                                                                                  \
-    else                                                                                                               \
-    {                                                                                                                  \
-        min = p1;                                                                                                      \
-        max = p0;                                                                                                      \
-    }                                                                                                                  \
-    rad = fa * boxhalfsize[X_INDEX] + fb * boxhalfsize[Z_INDEX];                                                                   \
-    if (min > rad || max < -rad)                                                                                       \
-        return 0;
-
-#define AXISTEST_Z12(a, b, fa, fb)                                                                                     \
-    p1 = a * v1[X_INDEX] - b * v1[Y_INDEX];                                                                                        \
-    p2 = a * v2[X_INDEX] - b * v2[Y_INDEX];                                                                                        \
-    if (p2 < p1)                                                                                                       \
-    {                                                                                                                  \
-        min = p2;                                                                                                      \
-        max = p1;                                                                                                      \
-    }                                                                                                                  \
-    else                                                                                                               \
-    {                                                                                                                  \
-        min = p1;                                                                                                      \
-        max = p2;                                                                                                      \
-    }                                                                                                                  \
-    rad = fa * boxhalfsize[X_INDEX] + fb * boxhalfsize[Y_INDEX];                                                                   \
-    if (min > rad || max < -rad)                                                                                       \
-        return 0;
-
-#define AXISTEST_Z0(a, b, fa, fb)                                                                                      \
-    p0 = a * v0[X_INDEX] - b * v0[Y_INDEX];                                                                                        \
-    p1 = a * v1[X_INDEX] - b * v1[Y_INDEX];                                                                                        \
-    if (p0 < p1)                                                                                                       \
-    {                                                                                                                  \
-        min = p0;                                                                                                      \
-        max = p1;                                                                                                      \
-    }                                                                                                                  \
-    else                                                                                                               \
-    {                                                                                                                  \
-        min = p1;                                                                                                      \
-        max = p0;                                                                                                      \
-    }                                                                                                                  \
-    rad = fa * boxhalfsize[X_INDEX] + fb * boxhalfsize[Y_INDEX];                                                                   \
-    if (min > rad || max < -rad)                                                                                       \
-        return 0;
-
 int32_t PlaneBoxOverlap(const Vec3<double>& normal, const Vec3<double>& vert, const Vec3<double>& maxbox)
 {
     int32_t q;
     Vec3<double> vmin, vmax;
     double v;
-    for (q = X_INDEX; q <= Z_INDEX; q++)
+    for (q = 0; q <= 2; q++)
     {
         v = vert[q];
         if (normal[q] > 0.0)
@@ -7910,29 +7777,29 @@ int32_t TriBoxOverlap(const Vec3<double>& boxcenter,
 
     /* Bullet 3:  */
     /*  test the 9 tests first (this was faster) */
-    fex = fabs(e0[X_INDEX]);
-    fey = fabs(e0[Y_INDEX]);
-    fez = fabs(e0[Z_INDEX]);
+    fex = fabs(e0[0]);
+    fey = fabs(e0[1]);
+    fez = fabs(e0[2]);
 
-    AXISTEST_X01(e0[Z_INDEX], e0[Y_INDEX], fez, fey);
-    AXISTEST_Y02(e0[Z_INDEX], e0[X_INDEX], fez, fex);
-    AXISTEST_Z12(e0[Y_INDEX], e0[X_INDEX], fey, fex);
+    VHACD_AXISTEST_X01(e0[2], e0[1], fez, fey);
+    VHACD_AXISTEST_Y02(e0[2], e0[0], fez, fex);
+    VHACD_AXISTEST_Z12(e0[1], e0[0], fey, fex);
 
-    fex = fabs(e1[X_INDEX]);
-    fey = fabs(e1[Y_INDEX]);
-    fez = fabs(e1[Z_INDEX]);
+    fex = fabs(e1[0]);
+    fey = fabs(e1[1]);
+    fez = fabs(e1[2]);
 
-    AXISTEST_X01(e1[Z_INDEX], e1[Y_INDEX], fez, fey);
-    AXISTEST_Y02(e1[Z_INDEX], e1[X_INDEX], fez, fex);
-    AXISTEST_Z0(e1[Y_INDEX], e1[X_INDEX], fey, fex);
+    VHACD_AXISTEST_X01(e1[2], e1[1], fez, fey);
+    VHACD_AXISTEST_Y02(e1[2], e1[0], fez, fex);
+    VHACD_AXISTEST_Z0(e1[1], e1[0], fey, fex);
 
-    fex = fabs(e2[X_INDEX]);
-    fey = fabs(e2[Y_INDEX]);
-    fez = fabs(e2[Z_INDEX]);
+    fex = fabs(e2[0]);
+    fey = fabs(e2[1]);
+    fez = fabs(e2[2]);
 
-    AXISTEST_X2(e2[Z_INDEX], e2[Y_INDEX], fez, fey);
-    AXISTEST_Y1(e2[Z_INDEX], e2[X_INDEX], fez, fex);
-    AXISTEST_Z12(e2[Y_INDEX], e2[X_INDEX], fey, fex);
+    VHACD_AXISTEST_X2(e2[2], e2[1], fez, fey);
+    VHACD_AXISTEST_Y1(e2[2], e2[0], fez, fex);
+    VHACD_AXISTEST_Z12(e2[1], e2[0], fey, fex);
 
     /* Bullet 1: */
     /*  first test overlap in the {x,y,z}-directions */
@@ -7940,19 +7807,19 @@ int32_t TriBoxOverlap(const Vec3<double>& boxcenter,
     /*  that direction -- this is equivalent to testing a minimal AABB around */
     /*  the triangle against the AABB */
 
-    /* test in X_INDEX-direction */
-    FINDMINMAX(v0[X_INDEX], v1[X_INDEX], v2[X_INDEX], min, max);
-    if (min > boxhalfsize[X_INDEX] || max < -boxhalfsize[X_INDEX])
+    /* test in 0-direction */
+    VHACD_FINDMINMAX(v0[0], v1[0], v2[0], min, max);
+    if (min > boxhalfsize[0] || max < -boxhalfsize[0])
         return 0;
 
-    /* test in Y_INDEX-direction */
-    FINDMINMAX(v0[Y_INDEX], v1[Y_INDEX], v2[Y_INDEX], min, max);
-    if (min > boxhalfsize[Y_INDEX] || max < -boxhalfsize[Y_INDEX])
+    /* test in 1-direction */
+    VHACD_FINDMINMAX(v0[1], v1[1], v2[1], min, max);
+    if (min > boxhalfsize[1] || max < -boxhalfsize[1])
         return 0;
 
     /* test in getZ-direction */
-    FINDMINMAX(v0[Z_INDEX], v1[Z_INDEX], v2[Z_INDEX], min, max);
-    if (min > boxhalfsize[Z_INDEX] || max < -boxhalfsize[Z_INDEX])
+    VHACD_FINDMINMAX(v0[2], v1[2], v2[2], min, max);
+    if (min > boxhalfsize[2] || max < -boxhalfsize[2])
         return 0;
 
     /* Bullet 2: */
@@ -8215,7 +8082,7 @@ void Volume::FillInsideSurface()
                 if (v == PRIMITIVE_UNDEFINED)
                 {
                     v = PRIMITIVE_INSIDE_SURFACE;
-                    uint32_t index = (i<<VOXEL_BITS2) | (j<<VOXEL_BITS) | k;
+                    uint32_t index = (i<<VHACD_VOXEL_BITS2) | (j<<VHACD_VOXEL_BITS) | k;
                     *dest++ = index;
                     ++m_numVoxelsInsideSurface;
                 }
@@ -8319,7 +8186,7 @@ void Volume::raycastFill(RaycastMesh* raycastMesh)
                     if (outsideCount == 0 && insideCount >= 3)
                     {
                         voxel = VHACD::PRIMITIVE_INSIDE_SURFACE;
-                        uint32_t index = (i << VOXEL_BITS2) | (j << VOXEL_BITS) | k;
+                        uint32_t index = (i << VHACD_VOXEL_BITS2) | (j << VHACD_VOXEL_BITS) | k;
                         *dest++ = index;
                         m_numVoxelsInsideSurface++;
                     }
@@ -9277,7 +9144,7 @@ public:
         }
         delete mHullA;
         delete mHullB;
-        SAFE_RELEASE(mRaycastMesh);
+        VHACD_SAFE_RELEASE(mRaycastMesh);
     }
 
     void buildRaycastMesh(void)
@@ -9318,7 +9185,7 @@ public:
                 VHACD::fm_computeCentroid(mConvexHull->m_nPoints,mConvexHull->m_points,mConvexHull->m_nTriangles,mConvexHull->m_triangles, mConvexHull->m_center);
                 mConvexHull->m_volume = VHACD::fm_computeMeshVolume(mConvexHull->m_points,mConvexHull->m_nTriangles,mConvexHull->m_triangles);
             }
-            SAFE_RELEASE(qh);
+            VHACD_SAFE_RELEASE(qh);
         }
         if ( mConvexHull )
         {
@@ -9969,7 +9836,7 @@ public:
                     break;
                 case SplitAxis::Y_AXIS_NEGATIVE:
                 case SplitAxis::Y_AXIS_POSITIVE:
-                    // Split on the Y_INDEX axis at this split location
+                    // Split on the 1 axis at this split location
                     mHullA = new VoxelHull(*this,SplitAxis::Y_AXIS_NEGATIVE,splitLoc);
                     mHullB = new VoxelHull(*this,SplitAxis::Y_AXIS_POSITIVE,splitLoc);
                     break;
@@ -10199,7 +10066,7 @@ public:
 void jobCallback(void *userPtr);
 
 // Don't consider more than 100,000 convex hulls.
-#define MAX_CONVEX_HULL_FRAGMENTS 100000
+#define VHACD_MAX_CONVEX_HULL_FRAGMENTS 100000
 
 class VHACDImpl : public IVHACD, public VHACDCallbacks
 {
@@ -10306,12 +10173,12 @@ public:
     {
         delete mThreadPool;
         mThreadPool = nullptr;
-        SAFE_RELEASE(mRaycastMesh);
-        SAFE_RELEASE(mVoxelize);
+        VHACD_SAFE_RELEASE(mRaycastMesh);
+        VHACD_SAFE_RELEASE(mVoxelize);
 
         for (auto &i:mTrees)
         {
-            SAFE_RELEASE(i);
+            VHACD_SAFE_RELEASE(i);
         }
         mTrees.clear();
 
@@ -10633,7 +10500,7 @@ public:
                 uint32_t futureCount = 0;
                 for (auto &i:mPendingHulls)
                 {
-                    if ( i->isComplete() || count > MAX_CONVEX_HULL_FRAGMENTS )
+                    if ( i->isComplete() || count > VHACD_MAX_CONVEX_HULL_FRAGMENTS )
                     {
                     }
                     else
@@ -10667,7 +10534,7 @@ public:
                 mPendingHulls.clear();
                 for (auto &vh:oldList)
                 {
-                    if ( vh->isComplete() || count > MAX_CONVEX_HULL_FRAGMENTS )
+                    if ( vh->isComplete() || count > VHACD_MAX_CONVEX_HULL_FRAGMENTS )
                     {
                         if ( vh->mConvexHull )
                         {
