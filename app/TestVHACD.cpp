@@ -13,7 +13,7 @@
 #include <stdint.h>
 
 #define ENABLE_VHACD_IMPLEMENTATION 1
-#define VHACD_DISABLE_THREADING 1
+#define VHACD_DISABLE_THREADING 0
 #include "VHACD.h"
 #include "wavefront.h"
 #include "ScopedTime.h"
