@@ -17,5 +17,5 @@ target_include_directories(TestVHACD PUBLIC "../include")
 # On Linux we need to add pthread to the link
 if (WIN32)
 else (WIN32)
-	target_link_libraries(TestVHACD pthread)
+	target_link_libraries(TestVHACD)
 endif (WIN32)

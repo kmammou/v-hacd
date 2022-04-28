@@ -8740,6 +8740,8 @@ ShrinkWrap *ShrinkWrap::create(void)
 
 //********************************************************************************************************************
 
+#if !VHACD_DISABLE_THREADING
+
 //********************************************************************************************************************
 // Definition of the ThreadPool
 //********************************************************************************************************************
@@ -8836,27 +8838,8 @@ ThreadPool::~ThreadPool() {
 
 
 }
-
-
-//********************************************************************************************************************
-// Definition of the SimpleJobSystem
-//********************************************************************************************************************
-
-
-// This just implements a very simple multi-threaded job system.
-// It doesn't use lock free queues or anything fancy like that.
-// It doesn't support cancellation or priorities or anything like that either.
-// It's just a very simple way to distribute a meaningful amount of
-// 'work' across <n> number of threads.
-
-#ifdef _MSC_VER
-#    define SJS_ABI __cdecl
-#else
-#    define SJS_ABI
 #endif
 
-// Callback to actually perform the job
-typedef void(SJS_ABI* SJS_jobCallback)(void* userPtr);
 
 namespace VHACD
 {
@@ -10118,12 +10101,12 @@ public:
         mCanceled = false;
 
         Clean(); // release any previous results
-
+#if !VHACD_DISABLE_THREADING
         if ( mParams.m_asyncACD )
         {
             mThreadPool = new ThreadPool(8);
         }
-
+#endif
         copyInputMesh(points,countPoints,triangles,countTriangles);
         if ( !mCanceled )
         {
@@ -10144,10 +10127,10 @@ public:
         {
             ret = true;
         }
-
+#if !VHACD_DISABLE_THREADING
         delete mThreadPool;
         mThreadPool = nullptr;
-
+#endif
         return ret;
     }
 
@@ -10171,8 +10154,10 @@ public:
 
     virtual void Clean(void) final  // release internally allocated memory
     {
+#if !VHACD_DISABLE_THREADING
         delete mThreadPool;
         mThreadPool = nullptr;
+#endif
         VHACD_SAFE_RELEASE(mRaycastMesh);
         VHACD_SAFE_RELEASE(mVoxelize);
 
@@ -10505,6 +10490,7 @@ public:
                     }
                     else
                     {
+#if !VHACD_DISABLE_THREADING
                         if ( mThreadPool )
                         {
                             futures[futureCount] = mThreadPool->enqueue([i]
@@ -10514,6 +10500,7 @@ public:
                             futureCount++;
                         }
                         else
+#endif
                         {
                             i->performPlaneSplit();
                         }
@@ -10631,6 +10618,7 @@ public:
                         }
                         else
                         {
+#if !VHACD_DISABLE_THREADING
                             if ( mThreadPool )
                             {
                                 task->mFuture = mThreadPool->enqueue([task]
@@ -10638,6 +10626,7 @@ public:
                                     computeMergeCostTask(task);
                                 });
                             }
+#endif
                             task++;
                         }
                     }
@@ -10645,7 +10634,7 @@ public:
                 if ( !mCanceled )
                 {
                     size_t taskCount = task - tasks;
-
+#if !VHACD_DISABLE_THREADING
                     if ( mThreadPool )
                     {
                         if ( taskCount )
@@ -10661,6 +10650,7 @@ public:
                         }
                     }
                     else
+#endif
                     {
                         task = tasks;
                         for (size_t i=0; i<taskCount; i++)
@@ -10747,6 +10737,7 @@ public:
                             // See how many merge cost tasks were posted
                             // If there are 8 or more and we are running asynchronously, then do them that way.
                             size_t tcount = task - tasks;
+#if !VHACD_DISABLE_THREADING
                             if ( mThreadPool && tcount >= 2 )
                             {
                                 task = tasks;
@@ -10764,6 +10755,7 @@ public:
                                 }
                             }
                             else
+#endif
                             {
                                 task = tasks;
                                 for (size_t i=0; i<tcount; i++)
@@ -11135,7 +11127,9 @@ public:
     double                                  mVoxelBmax[3];
     uint32_t                                mMeshId{0};
     HullPairQueue       mHullPairQueue;
+#if !VHACD_DISABLE_THREADING
     ThreadPool              *mThreadPool{nullptr};
+#endif
     HullMap             mHulls;
 
     // 
@@ -11163,6 +11157,8 @@ IVHACD* CreateVHACD(void)
 }
 
 IVHACD* CreateVHACD(void);
+
+#if !VHACD_DISABLE_THREADING
 
 class LogMessage
 {
@@ -11503,7 +11499,7 @@ IVHACD* CreateVHACD_ASYNC(void)
     MyHACD_API* m = new MyHACD_API;
     return static_cast<IVHACD*>(m);
 }
-
+#endif
 
 };
 

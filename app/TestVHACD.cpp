@@ -13,6 +13,7 @@
 #include <stdint.h>
 
 #define ENABLE_VHACD_IMPLEMENTATION 1
+#define VHACD_DISABLE_THREADING 1
 #include "VHACD.h"
 #include "wavefront.h"
 #include "ScopedTime.h"
@@ -307,8 +308,11 @@ int main(int argc,const char **argv)
 					}
 				}
 			}
-
+#if VHACD_DISABLE_THREADING
+			VHACD::IVHACD *iface = VHACD::CreateVHACD();
+#else
 			VHACD::IVHACD *iface = VHACD::CreateVHACD_ASYNC();
+#endif
 #ifdef _MSC_VER
 			printf("Press the SPACEBAR to cancel convex decomposition before it has completed.\n");
 #endif
