@@ -9030,7 +9030,7 @@ public:
             }
         }
         // Our parent's new surface voxels become our new surface voxels so long as they intersect our region
-        for (auto &i:parent.mSurfaceVoxels)
+        for (auto &i:parent.mNewSurfaceVoxels)
         {
             uint32_t x,y,z;
             i.getVoxel(x,y,z);
@@ -9412,7 +9412,7 @@ public:
         if ( dx >= dy && dx >= dz )
         {
             ret = SplitAxis::X_AXIS_NEGATIVE;
-            location = (mX2-mX1)/2+mX1;
+            location = (mX2+1+mX1)/2;
             uint32_t edgeLoc;
             if ( mParams.m_findBestPlane && findConcavityX(edgeLoc) )
             {
@@ -9422,7 +9422,7 @@ public:
         else if ( dy >= dx && dy >= dz )
         {
             ret = SplitAxis::Y_AXIS_NEGATIVE;
-            location = (mY2-mY1)/2+mY1;
+            location = (mY2 + 1 + mY1) / 2;
             uint32_t edgeLoc;
             if ( mParams.m_findBestPlane &&  findConcavityY(edgeLoc) )
             {
@@ -9432,7 +9432,7 @@ public:
         else
         {
             ret = SplitAxis::Z_AXIS_NEGATIVE;
-            location = (mZ2-mZ1)/2+mZ1;
+            location = (mZ2 + 1 + mZ1) / 2;
             uint32_t edgeLoc;
             if ( mParams.m_findBestPlane &&  findConcavityZ(edgeLoc) )
             {
