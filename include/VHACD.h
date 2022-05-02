@@ -9179,7 +9179,7 @@ public:
         size_t voxelCount = mInteriorVoxels.size() + mNewSurfaceVoxels.size() + mSurfaceVoxels.size();
         mVoxelVolume = singleVoxelVolume * double(voxelCount);
         double diff = fabs(mHullVolume-mVoxelVolume);
-        mVolumeError = (diff*100)/mHullVolume;
+        mVolumeError = (diff*100)/mVoxelVolume;
     }
 
     // Returns true if this convex hull should be considered done
