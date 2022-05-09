@@ -1,4 +1,4 @@
-﻿/* Copyright (c) 2011 Khaled Mamou (kmamou at gmail dot com)
+/* Copyright (c) 2011 Khaled Mamou (kmamou at gmail dot com)
  All rights reserved.
  
  
@@ -4002,7 +4002,7 @@ public:
         mRoot = 0;
         mVerticesDouble.clear();
         mVerticesFloat.clear();
-        KdTreeNodeBundle* bundle = mBundle;
+        KdTreeNodeBundle* bundle = mBundleHead;
         while (bundle)
         {
             KdTreeNodeBundle* next = bundle->mNext;
@@ -4010,6 +4010,7 @@ public:
             bundle = next;
         }
         mBundle = 0;
+        mBundleHead = 0;
         mVcount = 0;
     }
 
@@ -4058,6 +4059,7 @@ public:
         if (mBundle == 0)
         {
             mBundle = new KdTreeNodeBundle;
+            mBundleHead = mBundle;
         }
         if (mBundle->isFull())
         {
@@ -4142,6 +4144,8 @@ private:
     bool mUseDouble;
     KdTreeNode* mRoot;
     KdTreeNodeBundle* mBundle;
+    KdTreeNodeBundle* mBundleHead = NULL;
+
     uint32_t mVcount;
     DoubleVector mVerticesDouble;
     FloatVector mVerticesFloat;
