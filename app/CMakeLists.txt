@@ -11,7 +11,8 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_executable(TestVHACD TestVHACD.cpp FloatMath.cpp InParser.cpp wavefront.cpp)
+# add_executable(TestVHACD TestVHACD.cpp FloatMath.cpp InParser.cpp wavefront.cpp)
+add_library(TestVHACD STATIC TestVHACD.cpp FloatMath.cpp InParser.cpp wavefront.cpp)
 
 target_include_directories(TestVHACD PUBLIC "../include")
 # On Linux we need to add pthread to the link
