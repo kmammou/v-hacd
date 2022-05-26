@@ -6918,7 +6918,7 @@ uint32_t AABBTreeImpl::PartitionMedian(Node& n, uint32_t* faces, uint32_t numFac
 // partion faces based on the surface area heuristic
 uint32_t AABBTreeImpl::PartitionSAH(Node& n, uint32_t* faces, uint32_t numFaces)
 {
-    (n);
+//    (n);
     uint32_t bestAxis = 0;
     uint32_t bestIndex = 0;
     double bestCost = FLT_MAX;
@@ -7654,22 +7654,22 @@ inline void Volume::Voxelize(const double* const points,
             ++j1;
         if (k1 < m_dim[2])
             ++k1;
-        for (size_t i = i0; i < i1; ++i)
+        for (size_t i_id = i0; i_id < i1; ++i_id)
         {
-           boxcenter[0] = (double)i;
-            for (size_t j = j0; j < j1; ++j)
+           boxcenter[0] = (double)i_id;
+            for (size_t j_id = j0; j_id < j1; ++j_id)
             {
-                boxcenter[1] = (double)j;
-                for (size_t k = k0; k < k1; ++k)
+                boxcenter[1] = (double)j_id;
+                for (size_t k_id = k0; k_id < k1; ++k_id)
                 {
-                    boxcenter[2] = (double)k;
+                    boxcenter[2] = (double)k_id;
                     int32_t res = TriBoxOverlap(boxcenter, boxhalfsize, p[0], p[1], p[2]);
-                    unsigned char& value = GetVoxel(i, j, k);
+                    unsigned char& value = GetVoxel(i_id, j_id, k_id);
                     if (res == 1 && value == PRIMITIVE_UNDEFINED)
                     {
                         value = PRIMITIVE_ON_SURFACE;
                         ++m_numVoxelsOnSurface;
-                        addSurfaceVoxel(int32_t(i),int32_t(j),int32_t(k));
+                        addSurfaceVoxel(int32_t(i_id),int32_t(j_id),int32_t(k_id));
                     }
                 }
             }
@@ -7677,19 +7677,19 @@ inline void Volume::Voxelize(const double* const points,
     }
     if (fillMode == VoxelFillMode::eSurfaceOnly)
     {
-        const size_t i0 = m_dim[0];
-        const size_t j0 = m_dim[1];
-        const size_t k0 = m_dim[2];
-        for (size_t i = 0; i < i0; ++i)
+        const size_t i0_local = m_dim[0];
+        const size_t j0_local = m_dim[1];
+        const size_t k0_local = m_dim[2];
+        for (size_t i_id = 0; i_id < i0_local; ++i_id)
         {
-            for (size_t j = 0; j < j0; ++j)
+            for (size_t j_id = 0; j_id < j0_local; ++j_id)
             {
-                for (size_t k = 0; k < k0; ++k)
+                for (size_t k_id = 0; k_id < k0_local; ++k_id)
                 {
-                    const unsigned char& voxel = GetVoxel(i, j, k);
+                    const unsigned char& voxel = GetVoxel(i_id, j_id, k_id);
                     if (voxel != PRIMITIVE_ON_SURFACE)
                     {
-                        SetVoxel(i, j, k, PRIMITIVE_OUTSIDE_SURFACE);
+                        SetVoxel(i_id, j_id, k_id, PRIMITIVE_OUTSIDE_SURFACE);
                     }
                 }
             }
@@ -9977,9 +9977,9 @@ public:
         return mConcavity > h.mConcavity ? true : false;
     }
 
-    double      mConcavity{0};
     uint32_t    mHullA{0};
     uint32_t    mHullB{0};
+    double      mConcavity{0};
 };
 
 using HullPairQueue = std::priority_queue< HullPair >;
@@ -10668,7 +10668,7 @@ public:
                 }
                 if ( !mCanceled )
                 {
-                    ScopedTime st("Merging Convex Hulls",mParams.m_logger);
+                    ScopedTime stMerging("Merging Convex Hulls",mParams.m_logger);
                     Timer t;
                     // Now that we know the cost to merge each hull, we can begin merging them.
                     bool cancel = false;
@@ -10714,7 +10714,7 @@ public:
 
                             mMeshId++;
                             combinedHull->m_meshId = mMeshId;
-                            CostTask *task = tasks;
+                            CostTask *taskCost = tasks;
 
                             // Compute the cost between this new merged hull
                             // and all existing convex hulls and then 
@@ -10726,32 +10726,32 @@ public:
                                     break;
                                 }
                                 ConvexHull *secondHull = i.second;
-                                task->mHullA = combinedHull;
-                                task->mHullB = secondHull;
-                                task->mThis = this;
-                                if ( doFastCost(task) )
+                                taskCost->mHullA = combinedHull;
+                                taskCost->mHullB = secondHull;
+                                taskCost->mThis = this;
+                                if ( doFastCost(taskCost) )
                                 {
                                 }
                                 else
                                 {
-                                    task++;
+                                    taskCost++;
                                 }
                             }
                             mHulls[combinedHull->m_meshId] = combinedHull;
                             // See how many merge cost tasks were posted
                             // If there are 8 or more and we are running asynchronously, then do them that way.
-                            size_t tcount = task - tasks;
+                            size_t tcount = taskCost - tasks;
 #if !VHACD_DISABLE_THREADING
                             if ( mThreadPool && tcount >= 2 )
                             {
-                                task = tasks;
+                                taskCost = tasks;
                                 for (uint32_t i=0; i<tcount; i++)
                                 {
-                                    task->mFuture = mThreadPool->enqueue([task]
+                                    taskCost->mFuture = mThreadPool->enqueue([taskCost]
                                     {
-                                        computeMergeCostTask(task);
+                                        computeMergeCostTask(taskCost);
                                     });
-                                    task++;
+                                    taskCost++;
                                 }
                                 for (uint32_t i=0; i<tcount; i++)
                                 {
@@ -10761,11 +10761,11 @@ public:
                             else
 #endif
                             {
-                                task = tasks;
+                                taskCost = tasks;
                                 for (size_t i=0; i<tcount; i++)
                                 {
-                                    performMergeCostTask(task);
-                                    task++;
+                                    performMergeCostTask(taskCost);
+                                    taskCost++;
                                 }
                             }
                             for (size_t i=0; i<tcount; i++)
