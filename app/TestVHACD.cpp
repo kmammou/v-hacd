@@ -355,7 +355,7 @@ int main(int argc,const char **argv)
 #if VHACD_DISABLE_THREADING
 			VHACD::IVHACD *iface = VHACD::CreateVHACD();
 #else
-			VHACD::IVHACD *iface = VHACD::CreateVHACD_ASYNC();
+			VHACD::IVHACD *iface = p.m_asyncACD ? VHACD::CreateVHACD_ASYNC() : VHACD::CreateVHACD();
 #endif
 #ifdef _MSC_VER
 			printf("Press the SPACEBAR to cancel convex decomposition before it has completed.\n");
