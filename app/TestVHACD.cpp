@@ -328,7 +328,7 @@ int main(int argc,const char **argv)
 				{
 					if ( getTrueFalse(value,p.m_findBestPlane) )
 					{
-						if ( p.m_asyncACD )
+						if ( p.m_findBestPlane)
 						{
 							printf("Find best split plane location enabled\n");
 						}
