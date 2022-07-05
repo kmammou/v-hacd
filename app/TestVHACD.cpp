@@ -487,7 +487,9 @@ int main(int argc,const char **argv)
 						printf("Saving Convex Decomposition results of %d convex hulls to 'decomp.obj'\n", iface->GetNConvexHulls());
 						uint32_t baseIndex = 1;
 						for (uint32_t i=0; i<iface->GetNConvexHulls(); i++)
-						{
+						{	
+							// add an object name for each single convex hull
+							fprintf(fph,"o %s%03d\n", baseName.c_str(), i);
 							VHACD::IVHACD::ConvexHull ch;
 							iface->GetConvexHull(i,ch);
 							for (uint32_t j=0; j<ch.m_nPoints; j++)
