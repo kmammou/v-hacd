@@ -489,6 +489,11 @@ IVHACD* CreateVHACD_ASYNC(void);    // Create an asynchronous (non-blocking) imp
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 // #pragma GCC diagnostic warning "-Wold-style-cast"
+// #pragma GCC diagnostic warning "-Wreorder"
+// #pragma GCC diagnostic warning "-Wunused-variable"
+// #pragma GCC diagnostic warning "-Wignored-qualifiers"
+// #pragma GCC diagnostic warning "-Wnon-virtual-dtor"
+// #pragma GCC diagnostic warning "-Wuninitialized"
 #endif // __GNUC__
 
 #define VHACD_SAFE_RELEASE(x) if ( x ) { x->release(); x = nullptr; }
@@ -4067,8 +4072,8 @@ class MyVertexIndex
 public:
     MyVertexIndex(double granularity,
                   bool snapToGrid)
-        : mGranularity(granularity)
-        , mSnapToGrid(snapToGrid)
+        : mSnapToGrid(snapToGrid)
+        , mGranularity(granularity)
     {
     }
 
@@ -4137,8 +4142,6 @@ public:
         if (fph)
         {
             ret = true;
-
-            uint32_t vcount = getVcount();
 
             const std::vector<VHACD::Vertex>& v = getVertices();
             for (uint32_t i = 0; i < v.size(); ++i)
@@ -5118,7 +5121,6 @@ void AABBTreeImpl::TraceRecursive(uint32_t nodeIndex,
     }
     else
     {
-        nd::VHACD::Vect3<double> normal;
         double t, u, v, w, s;
 
         for (uint32_t i = 0; i < node.m_numFaces; ++i)
@@ -5393,24 +5395,22 @@ public:
         return m_data[k + j * m_dim[2] + i * m_dim[1] * m_dim[2]];
     }
 
-    const size_t GetNPrimitivesOnSurf() const
+    size_t GetNPrimitivesOnSurf() const
     {
         return m_numVoxelsOnSurface;
     }
 
-    const size_t GetNPrimitivesInsideSurf() const
+    size_t GetNPrimitivesInsideSurf() const
     {
         return m_numVoxelsInsideSurface;
     }
 
-    void AlignToPrincipalAxes(double (&rot)[3][3]) const;
-
-    const VHACD::VoxelVector& getSurfaceVoxels(void) const
+    const VHACD::VoxelVector& getSurfaceVoxels() const
     {
         return mSurfaceVoxels;
     }
 
-    const VHACD::VoxelVector& getInteriorVoxels(void) const
+    const VHACD::VoxelVector& getInteriorVoxels() const
     {
         return mInteriorVoxels;
     }
@@ -6409,6 +6409,7 @@ public:
     virtual void progressUpdate(Stages stage,double stageProgress,const char *operation) = 0;
     virtual bool isCanceled(void) const = 0;
 
+    virtual ~VHACDCallbacks() = default;
 };
 
 enum class SplitAxis
@@ -6727,16 +6728,15 @@ public:
 
     
     // Convert a voxel position into it's correct double precision location
-    inline void getPoint(const int32_t x,
-                         const int32_t y,
-                         const int32_t z,
-                         const double scale,
-                         const nd::VHACD::Vect3<double>& bmin,
-                         nd::VHACD::Vect3<double>& dest) const
+    inline nd::VHACD::Vect3<double> getPoint(const int32_t x,
+                                             const int32_t y,
+                                             const int32_t z,
+                                             const double scale,
+                                             const nd::VHACD::Vect3<double>& bmin) const
     {
-        dest.getX() = (x * scale + bmin.getX());
-        dest.getY() = (y * scale + bmin.getY());
-        dest.getZ() = (z * scale + bmin.getZ());
+        return nd::VHACD::Vect3<double>(x * scale + bmin.getX(),
+                                        y * scale + bmin.getY(),
+                                        z * scale + bmin.getZ());
     }
 
     // Sees if we have already got an index for this voxel position.
@@ -6755,13 +6755,11 @@ public:
         }
         else
         {
-            nd::VHACD::Vect3<double> vertex;
-            getPoint(p.getX(),
-                     p.getY(),
-                     p.getZ(),
-                     mVoxelScale,
-                     mVoxelAdjust,
-                     vertex);
+            nd::VHACD::Vect3<double> vertex = getPoint(p.getX(),
+                                                       p.getY(),
+                                                       p.getZ(),
+                                                       mVoxelScale,
+                                                       mVoxelAdjust);
             ret = mVoxelIndexMap.size();
             mVoxelIndexMap[address] = ret;
             mVertices.emplace_back(vertex);
@@ -6970,25 +6968,21 @@ public:
         return ret;
     }
 
-    inline void getPosition(const nd::VHACD::Vect3<int32_t>& ip,
-                            nd::VHACD::Vect3<double> p) const
+    inline nd::VHACD::Vect3<double> getPosition(const nd::VHACD::Vect3<int32_t>& ip) const
     {
-        getPoint(ip.getX(),
-                 ip.getY(),
-                 ip.getZ(),
-                 mVoxelScale,
-                 mVoxelAdjust,
-                 p);
+        return getPoint(ip.getX(),
+                        ip.getY(),
+                        ip.getZ(),
+                        mVoxelScale,
+                        mVoxelAdjust);
     }
 
     double raycast(const nd::VHACD::Vect3<int32_t>& p1,
                    const nd::VHACD::Vect3<int32_t>& p2) const
     {
         double ret;
-        nd::VHACD::Vect3<double> from;
-        nd::VHACD::Vect3<double> to;
-        getPosition(p1, from);
-        getPosition(p2, to);
+        nd::VHACD::Vect3<double> from = getPosition(p1);
+        nd::VHACD::Vect3<double> to = getPosition(p2);
 
         double outT;
         double faceSign;
@@ -7628,25 +7622,23 @@ void jobCallback(void *userPtr);
 class VHACDImpl : public IVHACD, public VHACDCallbacks
 {
 public:
-    VHACDImpl(void)
-    {
-    }
+    VHACDImpl() = default;
 
-    virtual ~VHACDImpl(void)
+    ~VHACDImpl() override
     {
         Clean();
     }
 
-    virtual void Cancel() final
+    void Cancel() override final
     {
         mCanceled = true;
     }
 
-    virtual bool Compute(const float* const points,
-                         const uint32_t countPoints,
-                         const uint32_t* const triangles,
-                         const uint32_t countTriangles,
-                         const Parameters& params) final
+    bool Compute(const float* const points,
+                 const uint32_t countPoints,
+                 const uint32_t* const triangles,
+                 const uint32_t countTriangles,
+                 const Parameters& params) override final
     {
         std::vector<VHACD::Vertex> v;
         v.reserve(countPoints);
@@ -7669,11 +7661,11 @@ public:
         return Compute(v, t, params);
     }
 
-    virtual bool Compute(const double* const points,
-                         const uint32_t countPoints,
-                         const uint32_t* const triangles,
-                         const uint32_t countTriangles,
-                         const Parameters& params) final
+    bool Compute(const double* const points,
+                 const uint32_t countPoints,
+                 const uint32_t* const triangles,
+                 const uint32_t countTriangles,
+                 const Parameters& params) override final
     {
         std::vector<VHACD::Vertex> v;
         v.reserve(countPoints);
@@ -7740,12 +7732,12 @@ public:
         return ret;
     }
 
-    virtual uint32_t GetNConvexHulls() const final
+    uint32_t GetNConvexHulls() const override final
     {
         return uint32_t(mConvexHulls.size());
     }
 
-    virtual bool GetConvexHull(const uint32_t index, ConvexHull& ch) const final
+    bool GetConvexHull(const uint32_t index, ConvexHull& ch) const override final
     {
         bool ret = false;
 
@@ -7758,7 +7750,7 @@ public:
         return ret;
     }
 
-    virtual void Clean(void) final  // release internally allocated memory
+    void Clean() override final  // release internally allocated memory
     {
 #if !VHACD_DISABLE_THREADING
         delete mThreadPool;
@@ -7795,14 +7787,14 @@ public:
         mIndices.clear();
     }
 
-    virtual void Release(void) final
+    void Release(void) override final
     {
         delete this;
     }
 
     // Will compute the center of mass of the convex hull decomposition results and return it
     // in 'centerOfMass'.  Returns false if the center of mass could not be computed.
-    virtual bool ComputeCenterOfMass(double centerOfMass[3]) const final
+    bool ComputeCenterOfMass(double centerOfMass[3]) const override final
     {
         bool ret = false;
 
@@ -7813,7 +7805,7 @@ public:
     // In asynchronous mode, this returns true if the background thread is not still actively computing
     // a new solution.  In an asynchronous config the 'IsReady' call will report any update or log
     // messages in the caller's current thread.
-    virtual bool IsReady(void) const final
+    bool IsReady(void) const override final
     {
         return true;
     }
@@ -7828,8 +7820,8 @@ public:
     * 
     * @return : Returns which convex hull this position is closest to.
     */
-    virtual uint32_t findNearestConvexHull(const double pos[3],
-                                           double &distanceToHull) final
+    uint32_t findNearestConvexHull(const double pos[3],
+                                   double &distanceToHull) override final
     {
         uint32_t ret = 0; // The default return code is zero
 
@@ -8556,7 +8548,6 @@ public:
 
         double volume1 = ch1->m_volume;
         double volume2 = ch2->m_volume;
-        double concavity = FLT_MAX;
 
         ConvexHull *combined = computeCombinedConvexHull(*ch1,
                                                          *ch2); // Build the combined convex hull
@@ -8756,7 +8747,7 @@ public:
         return ret;
     }
 
-    virtual bool isCanceled(void) const final
+    bool isCanceled(void) const override final
     {
         return mCanceled;
     }
@@ -8841,7 +8832,6 @@ public:
 
     ~MyHACD_API() override
     {
-        releaseHACD();
         Cancel();
         if ( mVHACD )
         {
@@ -8861,48 +8851,82 @@ public:
         delete t;
     }
 
+    bool Compute(const float* const points,
+                 const uint32_t countPoints,
+                 const uint32_t* const triangles,
+                 const uint32_t countTriangles,
+                 const Parameters& params) override final
+    {
+        mVertices.reserve(countPoints * 3);
+        for (uint32_t i = 0; i < countPoints; ++i)
+        {
+            mVertices.push_back(points[i * 3 + 0]);
+            mVertices.push_back(points[i * 3 + 1]);
+            mVertices.push_back(points[i * 3 + 2]);
+        }
+
+        mIndices.reserve(countTriangles * 3);
+        for (uint32_t i = 0; i < countTriangles; ++i)
+        {
+            mIndices.push_back(triangles[i * 3 + 0]);
+            mIndices.push_back(triangles[i * 3 + 1]);
+            mIndices.push_back(triangles[i * 3 + 2]);
+        }
+
+        return Compute(params);
+    }
+
     bool Compute(const double* const _points,
                  const uint32_t countPoints,
                  const uint32_t* const _triangles,
                  const uint32_t countTriangles,
                  const Parameters& _desc) override final
     {
+        // We need to copy the input vertices and triangles into our own buffers so we can operate
+        // on them safely from the background thread.
+        mVertices.reserve(countPoints * 3);
+        for (uint32_t i = 0; i < countPoints; ++i)
+        {
+            mVertices.push_back(_points[i * 3 + 0]);
+            mVertices.push_back(_points[i * 3 + 1]);
+            mVertices.push_back(_points[i * 3 + 2]);
+        }
+
+        mIndices.reserve(countTriangles * 3);
+        for (uint32_t i = 0; i < countTriangles; ++i)
+        {
+            mIndices.push_back(_triangles[i * 3 + 0]);
+            mIndices.push_back(_triangles[i * 3 + 1]);
+            mIndices.push_back(_triangles[i * 3 + 2]);
+        }
+
+        return Compute(_desc);
+    }
+
+    bool Compute(const Parameters& _desc)
+    {
         Cancel(); // if we previously had a solution running; cancel it.
-        releaseHACD();
 
         Parameters desc = _desc;
         mTaskRunner = _desc.m_taskRunner ? _desc.m_taskRunner : this;
         desc.m_taskRunner = mTaskRunner;
 
-        // We need to copy the input vertices and triangles into our own buffers so we can operate
-        // on them safely from the background thread.
-        mVertices = (double*)malloc(sizeof(double) * countPoints * 3);
-        mIndices = (uint32_t*)malloc(sizeof(uint32_t) * countTriangles * 3);
-        memcpy(mVertices, _points, sizeof(double) * countPoints * 3);
-        memcpy(mIndices, _triangles, sizeof(uint32_t) * countTriangles * 3);
         mRunning = true;
-        mTask = mTaskRunner->StartTask([this, countPoints, countTriangles, desc]() {
-            // printf("Computing V-HACD in background task.\n");
-            ComputeNow(mVertices, countPoints, mIndices, countTriangles, desc);
-            // printf("V-HACD computation complete.\n");
+        mTask = mTaskRunner->StartTask([this, desc]() {
+            ComputeNow(mVertices, mIndices, desc);
             // If we have a user provided callback and the user did *not* call 'cancel' we notify him that the
             // task is completed. However..if the user selected 'cancel' we do not send a completed notification event.
             if (desc.m_callback && !mCancel)
             {
-                // printf("Doing callback notification\n");
                 desc.m_callback->NotifyVHACDComplete();
-                // printf("Notify callback complete.\n");
             }
             mRunning = false;
-            // printf("Exiting compute V-HACD task.\n");
         });
         return true;
     }
 
-    bool ComputeNow(const double* const points,
-                    const uint32_t countPoints,
-                    const uint32_t* const triangles,
-                    const uint32_t countTriangles,
+    bool ComputeNow(const std::vector<double>& points,
+                    const std::vector<uint32_t>& triangles,
                     const Parameters& _desc)
     {
         uint32_t ret = 0;
@@ -8922,12 +8946,12 @@ public:
             desc.m_taskRunner = this;
         }
 
-        if (countPoints && mVHACD)
+        if (mVHACD)
         {
-            bool ok = mVHACD->Compute(points,
-                                      countPoints,
-                                      triangles,
-                                      countTriangles,
+            bool ok = mVHACD->Compute(points.data(),
+                                      points.size(),
+                                      triangles.data(),
+                                      triangles.size(),
                                       desc);
             if (ok)
             {
@@ -8938,28 +8962,11 @@ public:
         return ret ? true : false;
     }
 
-    void releaseHull(VHACD::IVHACD::ConvexHull& h)
-    {
-//         free((void*)h.m_triangles);
-//         free((void*)h.m_points);
-//         h.m_triangles = nullptr;
-//         h.m_points = nullptr;
-    }
-
     bool GetConvexHull(const uint32_t index,
                        VHACD::IVHACD::ConvexHull& ch) const override final
     {
         return mVHACD->GetConvexHull(index,ch);
     }
-
-    void releaseHACD() // release memory associated with the last HACD request
-    {
-        free(mVertices);
-        mVertices = nullptr;
-        free(mIndices);
-        mIndices = nullptr;
-    }
-
 
     void release() // release the HACD_API interface
     {
@@ -8990,29 +8997,6 @@ public:
         mCancel = false; // clear the cancel semaphore
     }
 
-    bool Compute(const float* const points,
-                 const uint32_t countPoints,
-                 const uint32_t* const triangles,
-                 const uint32_t countTriangles,
-                 const Parameters& params) final
-    {
-        double* vertices = (double*)malloc(sizeof(double) * countPoints * 3);
-        const float* source = points;
-        double* dest = vertices;
-        for (uint32_t i = 0; i < countPoints; i++)
-        {
-            dest[0] = source[0];
-            dest[1] = source[1];
-            dest[2] = source[2];
-            dest += 3;
-            source += 3;
-        }
-
-        bool ret = Compute(vertices, countPoints, triangles, countTriangles, params);
-        free(vertices);
-        return ret;
-    }
-
     uint32_t GetNConvexHulls() const override final
     {
         processPendingMessages();
@@ -9022,7 +9006,6 @@ public:
     void Clean() override final // release internally allocated memory
     {
         Cancel();
-        releaseHACD();
         mVHACD->Clean();
     }
 
@@ -9141,8 +9124,8 @@ public:
 	}
 
 private:
-    double* mVertices{ nullptr };
-    uint32_t* mIndices{ nullptr };
+    std::vector<double> mVertices;
+    std::vector<uint32_t> mIndices;
     VHACD::IVHACD::IUserCallback* mCallback{ nullptr };
     VHACD::IVHACD::IUserLogger* mLogger{ nullptr };
     VHACD::IVHACD* mVHACD{ nullptr };
@@ -9174,9 +9157,9 @@ IVHACD* CreateVHACD_ASYNC(void)
 #endif // _MSC_VER
 
 #ifdef __GNUC__
-#pragma diagnostic pop
+#pragma GCC diagnostic pop
 #endif // __GNUC__
 
-#endif
+#endif // ENABLE_VHACD_IMPLEMENTATION
 
 #endif // VHACD_H
