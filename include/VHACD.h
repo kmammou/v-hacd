@@ -2244,9 +2244,9 @@ namespace nd
 			{
 				if (level) 
 				{
-					assert(fabs(p0.DotProduct(p0) - double(1.0f)) < double(1.0e-4f));
-					assert(fabs(p1.DotProduct(p1) - double(1.0f)) < double(1.0e-4f));
-					assert(fabs(p2.DotProduct(p2) - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p0.Dot(p0) - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p1.Dot(p1) - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p2.Dot(p2) - double(1.0f)) < double(1.0e-4f));
 					nd::VHACD::Vect3<double> p01(p0 + p1);
 					nd::VHACD::Vect3<double> p12(p1 + p2);
 					nd::VHACD::Vect3<double> p20(p2 + p0);
@@ -3726,7 +3726,7 @@ public:
 
 const VHACD::Vertex& KdTree::getPosition(uint32_t index) const
 {
-    assert(index < mVcount);
+    assert(index < mVertices.size());
     return mVertices[index];
 }
 
@@ -8949,9 +8949,9 @@ public:
         if (mVHACD)
         {
             bool ok = mVHACD->Compute(points.data(),
-                                      points.size(),
+                                      points.size() / 3,
                                       triangles.data(),
-                                      triangles.size(),
+                                      triangles.size() / 3,
                                       desc);
             if (ok)
             {
