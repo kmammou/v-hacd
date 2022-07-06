@@ -107,9 +107,139 @@
 // some bugs, improve performance, and to make the codebase easier to maintain
 // going forward.
 
-
 #include <stdint.h>
 #include <functional>
+
+#include <vector>
+#include <array>
+
+namespace VHACD {
+
+struct Vertex
+{
+    double mX;
+    double mY;
+    double mZ;
+
+    Vertex() = default;
+    Vertex(double x, double y, double z) : mX(x), mY(y), mZ(z) {}
+
+    const double& operator[](size_t idx) const
+    {
+        switch(idx)
+        {
+            case 0: return mX;
+            case 1: return mY;
+            case 2: return mZ;
+        };
+        return mX;
+    }
+};
+
+struct Triangle
+{
+    uint32_t mI0;
+    uint32_t mI1;
+    uint32_t mI2;
+
+    Triangle() = default;
+    Triangle(uint32_t i0, uint32_t i1, uint32_t i2) : mI0(i0), mI1(i1), mI2(i2) {}
+};
+
+} // namespace VHACD
+
+namespace nd
+{
+    namespace VHACD
+    {
+
+template <typename T>
+class Vect3 {
+public:
+    /*
+     * Getters
+     */
+    T& operator[](size_t i);
+    const T& operator[](size_t i) const;
+    T& getX();
+    T& getY();
+    T& getZ();
+    const T& getX() const;
+    const T& getY() const;
+    const T& getZ() const;
+
+    /*
+     * Normalize and norming
+     */
+    T Normalize();
+    Vect3 Normalized();
+    T GetNorm() const;
+    T GetNormSquared() const;
+    int LongestAxis() const;
+
+    /*
+     * Vector-vector operations
+     */
+    Vect3& operator=(const Vect3& rhs);
+    Vect3& operator+=(const Vect3& rhs);
+    Vect3& operator-=(const Vect3& rhs);
+
+    Vect3 CWiseMul(const Vect3& rhs) const;
+    Vect3 Cross(const Vect3& rhs) const;
+    T Dot(const Vect3& rhs) const;
+    Vect3 operator+(const Vect3& rhs) const;
+    Vect3 operator-(const Vect3& rhs) const;
+
+    /*
+     * Vector-scalar operations
+     */
+    Vect3& operator-=(T a);
+    Vect3& operator+=(T a);
+    Vect3& operator/=(T a);
+    Vect3& operator*=(T a);
+
+    Vect3 operator*(T rhs) const;
+    Vect3 operator/(T rhs) const;
+
+    /*
+     * Unary operations
+     */
+    Vect3 operator-() const;
+
+    /*
+     * Comparison operators
+     */
+    bool operator<(const Vect3& rhs) const;
+    bool operator>(const Vect3& rhs) const;
+
+    Vect3 CWiseMin(const Vect3& rhs) const;
+    Vect3 CWiseMax(const Vect3& rhs) const;
+    T MinCoeff() const;
+    T MaxCoeff() const;
+
+    T MinCoeff(uint32_t& idx) const;
+    T MaxCoeff(uint32_t& idx) const;
+
+    /*
+     * Constructors
+     */
+    Vect3() = default;
+    Vect3(T a);
+    Vect3(T x, T y, T z);
+    Vect3(const Vect3& rhs);
+    ~Vect3() = default;
+
+    Vect3(const ::VHACD::Vertex&);
+    Vect3(const ::VHACD::Triangle&);
+
+    operator ::VHACD::Vertex() const;
+
+private:
+    std::array<T, 3> mData;
+};
+
+}
+}// namespace nd::VHACD
 
 namespace VHACD
 {
@@ -199,17 +329,14 @@ public:
     class ConvexHull
     {
     public:
-        uint32_t m_nPoints{0};                  // Total number of vertices in the convex hull
-        double* m_points{nullptr};              // Points in the convex hull as doubles x1,y1,z1,x2,y2,z2...
-
-        uint32_t m_nTriangles{0};               // Total number of triangles in the convex hull
-        uint32_t* m_triangles{nullptr};         // Triangle indices
+        std::vector<VHACD::Vertex> m_points;
+        std::vector<VHACD::Triangle> m_triangles;
 
         double m_volume{0};                     // The volume of the convex hull
-        double m_center[3]{0,0,0};              // The centroid of the convex hull
+        nd::VHACD::Vect3<double> m_center{0, 0, 0}; // The centroid of the convex hull
         uint32_t    m_meshId{0};                // A unique id for this convex hull
-        double  mBmin[3];                       // Bounding box minimum of the AABB
-        double  mBmax[3];                       // Bounding box maximum of he AABB
+        nd::VHACD::Vect3<double>  mBmin;        // Bounding box minimum of the AABB
+        nd::VHACD::Vect3<double>  mBmax;        // Bounding box maximum of he AABB
     };
 
     /**
@@ -284,7 +411,8 @@ public:
     * @param ch : The convex hull descriptor to return
     * @return : Returns true if the convex hull exists and could be retrieved
     */
-    virtual bool GetConvexHull(const uint32_t index, ConvexHull& ch) const = 0;
+    virtual bool GetConvexHull(const uint32_t index,
+                               ConvexHull& ch) const = 0;
 
     /**
     * Releases any memory allocated by the V-HACD class
@@ -319,7 +447,8 @@ public:
     * 
     * @return : Returns which convex hull this position is closest to.
     */
-    virtual uint32_t findNearestConvexHull(const double pos[3],double &distanceToHull) = 0;
+    virtual uint32_t findNearestConvexHull(const double pos[3],
+                                           double &distanceToHull) = 0;
 
 protected:
     virtual ~IVHACD(void)
@@ -340,33 +469,43 @@ IVHACD* CreateVHACD_ASYNC(void);    // Create an asynchronous (non-blocking) imp
 #include <float.h>
 #include <limits.h>
 
-#include <chrono>
-#include <iostream>
-#include <vector>
-#include <queue>
-#include <mutex>
-#include <atomic>
-#include <thread>
 #include <algorithm>
-#include <condition_variable>
-#include <unordered_set>
-#include <unordered_map>
-#include <future>
-#include <memory>
 #include <array>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <deque>
+#include <future>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <thread>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100 4189 4456 4701 4702 4127 4996)
-#endif
+#endif // _MSC_VER
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+// #pragma GCC diagnostic warning "-Wold-style-cast"
+// #pragma GCC diagnostic warning "-Wreorder"
+// #pragma GCC diagnostic warning "-Wunused-variable"
+// #pragma GCC diagnostic warning "-Wignored-qualifiers"
+// #pragma GCC diagnostic warning "-Wnon-virtual-dtor"
+// #pragma GCC diagnostic warning "-Wuninitialized"
+#endif // __GNUC__
 
 #define VHACD_SAFE_RELEASE(x) if ( x ) { x->release(); x = nullptr; }
 
 // Scoped Timer
 namespace VHACD
 {
-
 
 class Timer
 {
@@ -422,526 +561,419 @@ public:
     VHACD::IVHACD::IUserLogger *mLogger{nullptr};
 };
 
-
-}
+} // namespace VHACD
 
 //***********************************************************************************************
 // ConvexHull generation code by Julio Jerez <jerezjulio0@gmail.com>
 //***********************************************************************************************
 
-namespace nd 
+template <class T>
+inline T Max(T a, T b)
 {
-	namespace VHACD 
-	{
-		//!    Vector dim 3.
-		template <typename T>
-		class Vect3 {
-		public:
-			T& operator[](size_t i) { return m_data[i]; }
-			const T& operator[](size_t i) const { return m_data[i]; }
-			T& getX();
-			T& getY();
-			T& getZ();
-			const T& getX() const;
-			const T& getY() const;
-			const T& getZ() const;
-			void Normalize();
-			T GetNorm() const;
-			void operator=(const Vect3& rhs);
-			void operator+=(const Vect3& rhs);
-			void operator-=(const Vect3& rhs);
-			void operator-=(T a);
-			void operator+=(T a);
-			void operator/=(T a);
-			void operator*=(T a);
-			Vect3 operator^(const Vect3& rhs) const;
-			T operator*(const Vect3& rhs) const;
-			Vect3 operator+(const Vect3& rhs) const;
-			Vect3 operator-(const Vect3& rhs) const;
-			Vect3 operator-() const;
-			Vect3 operator*(T rhs) const;
-			Vect3 operator/(T rhs) const;
-			bool operator<(const Vect3& rhs) const;
-			bool operator>(const Vect3& rhs) const;
-			Vect3();
-			Vect3(T a);
-			Vect3(T x, T y, T z);
-			Vect3(const Vect3& rhs);
-			/*virtual*/ ~Vect3(void);
+    return (a > b) ? a : b;
+}
 
-			// Compute the center of this bounding box and return the diagonal length
-			T GetCenter(const Vect3 &bmin, const Vect3 &bmax)
-			{
-				getX() = (bmin.getX() + bmax.getX())*0.5;
-				getY() = (bmin.getY() + bmax.getY())*0.5;
-				getZ() = (bmin.getZ() + bmax.getZ())*0.5;
-				T dx = bmax.getX() - bmin.getX();
-				T dy = bmax.getY() - bmin.getY();
-				T dz = bmax.getZ() - bmin.getZ();
-				T diagonal = T(sqrt(dx*dx + dy*dy + dz*dz));
-				return diagonal;
-			}
-
-			// Update the min/max values relative to this point
-			void UpdateMinMax(Vect3 &bmin, Vect3 &bmax) const
-			{
-				if (getX() < bmin.getX())
-				{
-					bmin.getX() = getX();
-				}
-				if (getY() < bmin.getY())
-				{
-					bmin.getY() = getY();
-				}
-				if (getZ() < bmin.getZ())
-				{
-					bmin.getZ() = getZ();
-				}
-				if (getX() > bmax.getX())
-				{
-					bmax.getX() = getX();
-				}
-				if (getX() > bmax.getX())
-				{
-					bmax.getX() = getX();
-				}
-				if (getY() > bmax.getY())
-				{
-					bmax.getY() = getY();
-				}
-				if (getZ() > bmax.getZ())
-				{
-					bmax.getZ() = getZ();
-				}
-			}
-
-			// Returns the squared distance between these two points
-			T GetDistanceSquared(const Vect3 &p) const
-			{
-				T dx = getX() - p.getX();
-				T dy = getY() - p.getY();
-				T dz = getZ() - p.getZ();
-				return dx*dx + dy*dy + dz*dz;
-			}
-
-			T GetDistance(const Vect3 &p) const
-			{
-				return sqrt(GetDistanceSquared(p));
-			}
-
-			// Returns the raw vector data as a pointer
-			T* GetData(void)
-			{
-				return m_data;
-			}
-		private:
-			T m_data[3];
-		};
-		//!    Vector dim 2.
-		template <typename T>
-		class Vec2 {
-		public:
-			T& operator[](size_t i) { return m_data[i]; }
-			const T& operator[](size_t i) const { return m_data[i]; }
-			T& getX();
-			T& getY();
-			const T& getX() const;
-			const T& getY() const;
-			void Normalize();
-			T GetNorm() const;
-			void operator=(const Vec2& rhs);
-			void operator+=(const Vec2& rhs);
-			void operator-=(const Vec2& rhs);
-			void operator-=(T a);
-			void operator+=(T a);
-			void operator/=(T a);
-			void operator*=(T a);
-			T operator^(const Vec2& rhs) const;
-			T operator*(const Vec2& rhs) const;
-			Vec2 operator+(const Vec2& rhs) const;
-			Vec2 operator-(const Vec2& rhs) const;
-			Vec2 operator-() const;
-			Vec2 operator*(T rhs) const;
-			Vec2 operator/(T rhs) const;
-			Vec2();
-			Vec2(T a);
-			Vec2(T x, T y);
-			Vec2(const Vec2& rhs);
-			/*virtual*/ ~Vec2(void);
-
-		private:
-			T m_data[2];
-		};
-
-		template <typename T>
-		const bool Colinear(const Vect3<T>& a, const Vect3<T>& b, const Vect3<T>& c);
-		template <typename T>
-		const T ComputeVolume4(const Vect3<T>& a, const Vect3<T>& b, const Vect3<T>& c, const Vect3<T>& d);
-	}
+template <class T>
+inline T Min(T a, T b)
+{
+    return (a < b) ? a : b;
 }
 
 namespace nd
 {
-	namespace VHACD
-	{
-		template <typename T>
-		inline Vect3<T> operator*(T lhs, const Vect3<T> & rhs)
-		{
-			return Vect3<T>(lhs * rhs.getX(), lhs * rhs.getY(), lhs * rhs.getZ());
-		}
-		template <typename T>
-		inline T & Vect3<T>::getX()
-		{
-			return m_data[0];
-		}
-		template <typename T>
-		inline  T &    Vect3<T>::getY()
-		{
-			return m_data[1];
-		}
-		template <typename T>
-		inline  T &    Vect3<T>::getZ()
-		{
-			return m_data[2];
-		}
-		template <typename T>
-		inline  const T & Vect3<T>::getX() const
-		{
-			return m_data[0];
-		}
-		template <typename T>
-		inline  const T & Vect3<T>::getY() const
-		{
-			return m_data[1];
-		}
-		template <typename T>
-		inline  const T & Vect3<T>::getZ() const
-		{
-			return m_data[2];
-		}
-		template <typename T>
-		inline  void Vect3<T>::Normalize()
-		{
-			T n = sqrt(m_data[0] * m_data[0] + m_data[1] * m_data[1] + m_data[2] * m_data[2]);
-			if (n != 0.0) (*this) /= n;
-		}
-		template <typename T>
-		inline  T Vect3<T>::GetNorm() const
-		{
-			return sqrt(m_data[0] * m_data[0] + m_data[1] * m_data[1] + m_data[2] * m_data[2]);
-		}
-		template <typename T>
-		inline  void Vect3<T>::operator= (const Vect3 & rhs)
-		{
-			this->m_data[0] = rhs.m_data[0];
-			this->m_data[1] = rhs.m_data[1];
-			this->m_data[2] = rhs.m_data[2];
-		}
-		template <typename T>
-		inline  void Vect3<T>::operator+=(const Vect3 & rhs)
-		{
-			this->m_data[0] += rhs.m_data[0];
-			this->m_data[1] += rhs.m_data[1];
-			this->m_data[2] += rhs.m_data[2];
-		}
-		template <typename T>
-		inline void Vect3<T>::operator-=(const Vect3 & rhs)
-		{
-			this->m_data[0] -= rhs.m_data[0];
-			this->m_data[1] -= rhs.m_data[1];
-			this->m_data[2] -= rhs.m_data[2];
-		}
-		template <typename T>
-		inline void Vect3<T>::operator-=(T a)
-		{
-			this->m_data[0] -= a;
-			this->m_data[1] -= a;
-			this->m_data[2] -= a;
-		}
-		template <typename T>
-		inline void Vect3<T>::operator+=(T a)
-		{
-			this->m_data[0] += a;
-			this->m_data[1] += a;
-			this->m_data[2] += a;
-		}
-		template <typename T>
-		inline void Vect3<T>::operator/=(T a)
-		{
-			this->m_data[0] /= a;
-			this->m_data[1] /= a;
-			this->m_data[2] /= a;
-		}
-		template <typename T>
-		inline void Vect3<T>::operator*=(T a)
-		{
-			this->m_data[0] *= a;
-			this->m_data[1] *= a;
-			this->m_data[2] *= a;
-		}
-		template <typename T>
-		inline Vect3<T> Vect3<T>::operator^ (const Vect3<T> & rhs) const
-		{
-			return Vect3<T>(m_data[1] * rhs.m_data[2] - m_data[2] * rhs.m_data[1],
-				m_data[2] * rhs.m_data[0] - m_data[0] * rhs.m_data[2],
-				m_data[0] * rhs.m_data[1] - m_data[1] * rhs.m_data[0]);
-		}
-		template <typename T>
-		inline T Vect3<T>::operator*(const Vect3<T> & rhs) const
-		{
-			return (m_data[0] * rhs.m_data[0] + m_data[1] * rhs.m_data[1] + m_data[2] * rhs.m_data[2]);
-		}
-		template <typename T>
-		inline Vect3<T> Vect3<T>::operator+(const Vect3<T> & rhs) const
-		{
-			return Vect3<T>(m_data[0] + rhs.m_data[0], m_data[1] + rhs.m_data[1], m_data[2] + rhs.m_data[2]);
-		}
-		template <typename T>
-		inline  Vect3<T> Vect3<T>::operator-(const Vect3<T> & rhs) const
-		{
-			return Vect3<T>(m_data[0] - rhs.m_data[0], m_data[1] - rhs.m_data[1], m_data[2] - rhs.m_data[2]);
-		}
-		template <typename T>
-		inline  Vect3<T> Vect3<T>::operator-() const
-		{
-			return Vect3<T>(-m_data[0], -m_data[1], -m_data[2]);
-		}
+namespace VHACD
+{
+    /*
+     * Out of line definitions
+     */
 
-		template <typename T>
-		inline Vect3<T> Vect3<T>::operator*(T rhs) const
-		{
-			return Vect3<T>(rhs * this->m_data[0], rhs * this->m_data[1], rhs * this->m_data[2]);
-		}
-		template <typename T>
-		inline Vect3<T> Vect3<T>::operator/ (T rhs) const
-		{
-			return Vect3<T>(m_data[0] / rhs, m_data[1] / rhs, m_data[2] / rhs);
-		}
-		template <typename T>
-		inline Vect3<T>::Vect3(T a)
-		{
-			m_data[0] = m_data[1] = m_data[2] = a;
-		}
-		template <typename T>
-		inline Vect3<T>::Vect3(T x, T y, T z)
-		{
-			m_data[0] = x;
-			m_data[1] = y;
-			m_data[2] = z;
-		}
-		template <typename T>
-		inline Vect3<T>::Vect3(const Vect3 & rhs)
-		{
-			m_data[0] = rhs.m_data[0];
-			m_data[1] = rhs.m_data[1];
-			m_data[2] = rhs.m_data[2];
-		}
-		template <typename T>
-		inline Vect3<T>::~Vect3(void) {};
+    /*
+     * Getters
+     */
+    template <typename T>
+    inline T& Vect3<T>::operator[](size_t i)
+    {
+        return mData[i];
+    }
 
-		template <typename T>
-		inline Vect3<T>::Vect3() {}
+    template <typename T>
+    inline const T& Vect3<T>::operator[](size_t i) const
+    {
+        return mData[i];
+    }
 
-		template<typename T>
-		inline const bool Colinear(const Vect3<T> & a, const Vect3<T> & b, const Vect3<T> & c)
-		{
-			return  ((c.getZ() - a.getZ()) * (b.getY() - a.getY()) - (b.getZ() - a.getZ()) * (c.getY() - a.getY()) == 0.0 /*EPS*/) &&
-				((b.getZ() - a.getZ()) * (c.getX() - a.getX()) - (b.getX() - a.getX()) * (c.getZ() - a.getZ()) == 0.0 /*EPS*/) &&
-				((b.getX() - a.getX()) * (c.getY() - a.getY()) - (b.getY() - a.getY()) * (c.getX() - a.getX()) == 0.0 /*EPS*/);
-		}
+    template <typename T>
+    inline T& Vect3<T>::getX()
+    {
+        return mData[0];
+    }
 
-		template<typename T>
-		inline const T ComputeVolume4(const Vect3<T> & a, const Vect3<T> & b, const Vect3<T> & c, const Vect3<T> & d)
-		{
-			return (a - d) * ((b - d) ^ (c - d));
-		}
+    template <typename T>
+    inline T& Vect3<T>::getY()
+    {
+        return mData[1];
+    }
 
-		template <typename T>
-		inline bool Vect3<T>::operator<(const Vect3 & rhs) const
-		{
-			if (getX() == rhs[0])
-			{
-				if (getY() == rhs[1])
-				{
-					return (getZ() < rhs[2]);
-				}
-				return (getY() < rhs[1]);
-			}
-			return (getX() < rhs[0]);
-		}
-		template <typename T>
-		inline  bool Vect3<T>::operator>(const Vect3 & rhs) const
-		{
-			if (getX() == rhs[0])
-			{
-				if (getY() == rhs[1])
-				{
-					return (getZ() > rhs[2]);
-				}
-				return (getY() > rhs[1]);
-			}
-			return (getX() > rhs[0]);
-		}
-		template <typename T>
-		inline Vec2<T> operator*(T lhs, const Vec2<T> & rhs)
-		{
-			return Vec2<T>(lhs * rhs.getX(), lhs * rhs.getY());
-		}
-		template <typename T>
-		inline T & Vec2<T>::getX()
-		{
-			return m_data[0];
-		}
-		template <typename T>
-		inline  T &    Vec2<T>::getY()
-		{
-			return m_data[1];
-		}
-		template <typename T>
-		inline  const T & Vec2<T>::getX() const
-		{
-			return m_data[0];
-		}
-		template <typename T>
-		inline  const T & Vec2<T>::getY() const
-		{
-			return m_data[1];
-		}
-		template <typename T>
-		inline  void Vec2<T>::Normalize()
-		{
-			T n = sqrt(m_data[0] * m_data[0] + m_data[1] * m_data[1]);
-			if (n != 0.0) (*this) /= n;
-		}
-		template <typename T>
-		inline  T Vec2<T>::GetNorm() const
-		{
-			return sqrt(m_data[0] * m_data[0] + m_data[1] * m_data[1]);
-		}
-		template <typename T>
-		inline  void Vec2<T>::operator= (const Vec2 & rhs)
-		{
-			this->m_data[0] = rhs.m_data[0];
-			this->m_data[1] = rhs.m_data[1];
-		}
-		template <typename T>
-		inline  void Vec2<T>::operator+=(const Vec2 & rhs)
-		{
-			this->m_data[0] += rhs.m_data[0];
-			this->m_data[1] += rhs.m_data[1];
-		}
-		template <typename T>
-		inline void Vec2<T>::operator-=(const Vec2 & rhs)
-		{
-			this->m_data[0] -= rhs.m_data[0];
-			this->m_data[1] -= rhs.m_data[1];
-		}
-		template <typename T>
-		inline void Vec2<T>::operator-=(T a)
-		{
-			this->m_data[0] -= a;
-			this->m_data[1] -= a;
-		}
-		template <typename T>
-		inline void Vec2<T>::operator+=(T a)
-		{
-			this->m_data[0] += a;
-			this->m_data[1] += a;
-		}
-		template <typename T>
-		inline void Vec2<T>::operator/=(T a)
-		{
-			this->m_data[0] /= a;
-			this->m_data[1] /= a;
-		}
-		template <typename T>
-		inline void Vec2<T>::operator*=(T a)
-		{
-			this->m_data[0] *= a;
-			this->m_data[1] *= a;
-		}
-		template <typename T>
-		inline T Vec2<T>::operator^ (const Vec2<T> & rhs) const
-		{
-			return m_data[0] * rhs.m_data[1] - m_data[1] * rhs.m_data[0];
-		}
-		template <typename T>
-		inline T Vec2<T>::operator*(const Vec2<T> & rhs) const
-		{
-			return (m_data[0] * rhs.m_data[0] + m_data[1] * rhs.m_data[1]);
-		}
-		template <typename T>
-		inline Vec2<T> Vec2<T>::operator+(const Vec2<T> & rhs) const
-		{
-			return Vec2<T>(m_data[0] + rhs.m_data[0], m_data[1] + rhs.m_data[1]);
-		}
-		template <typename T>
-		inline  Vec2<T> Vec2<T>::operator-(const Vec2<T> & rhs) const
-		{
-			return Vec2<T>(m_data[0] - rhs.m_data[0], m_data[1] - rhs.m_data[1]);
-		}
-		template <typename T>
-		inline  Vec2<T> Vec2<T>::operator-() const
-		{
-			return Vec2<T>(-m_data[0], -m_data[1]);
-		}
+    template <typename T>
+    inline T& Vect3<T>::getZ()
+    {
+        return mData[2];
+    }
 
-		template <typename T>
-		inline Vec2<T> Vec2<T>::operator*(T rhs) const
-		{
-			return Vec2<T>(rhs * this->m_data[0], rhs * this->m_data[1]);
-		}
-		template <typename T>
-		inline Vec2<T> Vec2<T>::operator/ (T rhs) const
-		{
-			return Vec2<T>(m_data[0] / rhs, m_data[1] / rhs);
-		}
-		template <typename T>
-		inline Vec2<T>::Vec2(T a)
-		{
-			m_data[0] = m_data[1] = a;
-		}
-		template <typename T>
-		inline Vec2<T>::Vec2(T x, T y)
-		{
-			m_data[0] = x;
-			m_data[1] = y;
-		}
-		template <typename T>
-		inline Vec2<T>::Vec2(const Vec2 & rhs)
-		{
-			m_data[0] = rhs.m_data[0];
-			m_data[1] = rhs.m_data[1];
-		}
-		template <typename T>
-		inline Vec2<T>::~Vec2(void) {};
+    template <typename T>
+    inline const T& Vect3<T>::getX() const
+    {
+        return mData[0];
+    }
 
-		template <typename T>
-		inline Vec2<T>::Vec2() {}
+    template <typename T>
+    inline const T& Vect3<T>::getY() const
+    {
+        return mData[1];
+    }
 
-		/*
-		  InsideTriangle decides if a point P is Inside of the triangle
-		  defined by A, B, C.
-		*/
-		template<typename T>
-		inline const bool InsideTriangle(const Vec2<T> & a, const Vec2<T> & b, const Vec2<T> & c, const Vec2<T> & p)
-		{
-			T ax, ay, bx, by, cx, cy, apx, apy, bpx, bpy, cpx, cpy;
-			T cCROSSap, bCROSScp, aCROSSbp;
-			ax = c.getX() - b.getX();  ay = c.getY() - b.getY();
-			bx = a.getX() - c.getX();  by = a.getY() - c.getY();
-			cx = b.getX() - a.getX();  cy = b.getY() - a.getY();
-			apx = p.getX() - a.getX();  apy = p.getY() - a.getY();
-			bpx = p.getX() - b.getX();  bpy = p.getY() - b.getY();
-			cpx = p.getX() - c.getX();  cpy = p.getY() - c.getY();
-			aCROSSbp = ax*bpy - ay*bpx;
-			cCROSSap = cx*apy - cy*apx;
-			bCROSScp = bx*cpy - by*cpx;
-			return ((aCROSSbp >= 0.0) && (bCROSScp >= 0.0) && (cCROSSap >= 0.0));
-		}
-	}
+    template <typename T>
+    inline const T& Vect3<T>::getZ() const
+    {
+        return mData[2];
+    }
+
+    /*
+     * Normalize and norming
+     */
+    template <typename T>
+    inline T Vect3<T>::Normalize()
+    {
+        T n = GetNorm();
+        if (n != 0.0) (*this) /= n;
+        return n;
+    }
+
+    template <typename T>
+    inline Vect3<T> Vect3<T>::Normalized()
+    {
+        Vect3<T> ret = *this;
+        T n = GetNorm();
+        if (n != 0.0) ret /= n;
+        return ret;
+    }
+
+    template <typename T>
+    inline T Vect3<T>::GetNorm() const
+    {
+        return std::sqrt(GetNormSquared());
+    }
+
+    template <typename T>
+    inline T Vect3<T>::GetNormSquared() const
+    {
+        return this->Dot(*this);
+    }
+
+    template <typename T>
+    inline int Vect3<T>::LongestAxis() const
+    {
+        if (getX() > getY() && getX() > getZ())
+            return 0;
+        if (getY() > getZ())
+            return 1 ;
+        return 2;
+    }
+
+    /*
+     * Vector-vector operations
+     */
+    template <typename T>
+    inline Vect3<T>& Vect3<T>::operator=(const Vect3<T>& rhs)
+    {
+        getX() = rhs.getX();
+        getY() = rhs.getY();
+        getZ() = rhs.getZ();
+        return *this;
+    }
+
+    template <typename T>
+    inline Vect3<T>& Vect3<T>::operator+=(const Vect3<T>& rhs)
+    {
+        getX() += rhs.getX();
+        getY() += rhs.getY();
+        getZ() += rhs.getZ();
+        return *this;
+    }
+
+    template <typename T>
+    inline Vect3<T>& Vect3<T>::operator-=(const Vect3<T>& rhs)
+    {
+        getX() -= rhs.getX();
+        getY() -= rhs.getY();
+        getZ() -= rhs.getZ();
+        return *this;
+    }
+
+    template <typename T>
+    inline Vect3<T> Vect3<T>::CWiseMul(const Vect3<T>& rhs) const
+    {
+        return Vect3<T>(getX() * rhs.getX(),
+                        getY() * rhs.getY(),
+                        getZ() * rhs.getZ());
+    }
+
+    template <typename T>
+    inline Vect3<T> Vect3<T>::Cross(const Vect3<T>& rhs) const
+    {
+        return Vect3<T>(getY() * rhs.getZ() - getZ() * rhs.getY(),
+                        getZ() * rhs.getX() - getX() * rhs.getZ(),
+                        getX() * rhs.getY() - getY() * rhs.getX());
+    }
+
+    template <typename T>
+    inline T Vect3<T>::Dot(const Vect3<T>& rhs) const
+    {
+        return getX() * rhs.getX() + getY() * rhs.getY() + getZ() * rhs.getZ();
+    }
+
+    template <typename T>
+    inline Vect3<T> Vect3<T>::operator+(const Vect3<T>& rhs) const
+    {
+        return Vect3<T>(getX() + rhs.getX(),
+                        getY() + rhs.getY(),
+                        getZ() + rhs.getZ());
+    }
+
+    template <typename T>
+    inline  Vect3<T> Vect3<T>::operator-(const Vect3<T>& rhs) const
+    {
+        return Vect3<T>(getX() - rhs.getX(),
+                        getY() - rhs.getY(),
+                        getZ() - rhs.getZ());
+    }
+
+    template <typename T>
+    inline Vect3<T> operator*(T lhs, const Vect3<T> & rhs)
+    {
+        return Vect3<T>(lhs * rhs.getX(),
+                        lhs * rhs.getY(),
+                        lhs * rhs.getZ());
+    }
+
+    /*
+     * Vector-scalar operations
+     */
+    template <typename T>
+    inline Vect3<T>& Vect3<T>::operator-=(T a)
+    {
+        getX() -= a;
+        getY() -= a;
+        getZ() -= a;
+        return *this;
+    }
+
+    template <typename T>
+    inline Vect3<T>& Vect3<T>::operator+=(T a)
+    {
+        getX() += a;
+        getY() += a;
+        getZ() += a;
+        return *this;
+    }
+
+    template <typename T>
+    inline Vect3<T>& Vect3<T>::operator/=(T a)
+    {
+        getX() /= a;
+        getY() /= a;
+        getZ() /= a;
+        return *this;
+    }
+
+    template <typename T>
+    inline Vect3<T>& Vect3<T>::operator*=(T a)
+    {
+        getX() *= a;
+        getY() *= a;
+        getZ() *= a;
+        return *this;
+    }
+
+    template <typename T>
+    inline Vect3<T> Vect3<T>::operator*(T rhs) const
+    {
+        return Vect3<T>(getX() * rhs,
+                        getY() * rhs,
+                        getZ() * rhs);
+    }
+
+    template <typename T>
+    inline Vect3<T> Vect3<T>::operator/(T rhs) const
+    {
+        return Vect3<T>(getX() / rhs,
+                        getY() / rhs,
+                        getZ() / rhs);
+    }
+
+    /*
+     * Unary operations
+     */
+    template <typename T>
+    inline  Vect3<T> Vect3<T>::operator-() const
+    {
+        return Vect3<T>(-getX(),
+                        -getY(),
+                        -getZ());
+    }
+
+    /*
+     * Comparison operators
+     */
+    template <typename T>
+    inline bool Vect3<T>::operator<(const Vect3<T>& rhs) const
+    {
+        if (getX() == rhs[0])
+        {
+            if (getY() == rhs[1])
+            {
+                return (getZ() < rhs[2]);
+            }
+            return (getY() < rhs[1]);
+        }
+        return (getX() < rhs[0]);
+    }
+
+    template <typename T>
+    inline bool Vect3<T>::operator>(const Vect3<T>& rhs) const
+    {
+        if (getX() == rhs[0])
+        {
+            if (getY() == rhs[1])
+            {
+                return (getZ() > rhs[2]);
+            }
+            return (getY() > rhs[1]);
+        }
+        return (getX() > rhs[0]);
+    }
+
+    template <typename T>
+    inline Vect3<T> Vect3<T>::CWiseMin(const Vect3<T>& rhs) const
+    {
+        return Vect3<T>(Min(getX(), rhs.getX()),
+                        Min(getY(), rhs.getY()),
+                        Min(getZ(), rhs.getZ()));
+    }
+
+    template <typename T>
+    inline Vect3<T> Vect3<T>::CWiseMax(const Vect3<T>& rhs) const
+    {
+        return Vect3<T>(Max(getX(), rhs.getX()),
+                        Max(getY(), rhs.getY()),
+                        Max(getZ(), rhs.getZ()));
+    }
+
+    template <typename T>
+    inline T Vect3<T>::MinCoeff() const
+    {
+        if (getX() < getY() && getX() < getZ())
+        {
+            return getX();
+        }
+        if (getY() < getZ())
+        {
+            return getY();
+        }
+        return getZ();
+    }
+
+    template <typename T>
+    inline T Vect3<T>::MaxCoeff() const
+    {
+        if (getX() > getY() && getX() > getZ())
+        {
+            return getX();
+        }
+        if (getY() > getZ())
+        {
+            return getY();
+        }
+        return getZ();
+    }
+
+    template <typename T>
+    inline T Vect3<T>::MinCoeff(uint32_t& idx) const
+    {
+        if (getX() < getY() && getX() < getZ())
+        {
+            idx = 0;
+            return getX();
+        }
+        if (getY() < getZ())
+        {
+            idx = 1;
+            return getY();
+        }
+        idx = 2;
+        return getZ();
+    }
+
+    template <typename T>
+    inline T Vect3<T>::MaxCoeff(uint32_t& idx) const
+    {
+        if (getX() > getY() && getX() < getZ())
+        {
+            idx = 0;
+            return getX();
+        }
+        if (getY() > getZ())
+        {
+            idx = 1;
+            return getY();
+        }
+        idx = 2;
+        return getZ();
+    }
+
+    /*
+     * Constructors
+     */
+    template <typename T>
+    inline Vect3<T>::Vect3(T a)
+        : mData{a, a, a}
+    {
+    }
+
+    template <typename T>
+    inline Vect3<T>::Vect3(T x, T y, T z)
+        : mData{x, y, z}
+    {
+    }
+
+    template <typename T>
+    inline Vect3<T>::Vect3(const Vect3& rhs)
+        : mData{rhs.mData}
+    {
+    }
+
+    template <typename T>
+    inline Vect3<T>::Vect3(const ::VHACD::Vertex& rhs)
+        : Vect3<T>(rhs.mX, rhs.mY, rhs.mZ)
+    {
+        static_assert(std::is_same<T, double>::value, "Vertex to Vect3 constructor only enabled for double");
+    }
+
+    template <typename T>
+    inline Vect3<T>::Vect3(const ::VHACD::Triangle& rhs)
+        : Vect3<T>(rhs.mI0, rhs.mI1, rhs.mI2)
+    {
+        static_assert(std::is_same<T, uint32_t>::value, "Triangle to Vect3 constructor only enabled for uint32_t");
+    }
+
+    template <typename T>
+    inline Vect3<T>::operator ::VHACD::Vertex() const
+    {
+        static_assert(std::is_same<T, double>::value, "Vect3 to Vertex conversion only enable for double");
+        return ::VHACD::Vertex(getX(), getY(), getZ());
+    }
 }
-
+}// namespace nd::VHACD
 
 namespace nd
 {
@@ -1204,97 +1236,21 @@ namespace nd
 			friend class ndNode;
 		};
 
-		class hullVector : public VHACD::Vect3<double>
-		{
-			public:
-			hullVector()
-				:Vect3<double>(0, 0, 0)
-			{
-			}
-
-			hullVector(double x)
-				:Vect3<double>(x, x, x)
-			{
-			}
-
-			hullVector(const hullVector& x)
-				:Vect3<double>(x.getX(), x.getY(), x.getZ())
-			{
-			}
-
-			hullVector(double x, double y, double z, double)
-				:Vect3<double>(x, y, z)
-			{
-			}
-
-			hullVector GetMin(const hullVector& p) const
-			{
-				return hullVector(
-					getX() < p.getX() ? getX() : p.getX(),
-					getY() < p.getY() ? getY() : p.getY(),
-					getZ() < p.getZ() ? getZ() : p.getZ(), 0.0);
-			}
-
-			hullVector GetMax(const hullVector& p) const
-			{
-				return hullVector(
-					getX() > p.getX() ? getX() : p.getX(),
-					getY() > p.getY() ? getY() : p.getY(),
-					getZ() > p.getZ() ? getZ() : p.getZ(), 0.0);
-			}
-
-			hullVector Scale(double s) const
-			{
-				return hullVector(getX() * s, getY() * s, getZ() * s, 0.0);
-			}
-
-			inline hullVector operator+(const hullVector & rhs) const
-			{
-				return hullVector(getX() + rhs.getX(), getY() + rhs.getY(), getZ() + rhs.getZ(), 0.0f);
-			}
-
-			inline hullVector operator-(const hullVector & rhs) const
-			{
-				return hullVector(getX() - rhs.getX(), getY() - rhs.getY(), getZ() - rhs.getZ(), 0.0f);
-			}
-
-			inline hullVector operator*(const hullVector & rhs) const
-			{
-				return hullVector(getX() * rhs.getX(), getY() * rhs.getY(), getZ() * rhs.getZ(), 0.0f);
-			}
-
-			inline double DotProduct(const hullVector & rhs) const
-			{
-				return getX() * rhs.getX() + getY() * rhs.getY() + getZ() * rhs.getZ();
-			}
-
-			inline hullVector CrossProduct(const hullVector & rhs) const
-			{
-				return hullVector(getY() * rhs.getZ() - getZ() * rhs.getY(), getZ() * rhs.getX() - getX() * rhs.getZ(), getX() * rhs.getY() - getY() * rhs.getX(), 0.0);
-			}
-
-			inline hullVector operator= (const Vect3 & rhs)
-			{
-				getX() = rhs.getX();
-				getY() = rhs.getY();
-				getZ() = rhs.getZ();
-				return *this;
-			}
-		};
-
-		class hullPlane : public hullVector
+		class hullPlane : public VHACD::Vect3<double>
 		{
 			public:
 			hullPlane(double x, double y, double z, double w)
-				:hullVector(x, y, z, 0.0)
+				: VHACD::Vect3<double>(x, y, z)
 				, m_w(w)
 			{
 			}
 
-			hullPlane(const hullVector &P0, const hullVector &P1, const hullVector &P2)
-				:hullVector((P1 - P0).CrossProduct(P2 - P0))
+            hullPlane(const VHACD::Vect3<double> &P0,
+                      const VHACD::Vect3<double> &P1,
+                      const VHACD::Vect3<double> &P2)
+				: VHACD::Vect3<double>((P1 - P0).Cross(P2 - P0))
 			{
-				m_w = -DotProduct(P0);
+				m_w = -Dot(P0);
 			}
 
 			hullPlane Scale(double s) const
@@ -1311,14 +1267,16 @@ namespace nd
 				return *this;
 			}
 
-			inline hullVector operator*(const hullVector & rhs) const
+			inline VHACD::Vect3<double> operator*(const VHACD::Vect3<double> & rhs) const
 			{
-				return hullVector(getX() * rhs.getX(), getY() * rhs.getY(), getZ() * rhs.getZ(), 0.0f);
+                return VHACD::Vect3<double>(getX() * rhs.getX(),
+                                  getY() * rhs.getY(),
+                                  getZ() * rhs.getZ());
 			}
 
-			double Evalue(const hullVector &point) const
+			double Evalue(const VHACD::Vect3<double> &point) const
 			{
-				return DotProduct(point) + m_w;
+				return Dot(point) + m_w;
 			}
 
 			double m_w;
@@ -1377,12 +1335,6 @@ namespace nd
 			static Googol m_three;
 			static Googol m_half;
 		};
-
-		template <class T>
-		inline T Max(T A, T B)
-		{
-			return (A > B) ? A : B;
-		}
 
 		template <class T>
 		inline void Swap(T& A, T& B)
@@ -1487,7 +1439,6 @@ namespace nd
 		}
 	}
 }
-
 
 namespace nd
 {
@@ -2059,62 +2010,89 @@ namespace nd
 
 namespace nd
 {
-	namespace VHACD
-	{
-		class ConvexHullVertex;
-		class ConvexHullAABBTreeNode;
+namespace VHACD
+{
+    class ConvexHullVertex;
+    class ConvexHullAABBTreeNode;
 
-		class ConvexHullFace
-		{
-			public:
-			ConvexHullFace();
-			double Evalue(const hullVector* const pointArray, const hullVector& point) const;
-			hullPlane GetPlaneEquation(const hullVector* const pointArray, bool& isValid) const;
+    class ConvexHullFace
+    {
+        public:
+        ConvexHullFace();
+        double Evalue(const VHACD::Vect3<double>* const pointArray,
+                        const VHACD::Vect3<double>& point) const;
+        hullPlane GetPlaneEquation(const VHACD::Vect3<double>* const pointArray,
+                                    bool& isValid) const;
 
-			public:
-			int m_index[3];
+        public:
+        int m_index[3];
 
-			private:
-			int m_mark;
-			List<ConvexHullFace>::ndNode* m_twin[3];
+        private:
+        int m_mark;
+        List<ConvexHullFace>::ndNode* m_twin[3];
 
-			friend class ConvexHull;
-		};
+        friend class ConvexHull;
+    };
 
-		class ConvexHull : public List<ConvexHullFace>
-		{
-			class ndNormalMap;
+    class ConvexHull : public List<ConvexHullFace>
+    {
+        class ndNormalMap;
 
-			public:
-			ConvexHull(const ConvexHull& source);
-			ConvexHull(const double* const vertexCloud, int strideInBytes, int count, double distTol, int maxVertexCount = 0x7fffffff);
-			~ConvexHull();
+        public:
+        ConvexHull(const ConvexHull& source);
+        ConvexHull(const std::vector<::VHACD::Vertex>& vertexCloud,
+                   double distTol,
+                   int maxVertexCount = 0x7fffffff);
+        ~ConvexHull() = default;
 
-			const std::vector<hullVector>& GetVertexPool() const;
+        const std::vector<VHACD::Vect3<double>>& GetVertexPool() const;
 
-			private:
-			void BuildHull(const double* const vertexCloud, int strideInBytes, int count, double distTol, int maxVertexCount);
+        private:
+        void BuildHull(const std::vector<::VHACD::Vertex>& vertexCloud,
+                       double distTol,
+                       int maxVertexCount);
 
-			void GetUniquePoints(std::vector<ConvexHullVertex>& points);
-			int InitVertexArray(std::vector<ConvexHullVertex>& points, void* const memoryPool, int maxMemSize);
+        void GetUniquePoints(std::vector<ConvexHullVertex>& points);
+        int InitVertexArray(std::vector<ConvexHullVertex>& points,
+                            void* const memoryPool,
+                            int maxMemSize);
 
-			ConvexHullAABBTreeNode* BuildTreeNew(std::vector<ConvexHullVertex>& points, char** const memoryPool, int& maxMemSize) const;
-			ConvexHullAABBTreeNode* BuildTreeOld(std::vector<ConvexHullVertex>& points, char** const memoryPool, int& maxMemSize);
-			ConvexHullAABBTreeNode* BuildTreeRecurse(ConvexHullAABBTreeNode* const parent, ConvexHullVertex* const points, int count, int baseIndex, char** const memoryPool, int& maxMemSize) const;
+        ConvexHullAABBTreeNode* BuildTreeNew(std::vector<ConvexHullVertex>& points,
+                                             char** const memoryPool,
+                                             int& maxMemSize) const;
+        ConvexHullAABBTreeNode* BuildTreeOld(std::vector<ConvexHullVertex>& points,
+                                             char** const memoryPool,
+                                             int& maxMemSize);
+        ConvexHullAABBTreeNode* BuildTreeRecurse(ConvexHullAABBTreeNode* const parent,
+                                                 ConvexHullVertex* const points,
+                                                 int count,
+                                                 int baseIndex,
+                                                 char** const memoryPool,
+                                                 int& maxMemSize) const;
 
-			ndNode* AddFace(int i0, int i1, int i2);
+        ndNode* AddFace(int i0, int i1, int i2);
 
-			void CalculateConvexHull3d(ConvexHullAABBTreeNode* vertexTree, std::vector<ConvexHullVertex>& points, int count, double distTol, int maxVertexCount);
+        void CalculateConvexHull3d(ConvexHullAABBTreeNode* vertexTree,
+                                   std::vector<ConvexHullVertex>& points,
+                                   int count,
+                                   double distTol,
+                                   int maxVertexCount);
 
-			int SupportVertex(ConvexHullAABBTreeNode** const tree, const std::vector<ConvexHullVertex>& points, const hullVector& dir, const bool removeEntry = true) const;
-			double TetrahedrumVolume(const hullVector& p0, const hullVector& p1, const hullVector& p2, const hullVector& p3) const;
+        int SupportVertex(ConvexHullAABBTreeNode** const tree,
+                          const std::vector<ConvexHullVertex>& points,
+                          const VHACD::Vect3<double>& dir,
+                          const bool removeEntry = true) const;
+        double TetrahedrumVolume(const VHACD::Vect3<double>& p0,
+                                 const VHACD::Vect3<double>& p1,
+                                 const VHACD::Vect3<double>& p2,
+                                 const VHACD::Vect3<double>& p3) const;
 
-			hullVector m_aabbP0;
-			hullVector m_aabbP1;
-			double m_diag;
-			std::vector<hullVector> m_points;
-		};
-	}
+        VHACD::Vect3<double> m_aabbP0;
+        VHACD::Vect3<double> m_aabbP1;
+        double m_diag;
+        std::vector<VHACD::Vect3<double>> m_points;
+    };
+}
 }
 
 namespace nd
@@ -2132,15 +2110,16 @@ namespace nd
 			m_twin[2] = nullptr;
 		}
 
-		hullPlane ConvexHullFace::GetPlaneEquation(const hullVector* const pointArray, bool& isvalid) const
+		hullPlane ConvexHullFace::GetPlaneEquation(const VHACD::Vect3<double>* const pointArray,
+                                                   bool& isvalid) const
 		{
-			const hullVector& p0 = pointArray[m_index[0]];
-			const hullVector& p1 = pointArray[m_index[1]];
-			const hullVector& p2 = pointArray[m_index[2]];
+			const VHACD::Vect3<double>& p0 = pointArray[m_index[0]];
+			const VHACD::Vect3<double>& p1 = pointArray[m_index[1]];
+			const VHACD::Vect3<double>& p2 = pointArray[m_index[2]];
 			hullPlane plane(p0, p1, p2);
 
 			isvalid = false;
-			double mag2 = plane.DotProduct(plane);
+			double mag2 = plane.Dot(plane);
 			if (mag2 > 1.0e-16f)
 			{
 				isvalid = true;
@@ -2149,11 +2128,12 @@ namespace nd
 			return plane;
 		}
 
-		double ConvexHullFace::Evalue(const hullVector* const pointArray, const hullVector& point) const
+		double ConvexHullFace::Evalue(const VHACD::Vect3<double>* const pointArray,
+                                      const VHACD::Vect3<double>& point) const
 		{
-			const hullVector& p0 = pointArray[m_index[0]];
-			const hullVector& p1 = pointArray[m_index[1]];
-			const hullVector& p2 = pointArray[m_index[2]];
+			const VHACD::Vect3<double>& p0 = pointArray[m_index[0]];
+			const VHACD::Vect3<double>& p1 = pointArray[m_index[1]];
+			const VHACD::Vect3<double>& p2 = pointArray[m_index[2]];
 
 			double matrix[3][3];
 			for (int i = 0; i < 3; ++i) 
@@ -2189,7 +2169,7 @@ namespace nd
 			return Determinant3x3(exactMatrix);
 		}
 
-		class ConvexHullVertex : public hullVector
+		class ConvexHullVertex : public nd::VHACD::Vect3<double>
 		{
 			public:
 			int m_mark;
@@ -2213,7 +2193,7 @@ namespace nd
 			{
 			}
 
-			hullVector m_box[2];
+			nd::VHACD::Vect3<double> m_box[2];
 			ConvexHullAABBTreeNode* m_left;
 			ConvexHullAABBTreeNode* m_right;
 			ConvexHullAABBTreeNode* m_parent;
@@ -2240,14 +2220,14 @@ namespace nd
 		{
 			public:
 			ndNormalMap()
-				:m_count(sizeof(m_normal) / sizeof(m_normal[0]))
+				: m_count(sizeof(m_normal) / sizeof(m_normal[0]))
 			{
-				hullVector p0(double(1.0f), double(0.0f), double(0.0f), double(0.0f));
-				hullVector p1(double(-1.0f), double(0.0f), double(0.0f), double(0.0f));
-				hullVector p2(double(0.0f), double(1.0f), double(0.0f), double(0.0f));
-				hullVector p3(double(0.0f), double(-1.0f), double(0.0f), double(0.0f));
-				hullVector p4(double(0.0f), double(0.0f), double(1.0f), double(0.0f));
-				hullVector p5(double(0.0f), double(0.0f), double(-1.0f), double(0.0f));
+				nd::VHACD::Vect3<double> p0( 1.0,  0.0,  0.0);
+				nd::VHACD::Vect3<double> p1(-1.0,  0.0,  0.0);
+				nd::VHACD::Vect3<double> p2( 0.0,  1.0,  0.0);
+				nd::VHACD::Vect3<double> p3( 0.0, -1.0,  0.0);
+				nd::VHACD::Vect3<double> p4( 0.0,  0.0,  1.0);
+				nd::VHACD::Vect3<double> p5( 0.0,  0.0, -1.0);
 
 				int count = 0;
 				int subdivitions = 2;
@@ -2267,24 +2247,28 @@ namespace nd
 				return normalMap;
 			}
 
-			void TessellateTriangle(int level, const hullVector& p0, const hullVector& p1, const hullVector& p2, int& count)
+            void TessellateTriangle(int level,
+                                    const nd::VHACD::Vect3<double>& p0,
+                                    const nd::VHACD::Vect3<double>& p1,
+                                    const nd::VHACD::Vect3<double>& p2,
+                                    int& count)
 			{
 				if (level) 
 				{
-					assert(fabs(p0.DotProduct(p0) - double(1.0f)) < double(1.0e-4f));
-					assert(fabs(p1.DotProduct(p1) - double(1.0f)) < double(1.0e-4f));
-					assert(fabs(p2.DotProduct(p2) - double(1.0f)) < double(1.0e-4f));
-					hullVector p01(p0 + p1);
-					hullVector p12(p1 + p2);
-					hullVector p20(p2 + p0);
+					assert(fabs(p0.Dot(p0) - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p1.Dot(p1) - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p2.Dot(p2) - double(1.0f)) < double(1.0e-4f));
+					nd::VHACD::Vect3<double> p01(p0 + p1);
+					nd::VHACD::Vect3<double> p12(p1 + p2);
+					nd::VHACD::Vect3<double> p20(p2 + p0);
 
-					p01 = p01.Scale(1.0 / sqrt(p01.DotProduct(p01)));
-					p12 = p12.Scale(1.0 / sqrt(p12.DotProduct(p12)));
-					p20 = p20.Scale(1.0 / sqrt(p20.DotProduct(p20)));
+					p01 = p01 * (1.0 / p01.GetNorm());
+					p12 = p12 * (1.0 / p12.GetNorm());
+					p20 = p20 * (1.0 / p20.GetNorm());
 
-					assert(fabs(p01.DotProduct(p01) - double(1.0f)) < double(1.0e-4f));
-					assert(fabs(p12.DotProduct(p12) - double(1.0f)) < double(1.0e-4f));
-					assert(fabs(p20.DotProduct(p20) - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p01.GetNormSquared() - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p12.GetNormSquared() - double(1.0f)) < double(1.0e-4f));
+					assert(fabs(p20.GetNormSquared() - double(1.0f)) < double(1.0e-4f));
 
 					TessellateTriangle(level - 1, p0, p01, p20, count);
 					TessellateTriangle(level - 1, p1, p12, p01, count);
@@ -2294,7 +2278,7 @@ namespace nd
 				else 
 				{
 					hullPlane n(p0, p1, p2);
-					n = n.Scale(double(1.0f) / sqrt(n.DotProduct(n)));
+					n = n.Scale(double(1.0f) / sqrt(n.Dot(n)));
 					n.m_w = double(0.0f);
 					int index = dBitReversal(count, sizeof(m_normal) / sizeof(m_normal[0]));
 					m_normal[index] = n;
@@ -2303,61 +2287,64 @@ namespace nd
 				}
 			}
 
-			hullVector m_normal[128];
+			nd::VHACD::Vect3<double> m_normal[128];
 			int m_count;
 		};
 
-		ConvexHull::ConvexHull(const double* const vertexCloud, int strideInBytes, int count, double distTol, int maxVertexCount)
-			:List<ConvexHullFace>()
-			,m_aabbP0(0)
-			,m_aabbP1(0)
-			,m_diag()
-			,m_points()
+        ConvexHull::ConvexHull(const std::vector<::VHACD::Vertex>& vertexCloud,
+                               double distTol,
+                               int maxVertexCount)
+			: List<ConvexHullFace>()
+			, m_aabbP0(0)
+			, m_aabbP1(0)
+			, m_diag()
+			, m_points()
 		{
 			m_points.resize(0);
-			if (count >= 4)
+			if (vertexCloud.size() >= 4)
 			{
-				BuildHull(vertexCloud, strideInBytes, count, distTol, maxVertexCount);
+                BuildHull(vertexCloud,
+                          distTol,
+                          maxVertexCount);
 			}
 		}
 
-		ConvexHull::~ConvexHull()
-		{
-		}
-
-		const std::vector<hullVector>& ConvexHull::GetVertexPool() const
+		const std::vector<nd::VHACD::Vect3<double>>& ConvexHull::GetVertexPool() const
 		{
 			return m_points;
 		}
 
-
-		void ConvexHull::BuildHull(const double* const vertexCloud, int strideInBytes, int count, double distTol, int maxVertexCount)
+        void ConvexHull::BuildHull(const std::vector<::VHACD::Vertex>& vertexCloud,
+                                   double distTol,
+                                   int maxVertexCount)
 		{
-			int treeCount = count / (VHACD_CONVEXHULL_3D_VERTEX_CLUSTER_SIZE >> 1);
+			size_t treeCount = vertexCloud.size() / (VHACD_CONVEXHULL_3D_VERTEX_CLUSTER_SIZE >> 1);
 			if (treeCount < 4)
 			{
 				treeCount = 4;
 			}
 			treeCount *= 2;
 
-			std::vector<ConvexHullVertex> points(count);
+			std::vector<ConvexHullVertex> points(vertexCloud.size());
 			std::vector<ConvexHull3dPointCluster> treePool(treeCount + 256);
-			points.resize(count);
-			treePool.resize(treeCount + 256);
 
-			const int stride = int(strideInBytes / sizeof(double));
-			for (int i = 0; i < count; ++i)
+			for (int i = 0; i < vertexCloud.size(); ++i)
 			{
-				int index = i * stride;
-				hullVector& vertex = points[i];
-				vertex = hullVector(vertexCloud[index], vertexCloud[index + 1], vertexCloud[index + 2], double(0.0f));
+				nd::VHACD::Vect3<double>& vertex = points[i];
+                vertex = nd::VHACD::Vect3<double>(vertexCloud[i]);
 				points[i].m_mark = 0;
 			}
-			count = InitVertexArray(points, &treePool[0], sizeof (ConvexHull3dPointCluster) * int (treePool.size()));
+            int count = InitVertexArray(points,
+                                        treePool.data(),
+                                        sizeof(ConvexHull3dPointCluster) * int(treePool.size()));
 
 			if (m_points.size() >= 4)
 			{
-				CalculateConvexHull3d(&treePool[0], points, count, distTol, maxVertexCount);
+                CalculateConvexHull3d(treePool.data(),
+                                      points,
+                                      count,
+                                      distTol,
+                                      maxVertexCount);
 			}
 		}
 
@@ -2403,13 +2390,18 @@ namespace nd
 			points.resize(indexCount + 1);
 		}
 
-		ConvexHullAABBTreeNode* ConvexHull::BuildTreeRecurse(ConvexHullAABBTreeNode* const parent, ConvexHullVertex* const points, int count, int baseIndex, char** memoryPool, int& maxMemSize) const
+        ConvexHullAABBTreeNode* ConvexHull::BuildTreeRecurse(ConvexHullAABBTreeNode* const parent,
+                                                             ConvexHullVertex* const points,
+                                                             int count,
+                                                             int baseIndex,
+                                                             char** memoryPool,
+                                                             int& maxMemSize) const
 		{
 			ConvexHullAABBTreeNode* tree = nullptr;
 
 			assert(count);
-			hullVector minP(double(1.0e15f));
-			hullVector maxP(-double(1.0e15f));
+			nd::VHACD::Vect3<double> minP(double(1.0e15f));
+			nd::VHACD::Vect3<double> maxP(-double(1.0e15f));
 			if (count <= VHACD_CONVEXHULL_3D_VERTEX_CLUSTER_SIZE)
 			{
 				ConvexHull3dPointCluster* const clump = new (*memoryPool) ConvexHull3dPointCluster();
@@ -2423,9 +2415,9 @@ namespace nd
 				{
 					clump->m_indices[i] = i + baseIndex;
 
-					const hullVector& p = points[i];
-					minP = minP.GetMin(p);
-					maxP = maxP.GetMax(p);
+					const nd::VHACD::Vect3<double>& p = points[i];
+					minP = minP.CWiseMin(p);
+					maxP = maxP.CWiseMax(p);
 				}
 
 				clump->m_left = nullptr;
@@ -2434,18 +2426,18 @@ namespace nd
 			}
 			else
 			{
-				hullVector median(0);
-				hullVector varian(0);
+				nd::VHACD::Vect3<double> median(0);
+				nd::VHACD::Vect3<double> varian(0);
 				for (int i = 0; i < count; ++i)
 				{
-					const hullVector& p = points[i];
-					minP = minP.GetMin(p);
-					maxP = maxP.GetMax(p);
+					const nd::VHACD::Vect3<double>& p = points[i];
+					minP = minP.CWiseMin(p);
+					maxP = maxP.CWiseMax(p);
 					median += p;
-					varian += p * p;
+					varian += p.CWiseMul(p);
 				}
 
-				varian = varian.Scale(double(count)) - median * median;
+				varian = varian * double(count) - median.CWiseMul(median);
 				int index = 0;
 				double maxVarian = double(-1.0e10f);
 				for (int i = 0; i < 3; ++i)
@@ -2456,7 +2448,7 @@ namespace nd
 						maxVarian = varian[i];
 					}
 				}
-				hullVector center(median.Scale(double(1.0f) / double(count)));
+				nd::VHACD::Vect3<double> center(median * (1.0 / double(count)));
 
 				double test = center[index];
 
@@ -2513,12 +2505,14 @@ namespace nd
 
 			assert(tree);
 			tree->m_parent = parent;
-			tree->m_box[0] = minP - hullVector(double(1.0e-3f));
-			tree->m_box[1] = maxP + hullVector(double(1.0e-3f));
+			tree->m_box[0] = minP - nd::VHACD::Vect3<double>(double(1.0e-3f));
+			tree->m_box[1] = maxP + nd::VHACD::Vect3<double>(double(1.0e-3f));
 			return tree;
 		}
 
-		ConvexHullAABBTreeNode* ConvexHull::BuildTreeOld(std::vector<ConvexHullVertex>& points, char** const memoryPool, int& maxMemSize)
+        ConvexHullAABBTreeNode* ConvexHull::BuildTreeOld(std::vector<ConvexHullVertex>& points,
+                                                         char** const memoryPool,
+                                                         int& maxMemSize)
 		{
 			GetUniquePoints(points);
 			int count = int(points.size());
@@ -2529,13 +2523,15 @@ namespace nd
 			return BuildTreeRecurse(nullptr, &points[0], count, 0, memoryPool, maxMemSize);
 		}
 
-		ConvexHullAABBTreeNode* ConvexHull::BuildTreeNew(std::vector<ConvexHullVertex>& points, char** const memoryPool, int& maxMemSize) const
+        ConvexHullAABBTreeNode* ConvexHull::BuildTreeNew(std::vector<ConvexHullVertex>& points,
+                                                         char** const memoryPool,
+                                                         int& maxMemSize) const
 		{
 			class dCluster
 			{
 				public:
-				hullVector m_sum;
-				hullVector m_sum2;
+				nd::VHACD::Vect3<double> m_sum;
+				nd::VHACD::Vect3<double> m_sum2;
 				int m_start;
 				int m_count;
 			};
@@ -2543,14 +2539,14 @@ namespace nd
 			dCluster firstCluster;
 			firstCluster.m_start = 0;
 			firstCluster.m_count = int (points.size());
-			firstCluster.m_sum = hullVector(0);
-			firstCluster.m_sum2 = hullVector(0);
+			firstCluster.m_sum = nd::VHACD::Vect3<double>(0);
+			firstCluster.m_sum2 = nd::VHACD::Vect3<double>(0);
 
 			for (int i = 0; i < firstCluster.m_count; ++i)
 			{
-				const hullVector& p = points[i];
+				const nd::VHACD::Vect3<double>& p = points[i];
 				firstCluster.m_sum += p;
-				firstCluster.m_sum2 += p * p;
+				firstCluster.m_sum2 += p.CWiseMul(p);
 			}
 
 			int baseCount = 0;
@@ -2567,11 +2563,13 @@ namespace nd
 					stack--;
 					dCluster cluster (spliteStack[stack]);
 
-					const hullVector origin(cluster.m_sum.Scale(1.0f / cluster.m_count));
-					const hullVector variance2(cluster.m_sum2.Scale(1.0f / cluster.m_count) - origin * origin);
+					const nd::VHACD::Vect3<double> origin(cluster.m_sum * (1.0 / cluster.m_count));
+					const nd::VHACD::Vect3<double> variance2(cluster.m_sum2 * (1.0 / cluster.m_count) - origin.CWiseMul(origin));
 					double maxVariance2 = Max(Max(variance2.getX(), variance2.getY()), variance2.getZ());
 
-					if ((cluster.m_count <= clusterSize) || (stack > (sizeof(spliteStack) / sizeof(spliteStack[0]) - 4)) || (maxVariance2 < 1.e-4f))
+					if (   (cluster.m_count <= clusterSize)
+                        || (stack > (sizeof(spliteStack) / sizeof(spliteStack[0]) - 4))
+                        || (maxVariance2 < 1.e-4f))
 					{
 						// no sure if this is beneficial, 
 						// the array is so small that seem too much overhead
@@ -2604,8 +2602,8 @@ namespace nd
 						{
 							for (int j = i - 1; j >= 0; --j)
 							{
-								hullVector error(points[cluster.m_start + j] - points[cluster.m_start + i]);
-								double mag2 = error.DotProduct(error);
+								nd::VHACD::Vect3<double> error(points[cluster.m_start + j] - points[cluster.m_start + i]);
+								double mag2 = error.Dot(error);
 								if (mag2 < 1.0e-6)
 								{
 									points[cluster.m_start + j] = points[cluster.m_start + i];
@@ -2677,13 +2675,13 @@ namespace nd
 						}
 						#endif
 
-						hullVector xc(0);
-						hullVector x2c(0);
+						nd::VHACD::Vect3<double> xc(0);
+						nd::VHACD::Vect3<double> x2c(0);
 						for (int i = 0; i < i0; ++i)
 						{
-							const hullVector& x = points[start + i];
+							const nd::VHACD::Vect3<double>& x = points[start + i];
 							xc += x;
-							x2c += x * x;
+							x2c += x.CWiseMul(x);
 						}
 
 						dCluster cluster_i1(cluster);
@@ -2713,17 +2711,17 @@ namespace nd
 				return nullptr;
 			}
 
-			hullVector sum(0);
-			hullVector sum2(0);
-			hullVector minP(double(1.0e15f));
-			hullVector maxP(-double(1.0e15f));
+			nd::VHACD::Vect3<double> sum(0);
+			nd::VHACD::Vect3<double> sum2(0);
+			nd::VHACD::Vect3<double> minP(1.0e15);
+			nd::VHACD::Vect3<double> maxP(-1.0e15);
 			class dTreeBox
 			{
 				public:
-				hullVector m_min;
-				hullVector m_max;
-				hullVector m_sum;
-				hullVector m_sum2;
+				nd::VHACD::Vect3<double> m_min;
+				nd::VHACD::Vect3<double> m_max;
+				nd::VHACD::Vect3<double> m_sum;
+				nd::VHACD::Vect3<double> m_sum2;
 				ConvexHullAABBTreeNode* m_parent;
 				ConvexHullAABBTreeNode** m_child;
 				int m_start;
@@ -2732,11 +2730,11 @@ namespace nd
 
 			for (int i = 0; i < baseCount; ++i)
 			{
-				const hullVector& p = points[i];
+				const nd::VHACD::Vect3<double>& p = points[i];
 				sum += p;
-				sum2 += p * p;
-				minP = minP.GetMin(p);
-				maxP = maxP.GetMax(p);
+				sum2 += p.CWiseMul(p);
+				minP = minP.CWiseMin(p);
+				maxP = maxP.CWiseMax(p);
 			}
 	
 			dTreeBox treeBoxStack[128];
@@ -2783,8 +2781,8 @@ namespace nd
 				}
 				else
 				{
-					const hullVector origin(box.m_sum.Scale(1.0f / box.m_count));
-					const hullVector variance2(box.m_sum2.Scale(1.0f / box.m_count) - origin * origin);
+					const nd::VHACD::Vect3<double> origin(box.m_sum * (1.0 / box.m_count));
+					const nd::VHACD::Vect3<double> variance2(box.m_sum2 * (1.0 / box.m_count) - origin.CWiseMul(origin));
 
 					int firstSortAxis = 0;
 					if ((variance2.getY() >= variance2.getX()) && (variance2.getY() >= variance2.getZ()))
@@ -2857,17 +2855,17 @@ namespace nd
 					}
 
 					{
-						hullVector xc(0);
-						hullVector x2c(0);
-						hullVector p0(double(1.0e15f));
-						hullVector p1(-double(1.0e15f));
+						nd::VHACD::Vect3<double> xc(0);
+						nd::VHACD::Vect3<double> x2c(0);
+						nd::VHACD::Vect3<double> p0(1.0e15);
+						nd::VHACD::Vect3<double> p1(-1.0e15);
 						for (int i = i0; i < box.m_count; ++i)
 						{
-							const hullVector& p = points[start + i];
+							const nd::VHACD::Vect3<double>& p = points[start + i];
 							xc += p;
-							x2c += p * p;
-							p0 = p0.GetMin(p);
-							p1 = p1.GetMax(p);
+							x2c += p.CWiseMul(p);
+							p0 = p0.CWiseMin(p);
+							p1 = p1.CWiseMax(p);
 						}
 
 						dTreeBox cluster_i1(box);
@@ -2885,17 +2883,17 @@ namespace nd
 					}
 
 					{
-						hullVector xc(0);
-						hullVector x2c(0);
-						hullVector p0(double(1.0e15f));
-						hullVector p1(-double(1.0e15f));
+						nd::VHACD::Vect3<double> xc(0);
+						nd::VHACD::Vect3<double> x2c(0);
+						nd::VHACD::Vect3<double> p0(1.0e15);
+						nd::VHACD::Vect3<double> p1(-1.0e15);
 						for (int i = 0; i < i0; ++i)
 						{
-							const hullVector& p = points[start + i];
+							const nd::VHACD::Vect3<double>& p = points[start + i];
 							xc += p;
-							x2c += p * p;
-							p0 = p0.GetMin(p);
-							p1 = p1.GetMax(p);
+							x2c += p.CWiseMul(p);
+							p0 = p0.CWiseMin(p);
+							p1 = p1.CWiseMax(p);
 						}
 
 						dTreeBox cluster_i0(box);
@@ -2917,13 +2915,16 @@ namespace nd
 			return root;
 		}
 
-		int ConvexHull::SupportVertex(ConvexHullAABBTreeNode** const treePointer, const std::vector<ConvexHullVertex>& points, const hullVector& dirPlane, const bool removeEntry) const
+        int ConvexHull::SupportVertex(ConvexHullAABBTreeNode** const treePointer,
+                                      const std::vector<ConvexHullVertex>& points,
+                                      const nd::VHACD::Vect3<double>& dirPlane,
+                                      const bool removeEntry) const
 		{
 		#define VHACD_STACK_DEPTH_3D 64
 			double aabbProjection[VHACD_STACK_DEPTH_3D];
 			const ConvexHullAABBTreeNode *stackPool[VHACD_STACK_DEPTH_3D];
 
-			hullVector dir(dirPlane);
+			nd::VHACD::Vect3<double> dir(dirPlane);
 
 			int index = -1;
 			int stack = 1;
@@ -2943,11 +2944,15 @@ namespace nd
 
 					if (me->m_left && me->m_right)
 					{
-						const hullVector leftSupportPoint(me->m_left->m_box[ix].getX(), me->m_left->m_box[iy].getY(), me->m_left->m_box[iz].getZ(), 0.0f);
-						double leftSupportDist = leftSupportPoint.DotProduct(dir);
+						const nd::VHACD::Vect3<double> leftSupportPoint(me->m_left->m_box[ix].getX(),
+                                                          me->m_left->m_box[iy].getY(),
+                                                          me->m_left->m_box[iz].getZ());
+						double leftSupportDist = leftSupportPoint.Dot(dir);
 
-						const hullVector rightSupportPoint(me->m_right->m_box[ix].getX(), me->m_right->m_box[iy].getY(), me->m_right->m_box[iz].getZ(), 0.0f);
-						double rightSupportDist = rightSupportPoint.DotProduct(dir);
+						const nd::VHACD::Vect3<double> rightSupportPoint(me->m_right->m_box[ix].getX(),
+                                                           me->m_right->m_box[iy].getY(),
+                                                           me->m_right->m_box[iz].getZ());
+						double rightSupportDist = rightSupportPoint.Dot(dir);
 
 						if (rightSupportDist >= leftSupportDist)
 						{
@@ -2987,7 +2992,7 @@ namespace nd
 							if (!p.m_mark)
 							{
 								//assert(p.m_w == double(0.0f));
-								double dist = p.DotProduct(dir);
+								double dist = p.Dot(dir);
 								if (dist > maxProj)
 								{
 									maxProj = dist;
@@ -3037,22 +3042,27 @@ namespace nd
 			return index;
 		}
 
-		double ConvexHull::TetrahedrumVolume(const hullVector& p0, const hullVector& p1, const hullVector& p2, const hullVector& p3) const
+        double ConvexHull::TetrahedrumVolume(const nd::VHACD::Vect3<double>& p0,
+                                             const nd::VHACD::Vect3<double>& p1,
+                                             const nd::VHACD::Vect3<double>& p2,
+                                             const nd::VHACD::Vect3<double>& p3) const
 		{
-			const hullVector p1p0(p1 - p0);
-			const hullVector p2p0(p2 - p0);
-			const hullVector p3p0(p3 - p0);
-			return p3p0.DotProduct(p1p0.CrossProduct(p2p0));
+			const nd::VHACD::Vect3<double> p1p0(p1 - p0);
+			const nd::VHACD::Vect3<double> p2p0(p2 - p0);
+			const nd::VHACD::Vect3<double> p3p0(p3 - p0);
+			return p3p0.Dot(p1p0.Cross(p2p0));
 		}
 
-		int ConvexHull::InitVertexArray(std::vector<ConvexHullVertex>& points, void* const memoryPool, int maxMemSize)
+        int ConvexHull::InitVertexArray(std::vector<ConvexHullVertex>& points,
+                                        void* const memoryPool,
+                                        int maxMemSize)
 		{
 		#if 1
 			ConvexHullAABBTreeNode* tree = BuildTreeOld(points, (char**)&memoryPool, maxMemSize);
 		#else
 			ConvexHullAABBTreeNode* tree = BuildTreeNew(points, (char**)&memoryPool, maxMemSize);
 		#endif
-			int count = int (points.size());
+			int count = int(points.size());
 			if (count < 4)
 			{
 				m_points.resize(0);
@@ -3063,23 +3073,27 @@ namespace nd
 			m_aabbP0 = tree->m_box[0];
 			m_aabbP1 = tree->m_box[1];
 	
-			hullVector boxSize(tree->m_box[1] - tree->m_box[0]);
-			m_diag = double(sqrt(boxSize.DotProduct(boxSize)));
+			nd::VHACD::Vect3<double> boxSize(tree->m_box[1] - tree->m_box[0]);
+            m_diag = boxSize.GetNorm();
 			const ndNormalMap& normalMap = ndNormalMap::GetNormaMap();
 	
-			int index0 = SupportVertex(&tree, points, normalMap.m_normal[0]);
+            int index0 = SupportVertex(&tree,
+                                       points,
+                                       normalMap.m_normal[0]);
 			m_points[0] = points[index0];
 			points[index0].m_mark = 1;
 	
 			bool validTetrahedrum = false;
-			hullVector e1(0.0);
+			nd::VHACD::Vect3<double> e1(0.0);
 			for (int i = 1; i < normalMap.m_count; ++i)
 			{
-				int index = SupportVertex(&tree, points, normalMap.m_normal[i]);
+                int index = SupportVertex(&tree,
+                                          points,
+                                          normalMap.m_normal[i]);
 				assert(index >= 0);
 	
 				e1 = points[index] - m_points[0];
-				double error2 = e1.DotProduct(e1);
+				double error2 = e1.GetNormSquared();
 				if (error2 > (double(1.0e-4f) * m_diag * m_diag))
 				{
 					m_points[1] = points[index];
@@ -3096,15 +3110,17 @@ namespace nd
 			}
 	
 			validTetrahedrum = false;
-			hullVector e2(0.0);
-			hullVector normal(0.0);
+			nd::VHACD::Vect3<double> e2(0.0);
+			nd::VHACD::Vect3<double> normal(0.0);
 			for (int i = 2; i < normalMap.m_count; ++i)
 			{
-				int index = SupportVertex(&tree, points, normalMap.m_normal[i]);
+                int index = SupportVertex(&tree,
+                                          points,
+                                          normalMap.m_normal[i]);
 				assert(index >= 0);
 				e2 = points[index] - m_points[0];
-				normal = e1.CrossProduct(e2);
-				double error2 = sqrt(normal.DotProduct(normal));
+				normal = e1.Cross(e2);
+				double error2 = normal.GetNorm();
 				if (error2 > (double(1.0e-4f) * m_diag * m_diag))
 				{
 					m_points[2] = points[index];
@@ -3123,11 +3139,11 @@ namespace nd
 	
 			// find the largest possible tetrahedron
 			validTetrahedrum = false;
-			hullVector e3(0.0);
+			nd::VHACD::Vect3<double> e3(0.0);
 	
 			index0 = SupportVertex(&tree, points, normal);
 			e3 = points[index0] - m_points[0];
-			double err2 = normal.DotProduct(e3);
+			double err2 = normal.Dot(e3);
 			if (fabs(err2) > (double(1.0e-6f) * m_diag * m_diag))
 			{
 				// we found a valid tetrahedral, about and start build the hull by adding the rest of the points
@@ -3137,10 +3153,12 @@ namespace nd
 			}
 			if (!validTetrahedrum)
 			{
-				hullVector n(normal.Scale(double(-1.0f)));
-				int index = SupportVertex(&tree, points, n);
+				nd::VHACD::Vect3<double> n(-normal);
+                int index = SupportVertex(&tree,
+                                          points,
+                                          n);
 				e3 = points[index] - m_points[0];
-				double error2 = normal.DotProduct(e3);
+				double error2 = normal.Dot(e3);
 				if (fabs(error2) > (double(1.0e-6f) * m_diag * m_diag))
 				{
 					// we found a valid tetrahedral, about and start build the hull by adding the rest of the points
@@ -3153,12 +3171,14 @@ namespace nd
 			{
 				for (int i = 3; i < normalMap.m_count; ++i)
 				{
-					int index = SupportVertex(&tree, points, normalMap.m_normal[i]);
+                    int index = SupportVertex(&tree,
+                                              points,
+                                              normalMap.m_normal[i]);
 					assert(index >= 0);
 	
 					//make sure the volume of the fist tetrahedral is no negative
 					e3 = points[index] - m_points[0];
-					double error2 = normal.DotProduct(e3);
+					double error2 = normal.Dot(e3);
 					if (fabs(error2) > (double(1.0e-6f) * m_diag * m_diag))
 					{
 						// we found a valid tetrahedral, about and start build the hull by adding the rest of the points
@@ -3197,7 +3217,11 @@ namespace nd
 			return node;
 		}
 
-		void ConvexHull::CalculateConvexHull3d(ConvexHullAABBTreeNode* vertexTree, std::vector<ConvexHullVertex>& points, int count, double distTol, int maxVertexCount)
+        void ConvexHull::CalculateConvexHull3d(ConvexHullAABBTreeNode* vertexTree,
+                                               std::vector<ConvexHullVertex>& points,
+                                               int count,
+                                               double distTol,
+                                               int maxVertexCount)
 		{
 			distTol = fabs(distTol) * m_diag;
 			ndNode* const f0Node = AddFace(0, 1, 2);
@@ -3274,7 +3298,7 @@ namespace nd
 
 				int index = 0;
 				double dist = 0;
-				hullVector p;
+				nd::VHACD::Vect3<double> p;
 				if (isvalid)
 				{
 					index = SupportVertex(&vertexTree, points, planeEquation);
@@ -3411,13 +3435,9 @@ namespace nd
 	}
 }
 
-
-
 //***********************************************************************************************
 // End of ConvexHull generation code by Julio Jerez <jerezjulio0@gmail.com>
 //***********************************************************************************************
-
-
 
 // VertexIndex support
 namespace VERTEX_INDEX
@@ -3446,372 +3466,148 @@ public:
     double mDistance;
 };
 
-class KdTreeInterface
+class KdTreeNode;
+class KdTreeNodeBundle;
+
+class KdTree
 {
 public:
-    virtual const double* getPositionDouble(uint32_t index) const = 0;
-    virtual const float* getPositionFloat(uint32_t index) const = 0;
+    KdTree() = default;
+
+    ~KdTree() { reset(); }
+
+    const VHACD::Vertex& getPosition(uint32_t index) const;
+
+    uint32_t search(const nd::VHACD::Vect3<double>& pos,
+                    double radius,
+                    uint32_t maxObjects,
+                    KdTreeFindNode* found) const;
+
+    void reset();
+
+    uint32_t add(const VHACD::Vertex& v);
+
+    KdTreeNode* getNewNode(uint32_t index);
+
+    uint32_t getNearest(const nd::VHACD::Vect3<double>& pos,
+                        double radius,
+                        bool& _found) const; // returns the nearest possible neighbor's index.
+
+    const std::vector<VHACD::Vertex>& getVertices() const;
+    std::vector<VHACD::Vertex>&& takeVertices();
+
+    uint32_t getVcount(void) const;
+
+private:
+    KdTreeNode* mRoot = nullptr;
+    KdTreeNodeBundle* mBundle = nullptr;
+    KdTreeNodeBundle* mBundleHead = nullptr;
+
+    std::vector<VHACD::Vertex> mVertices;
 };
 
 class KdTreeNode
 {
 public:
-    KdTreeNode(void)
-    {
-        mIndex = 0;
-        mLeft = 0;
-        mRight = 0;
-    }
+    KdTreeNode() = default;
 
-    KdTreeNode(uint32_t index)
-    {
-        mIndex = index;
-        mLeft = 0;
-        mRight = 0;
-    };
+    KdTreeNode(uint32_t index) : mIndex(index) {}
 
-    ~KdTreeNode(void)
-    {
-    }
+    ~KdTreeNode() = default;
 
-
-    void addDouble(KdTreeNode* node, Axes dim, const KdTreeInterface* iface)
+    void add(KdTreeNode* node,
+             Axes dim,
+             const KdTree* iface)
     {
-        const double* nodePosition = iface->getPositionDouble(node->mIndex);
-        const double* position = iface->getPositionDouble(mIndex);
+        Axes axis = X_AXIS;
+        uint32_t idx = 0;
         switch (dim)
         {
         case X_AXIS:
-            if (nodePosition[0] <= position[0])
-            {
-                if (mLeft)
-                    mLeft->addDouble(node, Y_AXIS, iface);
-                else
-                    mLeft = node;
-            }
-            else
-            {
-                if (mRight)
-                    mRight->addDouble(node, Y_AXIS, iface);
-                else
-                    mRight = node;
-            }
+            idx = 0;
+            axis = Y_AXIS;
             break;
         case Y_AXIS:
-            if (nodePosition[1] <= position[1])
-            {
-                if (mLeft)
-                    mLeft->addDouble(node, Z_AXIS, iface);
-                else
-                    mLeft = node;
-            }
-            else
-            {
-                if (mRight)
-                    mRight->addDouble(node, Z_AXIS, iface);
-                else
-                    mRight = node;
-            }
+            idx = 1;
+            axis = Z_AXIS;
             break;
         case Z_AXIS:
-            if (nodePosition[2] <= position[2])
-            {
-                if (mLeft)
-                    mLeft->addDouble(node, X_AXIS, iface);
-                else
-                    mLeft = node;
-            }
-            else
-            {
-                if (mRight)
-                    mRight->addDouble(node, X_AXIS, iface);
-                else
-                    mRight = node;
-            }
+            idx = 2;
+            axis = X_AXIS;
             break;
         }
-    }
 
-
-    void addFloat(KdTreeNode* node, Axes dim, const KdTreeInterface* iface)
-    {
-        const float* nodePosition = iface->getPositionFloat(node->mIndex);
-        const float* position = iface->getPositionFloat(mIndex);
-        switch (dim)
+        const VHACD::Vertex& nodePosition = iface->getPosition(node->mIndex);
+        const VHACD::Vertex& position = iface->getPosition(mIndex);
+        if (nodePosition[idx] <= position[idx])
         {
-        case X_AXIS:
-            if (nodePosition[0] <= position[0])
-            {
-                if (mLeft)
-                    mLeft->addFloat(node, Y_AXIS, iface);
-                else
-                    mLeft = node;
-            }
+            if (mLeft)
+                mLeft->add(node, axis, iface);
             else
-            {
-                if (mRight)
-                    mRight->addFloat(node, Y_AXIS, iface);
-                else
-                    mRight = node;
-            }
-            break;
-        case Y_AXIS:
-            if (nodePosition[1] <= position[1])
-            {
-                if (mLeft)
-                    mLeft->addFloat(node, Z_AXIS, iface);
-                else
-                    mLeft = node;
-            }
+                mLeft = node;
+        }
+        else
+        {
+            if (mRight)
+                mRight->add(node, axis, iface);
             else
-            {
-                if (mRight)
-                    mRight->addFloat(node, Z_AXIS, iface);
-                else
-                    mRight = node;
-            }
-            break;
-        case Z_AXIS:
-            if (nodePosition[2] <= position[2])
-            {
-                if (mLeft)
-                    mLeft->addFloat(node, X_AXIS, iface);
-                else
-                    mLeft = node;
-            }
-            else
-            {
-                if (mRight)
-                    mRight->addFloat(node, X_AXIS, iface);
-                else
-                    mRight = node;
-            }
-            break;
+                mRight = node;
         }
     }
 
-
-    uint32_t getIndex(void) const
+    uint32_t getIndex() const
     {
         return mIndex;
     };
 
     void search(Axes axis,
-                const double* pos,
+                const nd::VHACD::Vect3<double>& pos,
                 double radius,
                 uint32_t& count,
                 uint32_t maxObjects,
                 KdTreeFindNode* found,
-                const KdTreeInterface* iface)
+                const KdTree* iface)
     {
+        const nd::VHACD::Vect3<double> position = iface->getPosition(mIndex);
 
-        const double* position = iface->getPositionDouble(mIndex);
-
-        double dx = pos[0] - position[0];
-        double dy = pos[1] - position[1];
-        double dz = pos[2] - position[2];
+        const nd::VHACD::Vect3<double> d = pos - position;
 
         KdTreeNode* search1 = 0;
         KdTreeNode* search2 = 0;
 
+        uint32_t idx = 0;
         switch (axis)
         {
         case X_AXIS:
-            if (dx <= 0) // JWR  if we are to the left
-            {
-                search1 = mLeft; // JWR  then search to the left
-                if (-dx < radius) // JWR  if distance to the right is less than our search radius, continue on the right
-                                  // as well.
-                    search2 = mRight;
-            }
-            else
-            {
-                search1 = mRight; // JWR  ok, we go down the left tree
-                if (dx < radius) // JWR  if the distance from the right is less than our search radius
-                    search2 = mLeft;
-            }
+            idx = 0;
             axis = Y_AXIS;
             break;
         case Y_AXIS:
-            if (dy <= 0)
-            {
-                search1 = mLeft;
-                if (-dy < radius)
-                    search2 = mRight;
-            }
-            else
-            {
-                search1 = mRight;
-                if (dy < radius)
-                    search2 = mLeft;
-            }
+            idx = 1;
             axis = Z_AXIS;
             break;
         case Z_AXIS:
-            if (dz <= 0)
-            {
-                search1 = mLeft;
-                if (-dz < radius)
-                    search2 = mRight;
-            }
-            else
-            {
-                search1 = mRight;
-                if (dz < radius)
-                    search2 = mLeft;
-            }
+            idx = 2;
             axis = X_AXIS;
             break;
+        }
+
+        if (d[idx] <= 0) // JWR  if we are to the left
+        {
+            search1 = mLeft; // JWR  then search to the left
+            if (-d[idx] < radius) // JWR  if distance to the right is less than our search radius, continue on the right
+                                // as well.
+                search2 = mRight;
+        }
+        else
+        {
+            search1 = mRight; // JWR  ok, we go down the left tree
+            if (d[idx] < radius) // JWR  if the distance from the right is less than our search radius
+                search2 = mLeft;
         }
 
         double r2 = radius * radius;
-        double m = dx * dx + dy * dy + dz * dz;
-
-        if (m < r2)
-        {
-            switch (count)
-            {
-            case 0:
-                found[count].mNode = this;
-                found[count].mDistance = m;
-                break;
-            case 1:
-                if (m < found[0].mDistance)
-                {
-                    if (maxObjects == 1)
-                    {
-                        found[0].mNode = this;
-                        found[0].mDistance = m;
-                    }
-                    else
-                    {
-                        found[1] = found[0];
-                        found[0].mNode = this;
-                        found[0].mDistance = m;
-                    }
-                }
-                else if (maxObjects > 1)
-                {
-                    found[1].mNode = this;
-                    found[1].mDistance = m;
-                }
-                break;
-            default:
-            {
-                bool inserted = false;
-
-                for (uint32_t i = 0; i < count; i++)
-                {
-                    if (m < found[i].mDistance) // if this one is closer than a pre-existing one...
-                    {
-                        // insertion sort...
-                        uint32_t scan = count;
-                        if (scan >= maxObjects)
-                            scan = maxObjects - 1;
-                        for (uint32_t j = scan; j > i; j--)
-                        {
-                            found[j] = found[j - 1];
-                        }
-                        found[i].mNode = this;
-                        found[i].mDistance = m;
-                        inserted = true;
-                        break;
-                    }
-                }
-
-                if (!inserted && count < maxObjects)
-                {
-                    found[count].mNode = this;
-                    found[count].mDistance = m;
-                }
-            }
-            break;
-            }
-            count++;
-            if (count > maxObjects)
-            {
-                count = maxObjects;
-            }
-        }
-
-
-        if (search1)
-            search1->search(axis, pos, radius, count, maxObjects, found, iface);
-
-        if (search2)
-            search2->search(axis, pos, radius, count, maxObjects, found, iface);
-    }
-
-    void search(Axes axis,
-                const float* pos,
-                float radius,
-                uint32_t& count,
-                uint32_t maxObjects,
-                KdTreeFindNode* found,
-                const KdTreeInterface* iface)
-    {
-
-        const float* position = iface->getPositionFloat(mIndex);
-
-        float dx = pos[0] - position[0];
-        float dy = pos[1] - position[1];
-        float dz = pos[2] - position[2];
-
-        KdTreeNode* search1 = 0;
-        KdTreeNode* search2 = 0;
-
-        switch (axis)
-        {
-        case X_AXIS:
-            if (dx <= 0) // JWR  if we are to the left
-            {
-                search1 = mLeft; // JWR  then search to the left
-                if (-dx < radius) // JWR  if distance to the right is less than our search radius, continue on the right
-                                  // as well.
-                    search2 = mRight;
-            }
-            else
-            {
-                search1 = mRight; // JWR  ok, we go down the left tree
-                if (dx < radius) // JWR  if the distance from the right is less than our search radius
-                    search2 = mLeft;
-            }
-            axis = Y_AXIS;
-            break;
-        case Y_AXIS:
-            if (dy <= 0)
-            {
-                search1 = mLeft;
-                if (-dy < radius)
-                    search2 = mRight;
-            }
-            else
-            {
-                search1 = mRight;
-                if (dy < radius)
-                    search2 = mLeft;
-            }
-            axis = Z_AXIS;
-            break;
-        case Z_AXIS:
-            if (dz <= 0)
-            {
-                search1 = mLeft;
-                if (-dz < radius)
-                    search2 = mRight;
-            }
-            else
-            {
-                search1 = mRight;
-                if (dz < radius)
-                    search2 = mLeft;
-            }
-            axis = X_AXIS;
-            break;
-        }
-
-        float r2 = radius * radius;
-        float m = dx * dx + dy * dy + dz * dz;
+        double m = d.GetNormSquared();
 
         if (m < r2)
         {
@@ -3907,9 +3703,9 @@ private:
         return mRight;
     }
 
-    uint32_t mIndex;
-    KdTreeNode* mLeft;
-    KdTreeNode* mRight;
+    uint32_t mIndex = 0;
+    KdTreeNode* mLeft = nullptr;
+    KdTreeNode* mRight = nullptr;
 };
 
 
@@ -3919,18 +3715,14 @@ private:
 class KdTreeNodeBundle
 {
 public:
-    KdTreeNodeBundle(void)
+    KdTreeNodeBundle() = default;
+
+    bool isFull() const
     {
-        mNext = 0;
-        mIndex = 0;
+        return mIndex == MAX_BUNDLE_SIZE;
     }
 
-    bool isFull(void) const
-    {
-        return (bool)(mIndex == MAX_BUNDLE_SIZE);
-    }
-
-    KdTreeNode* getNextNode(void)
+    KdTreeNode* getNextNode()
     {
         assert(mIndex < MAX_BUNDLE_SIZE);
         KdTreeNode* ret = &mNodes[mIndex];
@@ -3938,218 +3730,112 @@ public:
         return ret;
     }
 
-    KdTreeNodeBundle* mNext;
-    uint32_t mIndex;
+    KdTreeNodeBundle* mNext = nullptr;
+    uint32_t mIndex = 0;
     KdTreeNode mNodes[MAX_BUNDLE_SIZE];
 };
 
-
-typedef std::vector<double> DoubleVector;
-typedef std::vector<float> FloatVector;
-
-class KdTree : public KdTreeInterface
+const VHACD::Vertex& KdTree::getPosition(uint32_t index) const
 {
-public:
-    KdTree(void)
+    assert(index < mVertices.size());
+    return mVertices[index];
+}
+
+uint32_t KdTree::search(const nd::VHACD::Vect3<double>& pos,
+                        double radius,
+                        uint32_t maxObjects,
+                        KdTreeFindNode* found) const
+{
+    if (!mRoot)
+        return 0;
+    uint32_t count = 0;
+    mRoot->search(X_AXIS, pos, radius, count, maxObjects, found, this);
+    return count;
+}
+
+void KdTree::reset()
+{
+    mRoot = nullptr;
+    mVertices.clear();
+    KdTreeNodeBundle* bundle = mBundleHead;
+    while (bundle)
     {
-        mRoot = 0;
-        mBundle = 0;
-        mVcount = 0;
-        mUseDouble = false;
+        KdTreeNodeBundle* next = bundle->mNext;
+        delete bundle;
+        bundle = next;
     }
+    mBundle = nullptr;
+    mBundleHead = nullptr;
+}
 
-    virtual ~KdTree(void)
+uint32_t KdTree::add(const VHACD::Vertex& v)
+{
+    uint32_t ret = uint32_t(mVertices.size());
+    mVertices.emplace_back(v);
+    KdTreeNode* node = getNewNode(ret);
+    if (mRoot)
     {
-        reset();
+        mRoot->add(node,
+                   X_AXIS,
+                   this);
     }
-
-    const double* getPositionDouble(uint32_t index) const
+    else
     {
-        assert(mUseDouble);
-        assert(index < mVcount);
-        return &mVerticesDouble[index * 3];
+        mRoot = node;
     }
+    return ret;
+}
 
-    const float* getPositionFloat(uint32_t index) const
+KdTreeNode* KdTree::getNewNode(uint32_t index)
+{
+    if (mBundle == 0)
     {
-        assert(!mUseDouble);
-        assert(index < mVcount);
-        return &mVerticesFloat[index * 3];
+        mBundle = new KdTreeNodeBundle;
+        mBundleHead = mBundle;
     }
-
-    uint32_t search(const double* pos, double radius, uint32_t maxObjects, KdTreeFindNode* found) const
+    if (mBundle->isFull())
     {
-        assert(mUseDouble);
-        if (!mRoot)
-            return 0;
-        uint32_t count = 0;
-        mRoot->search(X_AXIS, pos, radius, count, maxObjects, found, this);
-        return count;
+        KdTreeNodeBundle* bundle = new KdTreeNodeBundle;
+        mBundle->mNext = bundle;
+        mBundle = bundle;
     }
+    KdTreeNode* node = mBundle->getNextNode();
+    new (node) KdTreeNode(index);
+    return node;
+}
 
-    uint32_t search(const float* pos, float radius, uint32_t maxObjects, KdTreeFindNode* found) const
+uint32_t KdTree::getNearest(const nd::VHACD::Vect3<double>& pos,
+                            double radius,
+                            bool& _found) const // returns the nearest possible neighbor's index.
+{
+    uint32_t ret = 0;
+
+    _found = false;
+    KdTreeFindNode found[1];
+    uint32_t count = search(pos, radius, 1, found);
+    if (count)
     {
-        assert(!mUseDouble);
-        if (!mRoot)
-            return 0;
-        uint32_t count = 0;
-        mRoot->search(X_AXIS, pos, radius, count, maxObjects, found, this);
-        return count;
+        KdTreeNode* node = found[0].mNode;
+        ret = node->getIndex();
+        _found = true;
     }
+    return ret;
+}
 
-    void reset(void)
-    {
-        mRoot = 0;
-        mVerticesDouble.clear();
-        mVerticesFloat.clear();
-        KdTreeNodeBundle* bundle = mBundleHead;
-        while (bundle)
-        {
-            KdTreeNodeBundle* next = bundle->mNext;
-            delete bundle;
-            bundle = next;
-        }
-        mBundle = 0;
-        mBundleHead = 0;
-        mVcount = 0;
-    }
+const std::vector<VHACD::Vertex>& KdTree::getVertices() const
+{
+    return mVertices;
+}
 
-    uint32_t add(double x, double y, double z)
-    {
-        assert(mUseDouble);
-        uint32_t ret = mVcount;
-        mVerticesDouble.push_back(x);
-        mVerticesDouble.push_back(y);
-        mVerticesDouble.push_back(z);
-        mVcount++;
-        KdTreeNode* node = getNewNode(ret);
-        if (mRoot)
-        {
-            mRoot->addDouble(node, X_AXIS, this);
-        }
-        else
-        {
-            mRoot = node;
-        }
-        return ret;
-    }
+std::vector<VHACD::Vertex>&& KdTree::takeVertices()
+{
+    return std::move(mVertices);
+}
 
-    uint32_t add(float x, float y, float z)
-    {
-        assert(!mUseDouble);
-        uint32_t ret = mVcount;
-        mVerticesFloat.push_back(x);
-        mVerticesFloat.push_back(y);
-        mVerticesFloat.push_back(z);
-        mVcount++;
-        KdTreeNode* node = getNewNode(ret);
-        if (mRoot)
-        {
-            mRoot->addFloat(node, X_AXIS, this);
-        }
-        else
-        {
-            mRoot = node;
-        }
-        return ret;
-    }
-
-    KdTreeNode* getNewNode(uint32_t index)
-    {
-        if (mBundle == 0)
-        {
-            mBundle = new KdTreeNodeBundle;
-            mBundleHead = mBundle;
-        }
-        if (mBundle->isFull())
-        {
-            KdTreeNodeBundle* bundle = new KdTreeNodeBundle;
-            mBundle->mNext = bundle;
-            mBundle = bundle;
-        }
-        KdTreeNode* node = mBundle->getNextNode();
-        new (node) KdTreeNode(index);
-        return node;
-    }
-
-    uint32_t getNearest(const double* pos, double radius, bool& _found) const // returns the nearest possible neighbor's
-                                                                              // index.
-    {
-        assert(mUseDouble);
-        uint32_t ret = 0;
-
-        _found = false;
-        KdTreeFindNode found[1];
-        uint32_t count = search(pos, radius, 1, found);
-        if (count)
-        {
-            KdTreeNode* node = found[0].mNode;
-            ret = node->getIndex();
-            _found = true;
-        }
-        return ret;
-    }
-
-    uint32_t getNearest(const float* pos, float radius, bool& _found) const // returns the nearest possible neighbor's
-                                                                            // index.
-    {
-        assert(!mUseDouble);
-        uint32_t ret = 0;
-
-        _found = false;
-        KdTreeFindNode found[1];
-        uint32_t count = search(pos, radius, 1, found);
-        if (count)
-        {
-            KdTreeNode* node = found[0].mNode;
-            ret = node->getIndex();
-            _found = true;
-        }
-        return ret;
-    }
-
-    const double* getVerticesDouble(void) const
-    {
-        assert(mUseDouble);
-        const double* ret = 0;
-        if (!mVerticesDouble.empty())
-        {
-            ret = &mVerticesDouble[0];
-        }
-        return ret;
-    }
-
-    const float* getVerticesFloat(void) const
-    {
-        assert(!mUseDouble);
-        const float* ret = 0;
-        if (!mVerticesFloat.empty())
-        {
-            ret = &mVerticesFloat[0];
-        }
-        return ret;
-    }
-
-    uint32_t getVcount(void) const
-    {
-        return mVcount;
-    };
-
-    void setUseDouble(bool useDouble)
-    {
-        mUseDouble = useDouble;
-    }
-
-private:
-    bool mUseDouble;
-    KdTreeNode* mRoot;
-    KdTreeNodeBundle* mBundle;
-    KdTreeNodeBundle* mBundleHead = NULL;
-
-    uint32_t mVcount;
-    DoubleVector mVerticesDouble;
-    FloatVector mVerticesFloat;
-};
+uint32_t KdTree::getVcount() const
+{
+    return uint32_t(mVertices.size());
+}
 
 }; // end of namespace VERTEX_INDEX
 
@@ -4159,102 +3845,45 @@ private:
 namespace VHACD
 {
 
-double fm_normalize(double n[3]); // normalize this vector and return the distance
+// Compute centroid of a triangle mesh; takes area of each triangle into account weighted average
+// bool fm_computeCentroid(uint32_t vcount, // number of input data points
+//                         const VHACD::Vertex* points, // starting address of points array.
+//                         uint32_t triangleCount,
+//                         const VHACD::Triangle* indices,
+//                         double* center);
 
-                                  // Compute centroid of a triangle mesh; takes area of each triangle into account
-// weighted average
-bool fm_computeCentroid(uint32_t vcount, // number of input data points
-                        const double* points, // starting address of points array.
-                        uint32_t triangleCount,
-                        const uint32_t* indices,
-                        double* center);
+// double fm_computeMeshVolume(const VHACD::Vertex* vertices,
+//                             uint32_t tcount,
+//                             const VHACD::Triangle* indices);
 
-double fm_computeMeshVolume(const double* vertices, uint32_t tcount, const uint32_t* indices);
-
-void fm_initMinMax(double bmin[3], double bmax[3]);
-void fm_minmax(const double p[3], double bmin[3], double bmax[3]); // accumulate to a min-max value
-void fm_inflateMinMax(double bmin[3], double bmax[3], double ratio);
-void fm_getAABB(uint32_t vcount, const double* points, uint32_t pstride, double bmin[3], double bmax[3]);
-bool fm_intersectAABB(const double bmin1[3], const double bmax1[3], const double bmin2[3], const double bmax2[3]);
-void fm_combineAABB(const double bmin1[3], const double bmax1[3], const double bmin2[3], const double bmax2[3],double bmin[3],double bmax[3]);
-double fm_volumeAABB(const double bmin[3],const double bmax[3]);
-
-class fm_VertexIndex
-{
-public:
-    virtual uint32_t getIndex(const float pos[3], bool& newPos) = 0; // get welded index for this float vector[3]
-    virtual uint32_t getIndex(const double pos[3], bool& newPos) = 0; // get welded index for this double vector[3]
-    virtual const float* getVerticesFloat(void) const = 0;
-    virtual const double* getVerticesDouble(void) const = 0;
-    virtual const float* getVertexFloat(uint32_t index) const = 0;
-    virtual const double* getVertexDouble(uint32_t index) const = 0;
-    virtual uint32_t getVcount(void) const = 0;
-    virtual bool isDouble(void) const = 0;
-    virtual bool saveAsObj(const char* fname, uint32_t tcount, uint32_t* indices) = 0;
-};
-
-fm_VertexIndex* fm_createVertexIndex(double granularity, bool snapToGrid); // create an indexed vertex system for
-                                                                           // doubles
-fm_VertexIndex* fm_createVertexIndex(float granularity, bool snapToGrid); // create an indexed vertext system for floats
-void fm_releaseVertexIndex(fm_VertexIndex* vindex);
+// void fm_inflateMinMax(double bmin[3],
+//                       double bmax[3],
+//                       double ratio);
+// void fm_getAABB(uint32_t vcount,
+//                 const double* points,
+//                 uint32_t pstride,
+//                 double bmin[3],
+//                 double bmax[3]);
+// bool fm_intersectAABB(const double bmin1[3],
+//                       const double bmax1[3],
+//                       const double bmin2[3],
+//                       const double bmax2[3]);
+// void fm_combineAABB(const double bmin1[3],
+//                     const double bmax1[3],
+//                     const double bmin2[3],
+//                     const double bmax2[3],
+//                     double bmin[3],
+//                     double bmax[3]);
+// double fm_volumeAABB(const double bmin[3],
+//                      const double bmax[3]);
 
 //********************************************************************************************************************
 // Implementation of the handful of FloatMath methods we actually use
 //********************************************************************************************************************
-double fm_normalize(double* n) // normalize this vector
-{
-    double dist = (double)sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
-    if (dist > 0.0000001f)
-    {
-        double mag = 1.0f / dist;
-        n[0] *= mag;
-        n[1] *= mag;
-        n[2] *= mag;
-    }
-    else
-    {
-        n[0] = 1;
-        n[1] = 0;
-        n[2] = 0;
-    }
 
-    return dist;
-}
-
-static double enorm0_3d(double x0, double y0, double z0, double x1, double y1, double z1)
-
-/**********************************************************************/
-
-/*
-Purpose:
-
-ENORM0_3D computes the Euclidean norm of (P1-P0) in 3D.
-
-Modified:
-
-18 April 1999
-
-Author:
-
-John Burkardt
-
-Parameters:
-
-Input, double X0, Y0, Z0, X1, Y1, Z1, the coordinates of the points
-P0 and P1.
-
-Output, double ENORM0_3D, the Euclidean norm of (P1-P0).
-*/
-{
-    double value;
-
-    value = (double)sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + (z1 - z0) * (z1 - z0));
-
-    return value;
-}
-
-
-static double triangle_area_3d(double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3)
+static double triangle_area_3d(const nd::VHACD::Vect3<double>& p1,
+                               const nd::VHACD::Vect3<double>& p2,
+                               const nd::VHACD::Vect3<double>& p3)
 
 /**********************************************************************/
 
@@ -4279,24 +3908,15 @@ coordinates of the corners of the triangle.
 Output, double TRIANGLE_AREA_3D, the area of the triangle.
 */
 {
-    double a;
-    double alpha;
-    double area;
-    double b;
-    double base;
-    double c;
-    double dot;
-    double height;
     /*
     Find the projection of (P3-P1) onto (P2-P1).
     */
-    dot = (x2 - x1) * (x3 - x1) + (y2 - y1) * (y3 - y1) + (z2 - z1) * (z3 - z1);
-
-    base = enorm0_3d(x1, y1, z1, x2, y2, z2);
+    double base = (p2 - p1).GetNorm();
     /*
     The height of the triangle is the length of (P3-P1) after its
     projection onto (P2-P1) has been subtracted.
     */
+    double height;
     if (base == 0.0)
     {
 
@@ -4304,106 +3924,94 @@ Output, double TRIANGLE_AREA_3D, the area of the triangle.
     }
     else
     {
+        double dot = (p3 - p1).Dot(p2 - p1);
+        double alpha = dot / (base * base);
 
-        alpha = dot / (base * base);
+        double a = p3.getX() - p1.getX() - alpha * (p2.getX() - p1.getX());
+        double b = p3.getY() - p1.getY() - alpha * (p2.getY() - p1.getY());
+        double c = p3.getZ() - p1.getZ() - alpha * (p2.getZ() - p1.getZ());
 
-        a = x3 - x1 - alpha * (x2 - x1);
-        b = y3 - y1 - alpha * (y2 - y1);
-        c = z3 - z1 - alpha * (z2 - z1);
-
-        height = (double)sqrt(a * a + b * b + c * c);
+        height = std::sqrt(a * a + b * b + c * c);
     }
 
-    area = 0.5f * base * height;
-
-    return area;
+    return 0.5f * base * height;
 }
 
-
-double fm_computeArea(const double* p1, const double* p2, const double* p3)
+double fm_computeArea(const nd::VHACD::Vect3<double>& p1,
+                      const nd::VHACD::Vect3<double>& p2,
+                      const nd::VHACD::Vect3<double>& p3)
 {
-    double ret = 0;
-
-    ret = triangle_area_3d(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2], p3[0], p3[1], p3[2]);
-
-    return ret;
+    return triangle_area_3d(p1,
+                            p2,
+                            p3);
 }
 
-
-
-bool fm_computeCentroid(uint32_t vcount, // number of input data points
-                        const double* points, // starting address of points array.
-                        uint32_t triCount,
-                        const uint32_t* indices,
-                        double* center)
+bool fm_computeCentroid(const std::vector<VHACD::Vertex>& points,
+                        const std::vector<VHACD::Triangle>& indices,
+                        nd::VHACD::Vect3<double>& center)
 
 {
     bool ret = false;
-    if (vcount)
+    if (points.size())
     {
-        center[0] = 0;
-        center[1] = 0;
-        center[2] = 0;
+        center = nd::VHACD::Vect3<double>(0);
 
-        double numerator[3] = { 0, 0, 0 };
-        double denomintaor = 0;
+        nd::VHACD::Vect3<double> numerator(0);
+        double denominator = 0;
 
-        for (uint32_t i = 0; i < triCount; i++)
+        for (uint32_t i = 0; i < indices.size(); i++)
         {
-            uint32_t i1 = indices[i * 3 + 0];
-            uint32_t i2 = indices[i * 3 + 1];
-            uint32_t i3 = indices[i * 3 + 2];
+            uint32_t i1 = indices[i].mI0;
+            uint32_t i2 = indices[i].mI1;
+            uint32_t i3 = indices[i].mI2;
 
-            const double* p1 = &points[i1 * 3];
-            const double* p2 = &points[i2 * 3];
-            const double* p3 = &points[i3 * 3];
+            const nd::VHACD::Vect3<double>& p1 = points[i1];
+            const nd::VHACD::Vect3<double>& p2 = points[i2];
+            const nd::VHACD::Vect3<double>& p3 = points[i3];
 
-            // Compute the sum of the three positions
-            double sum[3];
-            sum[0] = p1[0] + p2[0] + p3[0];
-            sum[1] = p1[1] + p2[1] + p3[1];
-            sum[2] = p1[2] + p2[2] + p3[2];
-
-            // Compute the average of the three positions
-            sum[0] = sum[0] / 3;
-            sum[1] = sum[1] / 3;
-            sum[2] = sum[2] / 3;
+            // Compute the average of the sum of the three positions
+            nd::VHACD::Vect3<double> sum = (p1 + p2 + p3) / 3;
 
             // Compute the area of this triangle
-            double area = fm_computeArea(p1, p2, p3);
+            double area = fm_computeArea(p1,
+                                         p2,
+                                         p3);
 
-            numerator[0] += (sum[0] * area);
-            numerator[1] += (sum[1] * area);
-            numerator[2] += (sum[2] * area);
+            numerator += (sum * area);
 
-            denomintaor += area;
+            denominator += area;
         }
-        double recip = 1 / denomintaor;
-        center[0] = numerator[0] * recip;
-        center[1] = numerator[1] * recip;
-        center[2] = numerator[2] * recip;
+        double recip = 1 / denominator;
+        center = numerator * recip;
         ret = true;
     }
     return ret;
 }
 
-inline double det(const double* p1, const double* p2, const double* p3)
+inline double det(const VHACD::Vertex& p1,
+                  const VHACD::Vertex& p2,
+                  const VHACD::Vertex& p3)
 {
-    return p1[0] * p2[1] * p3[2] + p2[0] * p3[1] * p1[2] + p3[0] * p1[1] * p2[2] - p1[0] * p3[1] * p2[2] -
-           p2[0] * p1[1] * p3[2] - p3[0] * p2[1] * p1[2];
+    return p1.mX * p2.mY * p3.mZ +
+           p2.mX * p3.mY * p1.mZ +
+           p3.mX * p1.mY * p2.mZ -
+           p1.mX * p3.mY * p2.mZ -
+           p2.mX * p1.mY * p3.mZ -
+           p3.mX * p2.mY * p1.mZ;
 }
 
-
-double fm_computeMeshVolume(const double* vertices, uint32_t tcount, const uint32_t* indices)
+double fm_computeMeshVolume(const std::vector<VHACD::Vertex>& vertices,
+                            const std::vector<VHACD::Triangle>& indices)
 {
     double volume = 0;
-
-    for (uint32_t i = 0; i < tcount; i++, indices += 3)
+    for (uint32_t i = 0; i < indices.size(); i++)
     {
-        const double* p1 = &vertices[indices[0] * 3];
-        const double* p2 = &vertices[indices[1] * 3];
-        const double* p3 = &vertices[indices[2] * 3];
-        volume += det(p1, p2, p3); // compute the volume of the tetrahedran relative to the origin.
+        const VHACD::Vertex& p1 = vertices[indices[i].mI0];
+        const VHACD::Vertex& p2 = vertices[indices[i].mI1];
+        const VHACD::Vertex& p3 = vertices[indices[i].mI2];
+        volume += det(p1,
+                      p2,
+                      p3); // compute the volume of the tetrahedran relative to the origin.
     }
 
     volume *= (1.0f / 6.0f);
@@ -4412,191 +4020,89 @@ double fm_computeMeshVolume(const double* vertices, uint32_t tcount, const uint3
     return volume;
 }
 
-void fm_initMinMax(double bmin[3], double bmax[3])
+void fm_inflateMinMax(nd::VHACD::Vect3<double>& bmin,
+                      nd::VHACD::Vect3<double>& bmax,
+                      double ratio)
 {
-    bmin[0] = FLT_MAX;
-    bmin[1] = FLT_MAX;
-    bmin[2] = FLT_MAX;
-
-    bmax[0] = -FLT_MAX;
-    bmax[1] = -FLT_MAX;
-    bmax[2] = -FLT_MAX;
+    double inflate = (bmin - bmax).GetNorm() * 0.5 * ratio;
+    bmin -= inflate;
+    bmax += inflate;
 }
 
-void fm_minmax(const double* p, double* bmin, double* bmax) // accmulate to a min-max value
+void fm_combineAABB(const nd::VHACD::Vect3<double>& bmin1,
+                    const nd::VHACD::Vect3<double>& bmax1,
+                    const nd::VHACD::Vect3<double>& bmin2,
+                    const nd::VHACD::Vect3<double>& bmax2,
+                    nd::VHACD::Vect3<double>& bmin,
+                    nd::VHACD::Vect3<double>& bmax)
 {
-
-    if (p[0] < bmin[0])
-        bmin[0] = p[0];
-    if (p[1] < bmin[1])
-        bmin[1] = p[1];
-    if (p[2] < bmin[2])
-        bmin[2] = p[2];
-
-    if (p[0] > bmax[0])
-        bmax[0] = p[0];
-    if (p[1] > bmax[1])
-        bmax[1] = p[1];
-    if (p[2] > bmax[2])
-        bmax[2] = p[2];
+    bmin = bmin1.CWiseMin(bmin2);
+    bmax = bmax1.CWiseMax(bmax2);
 }
 
-double fm_distance(const double* p1, const double* p2)
+double fm_volumeAABB(const nd::VHACD::Vect3<double>& bmin,
+                     const nd::VHACD::Vect3<double>& bmax)
 {
-    double dx = p1[0] - p2[0];
-    double dy = p1[1] - p2[1];
-    double dz = p1[2] - p2[2];
-
-    return (double)sqrt(dx * dx + dy * dy + dz * dz);
-}
-
-void fm_inflateMinMax(double bmin[3], double bmax[3], double ratio)
-{
-    double inflate = fm_distance(bmin, bmax) * 0.5f * ratio;
-
-    bmin[0] -= inflate;
-    bmin[1] -= inflate;
-    bmin[2] -= inflate;
-
-    bmax[0] += inflate;
-    bmax[1] += inflate;
-    bmax[2] += inflate;
-}
-
-void fm_combineAABB(const double bmin1[3], const double bmax1[3], const double bmin2[3], const double bmax2[3],double bmin[3],double bmax[3])
-{
-    bmin[0] = bmin1[0];
-    bmin[1] = bmin1[1];
-    bmin[2] = bmin1[2];
-
-    bmax[0] = bmax1[0];
-    bmax[1] = bmax1[1];
-    bmax[2] = bmax1[2];
-
-    for (uint32_t i=0; i<3; i++)
-    {
-        if ( bmin2[i] < bmin[i])
-        {
-            bmin[i] = bmin2[i];
-        }
-        if ( bmax2[i] > bmax[i])
-        {
-            bmax[i] = bmax2[i];
-        }
-    }
-}
-
-double fm_volumeAABB(const double bmin[3],const double bmax[3])
-{
-    double dx = bmax[0] - bmin[0];
-    double dy = bmax[1] - bmin[1];
-    double dz = bmax[2] - bmin[2];
+    double dx = bmax.getX() - bmin.getX();
+    double dy = bmax.getY() - bmin.getY();
+    double dz = bmax.getZ() - bmin.getZ();
     return dx*dy*dz;
 }
 
-bool fm_intersectAABB(const double* bmin1, const double* bmax1, const double* bmin2, const double* bmax2)
+bool fm_intersectAABB(const nd::VHACD::Vect3<double>& bmin1,
+                      const nd::VHACD::Vect3<double>& bmax1,
+                      const nd::VHACD::Vect3<double>& bmin2,
+                      const nd::VHACD::Vect3<double>& bmax2)
 {
-    if ((bmin1[0] > bmax2[0]) || (bmin2[0] > bmax1[0]))
+    if ((bmin1.getX() > bmax2.getX()) || (bmin2.getX() > bmax1.getX()))
         return false;
-    if ((bmin1[1] > bmax2[1]) || (bmin2[1] > bmax1[1]))
+    if ((bmin1.getY() > bmax2.getY()) || (bmin2.getY() > bmax1.getY()))
         return false;
-    if ((bmin1[2] > bmax2[2]) || (bmin2[2] > bmax1[2]))
+    if ((bmin1.getZ() > bmax2.getZ()) || (bmin2.getZ() > bmax1.getZ()))
         return false;
     return true;
 }
 
-void fm_getAABB(uint32_t vcount, const double* points, uint32_t pstride, double* bmin, double* bmax)
+void fm_getAABB(const std::vector<VHACD::Vertex>& points,
+                nd::VHACD::Vect3<double>& bmin,
+                nd::VHACD::Vect3<double>& bmax)
 {
+    bmin = points[0];
+    bmax = points[0];
 
-    const uint8_t* source = (const uint8_t*)points;
-
-    bmin[0] = points[0];
-    bmin[1] = points[1];
-    bmin[2] = points[2];
-
-    bmax[0] = points[0];
-    bmax[1] = points[1];
-    bmax[2] = points[2];
-
-
-    for (uint32_t i = 1; i < vcount; i++)
+    for (uint32_t i = 1; i < points.size(); i++)
     {
-        source += pstride;
-        const double* p = (const double*)source;
-
-        if (p[0] < bmin[0])
-            bmin[0] = p[0];
-        if (p[1] < bmin[1])
-            bmin[1] = p[1];
-        if (p[2] < bmin[2])
-            bmin[2] = p[2];
-
-        if (p[0] > bmax[0])
-            bmax[0] = p[0];
-        if (p[1] > bmax[1])
-            bmax[1] = p[1];
-        if (p[2] > bmax[2])
-            bmax[2] = p[2];
+        const VHACD::Vertex& p = points[i];
+        bmin = bmin.CWiseMin(p);
+        bmax = bmax.CWiseMax(p);
     }
 }
 
-
-class MyVertexIndex : public fm_VertexIndex
+class MyVertexIndex
 {
 public:
-    MyVertexIndex(double granularity, bool snapToGrid)
-    {
-        mDoubleGranularity = granularity;
-        mFloatGranularity = (float)granularity;
-        mSnapToGrid = snapToGrid;
-        mUseDouble = true;
-        mKdTree.setUseDouble(true);
-    }
-
-    MyVertexIndex(float granularity, bool snapToGrid)
-    {
-        mDoubleGranularity = granularity;
-        mFloatGranularity = (float)granularity;
-        mSnapToGrid = snapToGrid;
-        mUseDouble = false;
-        mKdTree.setUseDouble(false);
-    }
-
-    virtual ~MyVertexIndex(void)
+    MyVertexIndex(double granularity,
+                  bool snapToGrid)
+        : mSnapToGrid(snapToGrid)
+        , mGranularity(granularity)
     {
     }
-
 
     double snapToGrid(double p)
     {
-        double m = fmod(p, mDoubleGranularity);
+        double m = fmod(p, mGranularity);
         p -= m;
         return p;
     }
 
-    float snapToGrid(float p)
-    {
-        float m = fmodf(p, mFloatGranularity);
-        p -= m;
-        return p;
-    }
-
-    uint32_t getIndex(const float* _p, bool& newPos) // get index for a vector float
+    uint32_t getIndex(const nd::VHACD::Vect3<double>& _p,
+                      bool& newPos) // get index for a vector double
     {
         uint32_t ret;
 
-        if (mUseDouble)
-        {
-            double p[3];
-            p[0] = _p[0];
-            p[1] = _p[1];
-            p[2] = _p[2];
-            return getIndex(p, newPos);
-        }
-
         newPos = false;
 
-        float p[3];
+        nd::VHACD::Vect3<double> p;
 
         if (mSnapToGrid)
         {
@@ -4612,147 +4118,49 @@ public:
         }
 
         bool found;
-        ret = mKdTree.getNearest(p, mFloatGranularity, found);
+        ret = mKdTree.getNearest(p, mGranularity, found);
         if (!found)
         {
             newPos = true;
-            ret = mKdTree.add(p[0], p[1], p[2]);
+            ret = mKdTree.add(VHACD::Vertex(p.getX(), p.getY(), p.getZ()));
         }
 
-
         return ret;
     }
 
-    uint32_t getIndex(const double* _p, bool& newPos) // get index for a vector double
+    const std::vector<VHACD::Vertex>& getVertices() const
     {
-        uint32_t ret;
-
-        if (!mUseDouble)
-        {
-            float p[3];
-            p[0] = (float)_p[0];
-            p[1] = (float)_p[1];
-            p[2] = (float)_p[2];
-            return getIndex(p, newPos);
-        }
-
-        newPos = false;
-
-        double p[3];
-
-        if (mSnapToGrid)
-        {
-            p[0] = snapToGrid(_p[0]);
-            p[1] = snapToGrid(_p[1]);
-            p[2] = snapToGrid(_p[2]);
-        }
-        else
-        {
-            p[0] = _p[0];
-            p[1] = _p[1];
-            p[2] = _p[2];
-        }
-
-        bool found;
-        ret = mKdTree.getNearest(p, mDoubleGranularity, found);
-        if (!found)
-        {
-            newPos = true;
-            ret = mKdTree.add(p[0], p[1], p[2]);
-        }
-
-
-        return ret;
+        return mKdTree.getVertices();
     }
 
-    const float* getVerticesFloat(void) const
+    std::vector<VHACD::Vertex>&& takeVertices()
     {
-        const float* ret = 0;
-
-        assert(!mUseDouble);
-
-        ret = mKdTree.getVerticesFloat();
-
-        return ret;
+        return std::move(mKdTree.takeVertices());
     }
 
-    const double* getVerticesDouble(void) const
-    {
-        const double* ret = 0;
-
-        assert(mUseDouble);
-
-        ret = mKdTree.getVerticesDouble();
-
-        return ret;
-    }
-
-    const float* getVertexFloat(uint32_t index) const
-    {
-        const float* ret = 0;
-        assert(!mUseDouble);
-#    ifdef _DEBUG
-        uint32_t vcount = mKdTree.getVcount();
-        assert(index < vcount);
-#    endif
-        ret = mKdTree.getVerticesFloat();
-        ret = &ret[index * 3];
-        return ret;
-    }
-
-    const double* getVertexDouble(uint32_t index) const
-    {
-        const double* ret = 0;
-        assert(mUseDouble);
-#    ifdef _DEBUG
-        uint32_t vcount = mKdTree.getVcount();
-        assert(index < vcount);
-#    endif
-        ret = mKdTree.getVerticesDouble();
-        ret = &ret[index * 3];
-
-        return ret;
-    }
-
-    uint32_t getVcount(void) const
+    uint32_t getVcount() const
     {
         return mKdTree.getVcount();
     }
 
-    bool isDouble(void) const
-    {
-        return mUseDouble;
-    }
-
-
-    bool saveAsObj(const char* fname, uint32_t tcount, uint32_t* indices)
+    bool saveAsObj(const char* fname,
+                   uint32_t tcount,
+                   uint32_t* indices)
     {
         bool ret = false;
-
 
         FILE* fph = fopen(fname, "wb");
         if (fph)
         {
             ret = true;
 
-            uint32_t vcount = getVcount();
-            if (mUseDouble)
+            const std::vector<VHACD::Vertex>& v = getVertices();
+            for (uint32_t i = 0; i < v.size(); ++i)
             {
-                const double* v = getVerticesDouble();
-                for (uint32_t i = 0; i < vcount; i++)
-                {
-                    fprintf(fph, "v %0.9f %0.9f %0.9f\r\n", (float)v[0], (float)v[1], (float)v[2]);
-                    v += 3;
-                }
-            }
-            else
-            {
-                const float* v = getVerticesFloat();
-                for (uint32_t i = 0; i < vcount; i++)
-                {
-                    fprintf(fph, "v %0.9f %0.9f %0.9f\r\n", v[0], v[1], v[2]);
-                    v += 3;
-                }
+                fprintf(fph, "v %0.9f %0.9f %0.9f\r\n",
+                        v[i].mX,
+                        v[i].mY,
+                        v[i].mZ);
             }
 
             for (uint32_t i = 0; i < tcount; i++)
@@ -4760,7 +4168,10 @@ public:
                 uint32_t i1 = *indices++;
                 uint32_t i2 = *indices++;
                 uint32_t i3 = *indices++;
-                fprintf(fph, "f %d %d %d\r\n", i1 + 1, i2 + 1, i3 + 1);
+                fprintf(fph, "f %d %d %d\r\n",
+                        i1 + 1,
+                        i2 + 1,
+                        i3 + 1);
             }
             fclose(fph);
         }
@@ -4769,33 +4180,12 @@ public:
     }
 
 private:
-    bool mUseDouble : 1;
     bool mSnapToGrid : 1;
-    double mDoubleGranularity;
-    float mFloatGranularity;
+    double mGranularity;
     VERTEX_INDEX::KdTree mKdTree;
 };
 
-fm_VertexIndex* fm_createVertexIndex(double granularity, bool snapToGrid) // create an indexed vertex system for doubles
-{
-    MyVertexIndex* ret = new MyVertexIndex(granularity, snapToGrid);
-    return static_cast<fm_VertexIndex*>(ret);
-}
-
-fm_VertexIndex* fm_createVertexIndex(float granularity, bool snapToGrid) // create an indexed vertext system for floats
-{
-    MyVertexIndex* ret = new MyVertexIndex(granularity, snapToGrid);
-    return static_cast<fm_VertexIndex*>(ret);
-}
-
-void fm_releaseVertexIndex(fm_VertexIndex* vindex)
-{
-    MyVertexIndex* m = static_cast<MyVertexIndex*>(vindex);
-    delete m;
-}
-
-
-}
+} // namespace VHACD
 
 //********************************************************************************************************************
 // Defining the Voxel class
@@ -4803,67 +4193,56 @@ void fm_releaseVertexIndex(fm_VertexIndex* vindex)
 namespace VHACD
 {
 
-enum class VoxelFillMode
-{
-    eFloodFill, // This is the default behavior, after the voxelization step it uses a flood fill to determine 'inside'
-                // from 'outside'. However, meshes with holes can fail and create hollow results.
-    eSurfaceOnly, // Only consider the 'surface', will create 'skins' with hollow centers.
-    eRaycastFill // Uses raycasting to determine inside from outside.
-};
-
-
 #define VHACD_VOXEL_BITS 10
 #define VHACD_VOXEL_BITS2 20
 #define VHACD_VOXEL_BIT_MASK ((1<<VHACD_VOXEL_BITS)-1)
 
+    /*
+     * A wrapper class for 3 10 bit integers packed into a 32 bit integer
+     * Layout is [PAD][X][Y][Z]
+     * Pad is bits 31-30, X is 29-20, Y is 19-10, and Z is 9-0
+     */
     class Voxel
     {
     public:
-        Voxel(void)
-        {
-        }
-        inline Voxel(uint32_t index) : mVoxel(index)
-        {
-        }
+        Voxel() = default;
+
+        inline Voxel(uint32_t index) : mVoxel(index) {}
         inline Voxel(uint32_t x, uint32_t y, uint32_t z)
+            : mVoxel((x << VHACD_VOXEL_BITS2) | (y << VHACD_VOXEL_BITS) | z)
         {
-            mVoxel = (x<<VHACD_VOXEL_BITS2)|(y<<VHACD_VOXEL_BITS)|z;
         }
+
         inline bool operator==(const Voxel &v) const
         {
             return v.mVoxel == mVoxel;
         }
 
-        inline void getVoxel(uint32_t &x,uint32_t &y,uint32_t &z) const
+        inline void getVoxel(uint32_t &x,
+                             uint32_t &y,
+                             uint32_t &z) const
         {
-            x = (mVoxel>>VHACD_VOXEL_BITS2);
-            y = (mVoxel>>VHACD_VOXEL_BITS)&VHACD_VOXEL_BIT_MASK;
+            x = (mVoxel >> VHACD_VOXEL_BITS2);
+            y = (mVoxel >> VHACD_VOXEL_BITS) & VHACD_VOXEL_BIT_MASK;
             z = mVoxel & VHACD_VOXEL_BIT_MASK;
         }
 
-        inline void getVoxel(int32_t &x, int32_t &y, int32_t &z) const
+        inline uint32_t getX() const
         {
-            x = (int32_t) (mVoxel >> VHACD_VOXEL_BITS2);
-            y = (int32_t)((mVoxel >> VHACD_VOXEL_BITS)&VHACD_VOXEL_BIT_MASK);
-            z = (int32_t)(mVoxel & VHACD_VOXEL_BIT_MASK);
+            return (mVoxel >> VHACD_VOXEL_BITS2);
         }
 
-        inline uint32_t getX(void) const
+        inline uint32_t getY() const
         {
-            return (mVoxel>>VHACD_VOXEL_BITS2);
+            return (mVoxel >> VHACD_VOXEL_BITS) & VHACD_VOXEL_BIT_MASK;
         }
 
-        inline uint32_t getY(void) const
-        {
-            return (mVoxel>>VHACD_VOXEL_BITS)&VHACD_VOXEL_BIT_MASK;
-        }
-
-        inline uint32_t getZ(void) const
+        inline uint32_t getZ() const
         {
             return mVoxel & VHACD_VOXEL_BIT_MASK;
         }
 
-        inline uint32_t getVoxelAddress(void) const
+        inline uint32_t getVoxelAddress() const
         {
             return mVoxel;
         }
@@ -4884,9 +4263,7 @@ enum class VoxelFillMode
     {
     public:
         VoxelPosition(void) { }
-        VoxelPosition(double _x,double _y,double _z) : x(_x),y(_y),z(_z)
-        {
-        }
+        VoxelPosition(double _x,double _y,double _z) : x(_x),y(_y),z(_z) {}
         double x;
         double y;
         double z;
@@ -4895,548 +4272,7 @@ enum class VoxelFillMode
     using VoxelSet = std::unordered_set< Voxel, VoxelHash >;
     using VoxelPositionMap = std::unordered_map< Voxel,VoxelPosition, VoxelHash >;
     using VoxelVector = std::vector< Voxel >;
-
 }
-
-// Defining the vector class
-namespace VHACD
-{
-//!    Vector dim 3.
-template <typename T>
-class Vec3
-{
-public:
-    T& operator[](size_t i)
-    {
-        return m_data[i];
-    }
-    const T& operator[](size_t i) const
-    {
-        return m_data[i];
-    }
-    T& getX();
-    T& getY();
-    T& getZ();
-    const T& getX() const;
-    const T& getY() const;
-    const T& getZ() const;
-    T Normalize();
-    T GetNorm() const;
-    void operator=(const Vec3& rhs);
-    void operator+=(const Vec3& rhs);
-    void operator-=(const Vec3& rhs);
-    void operator-=(T a);
-    void operator+=(T a);
-    void operator/=(T a);
-    void operator*=(T a);
-    Vec3 operator^(const Vec3& rhs) const;
-    T operator*(const Vec3& rhs) const;
-    Vec3 operator+(const Vec3& rhs) const;
-    Vec3 operator-(const Vec3& rhs) const;
-    Vec3 operator-() const;
-    Vec3 operator*(T rhs) const;
-    Vec3 operator/(T rhs) const;
-    bool operator<(const Vec3& rhs) const;
-    bool operator>(const Vec3& rhs) const;
-    Vec3();
-    Vec3(T a);
-    Vec3(T x, T y, T z);
-    Vec3(const Vec3& rhs);
-    /*virtual*/ ~Vec3(void);
-
-    // Compute the center of this bounding box and return the diagonal length
-    T GetCenter(const Vec3& bmin, const Vec3& bmax)
-    {
-        getX() = (bmin.getX() + bmax.getX()) * 0.5;
-        getY() = (bmin.getY() + bmax.getY()) * 0.5;
-        getZ() = (bmin.getZ() + bmax.getZ()) * 0.5;
-        T dx = bmax.getX() - bmin.getX();
-        T dy = bmax.getY() - bmin.getY();
-        T dz = bmax.getZ() - bmin.getZ();
-        T diagonal = T(sqrt(dx * dx + dy * dy + dz * dz));
-        return diagonal;
-    }
-
-    // Update the min/max values relative to this point
-    void UpdateMinMax(Vec3& bmin, Vec3& bmax) const
-    {
-        if (getX() < bmin.getX())
-        {
-            bmin.getX() = getX();
-        }
-        if (getY() < bmin.getY())
-        {
-            bmin.getY() = getY();
-        }
-        if (getZ() < bmin.getZ())
-        {
-            bmin.getZ() = getZ();
-        }
-        if (getX() > bmax.getX())
-        {
-            bmax.getX() = getX();
-        }
-        if (getX() > bmax.getX())
-        {
-            bmax.getX() = getX();
-        }
-        if (getY() > bmax.getY())
-        {
-            bmax.getY() = getY();
-        }
-        if (getZ() > bmax.getZ())
-        {
-            bmax.getZ() = getZ();
-        }
-    }
-
-    // Returns the squared distance between these two points
-    T GetDistanceSquared(const Vec3& p) const
-    {
-        T dx = getX() - p.getX();
-        T dy = getY() - p.getY();
-        T dz = getZ() - p.getZ();
-        return dx * dx + dy * dy + dz * dz;
-    }
-
-    T GetDistance(const Vec3& p) const
-    {
-        return sqrt(GetDistanceSquared(p));
-    }
-
-    // Returns the raw vector data as a pointer
-    T* GetData(void)
-    {
-        return m_data;
-    }
-
-private:
-    T m_data[3];
-};
-//!    Vector dim 2.
-template <typename T>
-class Vec2
-{
-public:
-    T& operator[](size_t i)
-    {
-        return m_data[i];
-    }
-    const T& operator[](size_t i) const
-    {
-        return m_data[i];
-    }
-    T& getX();
-    T& getY();
-    const T& getX() const;
-    const T& getY() const;
-    void Normalize();
-    T GetNorm() const;
-    void operator=(const Vec2& rhs);
-    void operator+=(const Vec2& rhs);
-    void operator-=(const Vec2& rhs);
-    void operator-=(T a);
-    void operator+=(T a);
-    void operator/=(T a);
-    void operator*=(T a);
-    T operator^(const Vec2& rhs) const;
-    T operator*(const Vec2& rhs) const;
-    Vec2 operator+(const Vec2& rhs) const;
-    Vec2 operator-(const Vec2& rhs) const;
-    Vec2 operator-() const;
-    Vec2 operator*(T rhs) const;
-    Vec2 operator/(T rhs) const;
-    Vec2();
-    Vec2(T a);
-    Vec2(T x, T y);
-    Vec2(const Vec2& rhs);
-    /*virtual*/ ~Vec2(void);
-
-private:
-    T m_data[2];
-};
-
-template <typename T>
-const bool Colinear(const Vec3<T>& a, const Vec3<T>& b, const Vec3<T>& c);
-template <typename T>
-const T ComputeVolume4(const Vec3<T>& a, const Vec3<T>& b, const Vec3<T>& c, const Vec3<T>& d);
-}
-
-namespace VHACD
-{
-template <typename T>
-inline Vec3<T> operator*(T lhs, const Vec3<T>& rhs)
-{
-    return Vec3<T>(lhs * rhs.getX(), lhs * rhs.getY(), lhs * rhs.getZ());
-}
-template <typename T>
-inline T& Vec3<T>::getX()
-{
-    return m_data[0];
-}
-template <typename T>
-inline T& Vec3<T>::getY()
-{
-    return m_data[1];
-}
-template <typename T>
-inline T& Vec3<T>::getZ()
-{
-    return m_data[2];
-}
-template <typename T>
-inline const T& Vec3<T>::getX() const
-{
-    return m_data[0];
-}
-template <typename T>
-inline const T& Vec3<T>::getY() const
-{
-    return m_data[1];
-}
-template <typename T>
-inline const T& Vec3<T>::getZ() const
-{
-    return m_data[2];
-}
-template <typename T>
-inline T Vec3<T>::Normalize()
-{
-    T n = sqrt(m_data[0] * m_data[0] + m_data[1] * m_data[1] + m_data[2] * m_data[2]);
-    if (n != 0.0)
-        (*this) /= n;
-    return n;
-}
-template <typename T>
-inline T Vec3<T>::GetNorm() const
-{
-    return sqrt(m_data[0] * m_data[0] + m_data[1] * m_data[1] + m_data[2] * m_data[2]);
-}
-template <typename T>
-inline void Vec3<T>::operator=(const Vec3& rhs)
-{
-    this->m_data[0] = rhs.m_data[0];
-    this->m_data[1] = rhs.m_data[1];
-    this->m_data[2] = rhs.m_data[2];
-}
-template <typename T>
-inline void Vec3<T>::operator+=(const Vec3& rhs)
-{
-    this->m_data[0] += rhs.m_data[0];
-    this->m_data[1] += rhs.m_data[1];
-    this->m_data[2] += rhs.m_data[2];
-}
-template <typename T>
-inline void Vec3<T>::operator-=(const Vec3& rhs)
-{
-    this->m_data[0] -= rhs.m_data[0];
-    this->m_data[1] -= rhs.m_data[1];
-    this->m_data[2] -= rhs.m_data[2];
-}
-template <typename T>
-inline void Vec3<T>::operator-=(T a)
-{
-    this->m_data[0] -= a;
-    this->m_data[1] -= a;
-    this->m_data[2] -= a;
-}
-template <typename T>
-inline void Vec3<T>::operator+=(T a)
-{
-    this->m_data[0] += a;
-    this->m_data[1] += a;
-    this->m_data[2] += a;
-}
-template <typename T>
-inline void Vec3<T>::operator/=(T a)
-{
-    this->m_data[0] /= a;
-    this->m_data[1] /= a;
-    this->m_data[2] /= a;
-}
-template <typename T>
-inline void Vec3<T>::operator*=(T a)
-{
-    this->m_data[0] *= a;
-    this->m_data[1] *= a;
-    this->m_data[2] *= a;
-}
-template <typename T>
-inline Vec3<T> Vec3<T>::operator^(const Vec3<T>& rhs) const
-{
-    return Vec3<T>(m_data[1] * rhs.m_data[2] - m_data[2] * rhs.m_data[1],
-                   m_data[2] * rhs.m_data[0] - m_data[0] * rhs.m_data[2],
-                   m_data[0] * rhs.m_data[1] - m_data[1] * rhs.m_data[0]);
-}
-template <typename T>
-inline T Vec3<T>::operator*(const Vec3<T>& rhs) const
-{
-    return (m_data[0] * rhs.m_data[0] + m_data[1] * rhs.m_data[1] + m_data[2] * rhs.m_data[2]);
-}
-template <typename T>
-inline Vec3<T> Vec3<T>::operator+(const Vec3<T>& rhs) const
-{
-    return Vec3<T>(m_data[0] + rhs.m_data[0], m_data[1] + rhs.m_data[1], m_data[2] + rhs.m_data[2]);
-}
-template <typename T>
-inline Vec3<T> Vec3<T>::operator-(const Vec3<T>& rhs) const
-{
-    return Vec3<T>(m_data[0] - rhs.m_data[0], m_data[1] - rhs.m_data[1], m_data[2] - rhs.m_data[2]);
-}
-template <typename T>
-inline Vec3<T> Vec3<T>::operator-() const
-{
-    return Vec3<T>(-m_data[0], -m_data[1], -m_data[2]);
-}
-
-template <typename T>
-inline Vec3<T> Vec3<T>::operator*(T rhs) const
-{
-    return Vec3<T>(rhs * this->m_data[0], rhs * this->m_data[1], rhs * this->m_data[2]);
-}
-template <typename T>
-inline Vec3<T> Vec3<T>::operator/(T rhs) const
-{
-    return Vec3<T>(m_data[0] / rhs, m_data[1] / rhs, m_data[2] / rhs);
-}
-template <typename T>
-inline Vec3<T>::Vec3(T a)
-{
-    m_data[0] = m_data[1] = m_data[2] = a;
-}
-template <typename T>
-inline Vec3<T>::Vec3(T x, T y, T z)
-{
-    m_data[0] = x;
-    m_data[1] = y;
-    m_data[2] = z;
-}
-template <typename T>
-inline Vec3<T>::Vec3(const Vec3& rhs)
-{
-    m_data[0] = rhs.m_data[0];
-    m_data[1] = rhs.m_data[1];
-    m_data[2] = rhs.m_data[2];
-}
-template <typename T>
-inline Vec3<T>::~Vec3(void){};
-
-template <typename T>
-inline Vec3<T>::Vec3()
-{
-}
-
-template <typename T>
-inline const bool Colinear(const Vec3<T>& a, const Vec3<T>& b, const Vec3<T>& c)
-{
-    return ((c.getZ() - a.getZ()) * (b.getY() - a.getY()) - (b.getZ() - a.getZ()) * (c.getY() - a.getY()) == 0.0 /*EPS*/) &&
-           ((b.getZ() - a.getZ()) * (c.getX() - a.getX()) - (b.getX() - a.getX()) * (c.getZ() - a.getZ()) == 0.0 /*EPS*/) &&
-           ((b.getX() - a.getX()) * (c.getY() - a.getY()) - (b.getY() - a.getY()) * (c.getX() - a.getX()) == 0.0 /*EPS*/);
-}
-
-template <typename T>
-inline const T ComputeVolume4(const Vec3<T>& a, const Vec3<T>& b, const Vec3<T>& c, const Vec3<T>& d)
-{
-    return (a - d) * ((b - d) ^ (c - d));
-}
-
-template <typename T>
-inline bool Vec3<T>::operator<(const Vec3& rhs) const
-{
-    if (getX() == rhs[0])
-    {
-        if (getY() == rhs[1])
-        {
-            return (getZ() < rhs[2]);
-        }
-        return (getY() < rhs[1]);
-    }
-    return (getX() < rhs[0]);
-}
-template <typename T>
-inline bool Vec3<T>::operator>(const Vec3& rhs) const
-{
-    if (getX() == rhs[0])
-    {
-        if (getY() == rhs[1])
-        {
-            return (getZ() > rhs[2]);
-        }
-        return (getY() > rhs[1]);
-    }
-    return (getX() > rhs[0]);
-}
-template <typename T>
-inline Vec2<T> operator*(T lhs, const Vec2<T>& rhs)
-{
-    return Vec2<T>(lhs * rhs.getX(), lhs * rhs.getY());
-}
-template <typename T>
-inline T& Vec2<T>::getX()
-{
-    return m_data[0];
-}
-template <typename T>
-inline T& Vec2<T>::getY()
-{
-    return m_data[1];
-}
-template <typename T>
-inline const T& Vec2<T>::getX() const
-{
-    return m_data[0];
-}
-template <typename T>
-inline const T& Vec2<T>::getY() const
-{
-    return m_data[1];
-}
-template <typename T>
-inline void Vec2<T>::Normalize()
-{
-    T n = sqrt(m_data[0] * m_data[0] + m_data[1] * m_data[1]);
-    if (n != 0.0)
-        (*this) /= n;
-}
-template <typename T>
-inline T Vec2<T>::GetNorm() const
-{
-    return sqrt(m_data[0] * m_data[0] + m_data[1] * m_data[1]);
-}
-template <typename T>
-inline void Vec2<T>::operator=(const Vec2& rhs)
-{
-    this->m_data[0] = rhs.m_data[0];
-    this->m_data[1] = rhs.m_data[1];
-}
-template <typename T>
-inline void Vec2<T>::operator+=(const Vec2& rhs)
-{
-    this->m_data[0] += rhs.m_data[0];
-    this->m_data[1] += rhs.m_data[1];
-}
-template <typename T>
-inline void Vec2<T>::operator-=(const Vec2& rhs)
-{
-    this->m_data[0] -= rhs.m_data[0];
-    this->m_data[1] -= rhs.m_data[1];
-}
-template <typename T>
-inline void Vec2<T>::operator-=(T a)
-{
-    this->m_data[0] -= a;
-    this->m_data[1] -= a;
-}
-template <typename T>
-inline void Vec2<T>::operator+=(T a)
-{
-    this->m_data[0] += a;
-    this->m_data[1] += a;
-}
-template <typename T>
-inline void Vec2<T>::operator/=(T a)
-{
-    this->m_data[0] /= a;
-    this->m_data[1] /= a;
-}
-template <typename T>
-inline void Vec2<T>::operator*=(T a)
-{
-    this->m_data[0] *= a;
-    this->m_data[1] *= a;
-}
-template <typename T>
-inline T Vec2<T>::operator^(const Vec2<T>& rhs) const
-{
-    return m_data[0] * rhs.m_data[1] - m_data[1] * rhs.m_data[0];
-}
-template <typename T>
-inline T Vec2<T>::operator*(const Vec2<T>& rhs) const
-{
-    return (m_data[0] * rhs.m_data[0] + m_data[1] * rhs.m_data[1]);
-}
-template <typename T>
-inline Vec2<T> Vec2<T>::operator+(const Vec2<T>& rhs) const
-{
-    return Vec2<T>(m_data[0] + rhs.m_data[0], m_data[1] + rhs.m_data[1]);
-}
-template <typename T>
-inline Vec2<T> Vec2<T>::operator-(const Vec2<T>& rhs) const
-{
-    return Vec2<T>(m_data[0] - rhs.m_data[0], m_data[1] - rhs.m_data[1]);
-}
-template <typename T>
-inline Vec2<T> Vec2<T>::operator-() const
-{
-    return Vec2<T>(-m_data[0], -m_data[1]);
-}
-
-template <typename T>
-inline Vec2<T> Vec2<T>::operator*(T rhs) const
-{
-    return Vec2<T>(rhs * this->m_data[0], rhs * this->m_data[1]);
-}
-template <typename T>
-inline Vec2<T> Vec2<T>::operator/(T rhs) const
-{
-    return Vec2<T>(m_data[0] / rhs, m_data[1] / rhs);
-}
-template <typename T>
-inline Vec2<T>::Vec2(T a)
-{
-    m_data[0] = m_data[1] = a;
-}
-template <typename T>
-inline Vec2<T>::Vec2(T x, T y)
-{
-    m_data[0] = x;
-    m_data[1] = y;
-}
-template <typename T>
-inline Vec2<T>::Vec2(const Vec2& rhs)
-{
-    m_data[0] = rhs.m_data[0];
-    m_data[1] = rhs.m_data[1];
-}
-template <typename T>
-inline Vec2<T>::~Vec2(void){};
-
-template <typename T>
-inline Vec2<T>::Vec2()
-{
-}
-
-/*
-  InsideTriangle decides if a point P is Inside of the triangle
-  defined by A, B, C.
-*/
-template <typename T>
-inline const bool InsideTriangle(const Vec2<T>& a, const Vec2<T>& b, const Vec2<T>& c, const Vec2<T>& p)
-{
-    T ax, ay, bx, by, cx, cy, apx, apy, bpx, bpy, cpx, cpy;
-    T cCROSSap, bCROSScp, aCROSSbp;
-    ax = c.getX() - b.getX();
-    ay = c.getY() - b.getY();
-    bx = a.getX() - c.getX();
-    by = a.getY() - c.getY();
-    cx = b.getX() - a.getX();
-    cy = b.getY() - a.getY();
-    apx = p.getX() - a.getX();
-    apy = p.getY() - a.getY();
-    bpx = p.getX() - b.getX();
-    bpy = p.getY() - b.getY();
-    cpx = p.getX() - c.getX();
-    cpy = p.getY() - c.getY();
-    aCROSSbp = ax * bpy - ay * bpx;
-    cCROSSap = cx * apy - cy * apx;
-    bCROSScp = bx * cpy - by * cpx;
-    return ((aCROSSbp >= 0.0) && (bCROSScp >= 0.0) && (cCROSSap >= 0.0));
-}
-}
-
-
-
-
 
 //********************************************************************************************************************
 // Defining the SimpleMesh class
@@ -5447,90 +4283,8 @@ namespace VHACD
 class SimpleMesh
 {
 public:
-    SimpleMesh(void)
-    {
-    }
-
-    SimpleMesh(const SimpleMesh &sm)
-    {
-        mOwnAllocation = true; // we allocated this
-
-        mVertexCount = sm.mVertexCount; // assign the vertex count
-        if (mVertexCount)
-        {
-            mVertices = new double[mVertexCount * 3];
-            memcpy(mVertices, sm.mVertices, sizeof(double)*mVertexCount * 3); // allocate and copy the vertices
-        }
-        mTriangleCount = sm.mTriangleCount; // assign the triangle count
-        if (mTriangleCount)
-        {
-            mIndices = new uint32_t[mTriangleCount * 3];
-            memcpy(mIndices, sm.mIndices, sizeof(uint32_t)*mTriangleCount * 3); // allocate and copy the vertices
-        }
-
-        mBmin[0] = sm.mBmin[0];
-        mBmin[1] = sm.mBmin[1];
-        mBmin[2] = sm.mBmin[2];
-
-        mBmax[0] = sm.mBmax[0];
-        mBmax[1] = sm.mBmax[1];
-        mBmax[2] = sm.mBmax[2];
-
-        mCenter[0] = sm.mCenter[0];
-        mCenter[1] = sm.mCenter[1];
-        mCenter[2] = sm.mCenter[2];
-
-        mVolume = sm.mVolume;
-
-        mMeshId = sm.mMeshId;
-    }
-
-    SimpleMesh(uint32_t vcount,const double *vertices,uint32_t tcount,const uint32_t *indices)
-    {
-        mOwnAllocation = true;
-        mVertexCount = vcount;
-        if ( mVertexCount )
-        {
-            mVertices = new double[mVertexCount*3];
-            memcpy(mVertices,vertices,sizeof(double)*mVertexCount*3);
-        }
-        mTriangleCount = tcount;
-        if ( mTriangleCount )
-        {
-            mIndices = new uint32_t[mTriangleCount*3];
-            memcpy(mIndices,indices,sizeof(uint32_t)*mTriangleCount*3);
-        }
-    }
-
-    ~SimpleMesh(void)
-    {
-        releaseMeshData();
-    }
-
-    void releaseMeshData(void)
-    {
-        if ( mOwnAllocation )
-        {
-            delete []mVertices;
-            delete []mIndices;
-            mVertices = nullptr;
-            mIndices = nullptr;
-            mVertexCount = 0;
-            mTriangleCount = 0;
-            mOwnAllocation = false;
-        }
-    }
-
-    bool        mOwnAllocation{false}; // true if we allocated these buffers and are therefore responsible for deleting them
-    uint32_t    mMeshId{0}; // optional id to uniquely identify this mesh
-    uint32_t    mVertexCount{0};
-    uint32_t    mTriangleCount{0};
-    double       *mVertices{nullptr};
-    uint32_t    *mIndices{nullptr};
-    double       mCenter[3];
-    double      mVolume{0};
-    double  mBmin[3];
-    double  mBmax[3];
+    std::vector<VHACD::Vertex> mVertices;
+    std::vector<VHACD::Triangle> mIndices;
 };
 
 }
@@ -5541,526 +4295,6 @@ public:
 
 namespace VHACD
 {
-
-class AABBTree
-{
-public:
-    static AABBTree* create(const double* vertices, uint32_t numVerts, const uint32_t* indices, uint32_t numFaces);
-
-    virtual bool raycast(const double* start,
-                         const double* dir,
-                         double& outT,
-                         double& u,
-                         double& v,
-                         double& w,
-                         double& faceSign,
-                         uint32_t& faceIndex) const = 0;
-
-
-    virtual bool getClosestPointWithinDistance(const double* point, double maxDistance, double* closestPoint) = 0;
-
-    virtual void release(void) = 0;
-
-protected:
-    virtual ~AABBTree(void)
-    {
-    }
-};
-
-} 
-
-namespace VHACD
-{
-
-template <typename T>
-inline T Min(T a, T b)
-{
-    return a < b ? a : b;
-}
-
-template <typename T>
-inline T Max(T a, T b)
-{
-    return a > b ? a : b;
-}
-
-#define VHACD_PI 3.141592653589f
-const double k2Pi = 2.0f * VHACD_PI;
-const double kInvPi = 1.0f / VHACD_PI;
-const double kInv2Pi = 0.5f / VHACD_PI;
-const double kDegToRad = VHACD_PI / 180.0f;
-const double kRadToDeg = 180.0f / VHACD_PI;
-
-inline double DegToRad(double t)
-{
-    return t * kDegToRad;
-}
-
-inline double RadToDeg(double t)
-{
-    return t * kRadToDeg;
-}
-
-inline double Sin(double theta)
-{
-    return sin(theta);
-}
-
-inline double Cos(double theta)
-{
-    return cos(theta);
-}
-
-inline void SinCos(double theta, double& s, double& c)
-{
-    // no optimizations yet
-    s = sin(theta);
-    c = cos(theta);
-}
-
-inline double Tan(double theta)
-{
-    return tan(theta);
-}
-
-inline double Sqrt(double x)
-{
-    return sqrt(x);
-}
-
-inline double ASin(double theta)
-{
-    return asin(theta);
-}
-
-inline double ACos(double theta)
-{
-    return acos(theta);
-}
-
-inline double ATan(double theta)
-{
-    return atan(theta);
-}
-
-inline double ATan2(double x, double y)
-{
-    return atan2(x, y);
-}
-
-inline double Abs(double x)
-{
-    return fabs(x);
-}
-
-inline double Pow(double b, double e)
-{
-    return pow(b, e);
-}
-
-inline double Sgn(double x)
-{
-    return (x < 0.0f ? -1.0f : 1.0f);
-}
-
-inline double Sign(double x)
-{
-    return x < 0.0f ? -1.0f : 1.0f;
-}
-
-inline double Mod(double x, double y)
-{
-    return fmod(x, y);
-}
-
-template <typename T>
-inline void Swap(T& a, T& b)
-{
-    T tmp = a;
-    a = b;
-    b = tmp;
-}
-
-template <typename T>
-inline T Clamp(T a, T low, T high)
-{
-    if (low > high)
-        Swap(low, high);
-
-    return Max(low, Min(a, high));
-}
-
-template <typename V, typename T>
-inline V Lerp(const V& start, const V& end, const T& t)
-{
-    return start + (end - start) * t;
-}
-
-inline double InvSqrt(double x)
-{
-    return 1.0f / sqrt(x);
-}
-
-// round towards +infinity
-inline int Round(double f)
-{
-    return int(f + 0.5f);
-}
-
-template <typename T>
-T Normalize(const T& v)
-{
-    T a(v);
-    a /= Length(v);
-    return a;
-}
-
-template <typename T>
-inline typename T::value_type LengthSq(const T v)
-{
-    return Dot(v, v);
-}
-
-template <typename T>
-inline typename T::value_type Length(const T& v)
-{
-    typename T::value_type lSq = LengthSq(v);
-    if (lSq)
-        return Sqrt(LengthSq(v));
-    else
-        return 0.0f;
-}
-
-// this is mainly a helper function used by script
-template <typename T>
-inline typename T::value_type Distance(const T& v1, const T& v2)
-{
-    return Length(v1 - v2);
-}
-
-template <typename T>
-inline T SafeNormalize(const T& v, const T& fallback = T())
-{
-    double l = LengthSq(v);
-    if (l > 0.0f)
-    {
-        return v * InvSqrt(l);
-    }
-    else
-        return fallback;
-}
-
-template <typename T>
-inline T Sqr(T x)
-{
-    return x * x;
-}
-
-template <typename T>
-inline T Cube(T x)
-{
-    return x * x * x;
-}
-
-
-template <typename T = double>
-class XVector3
-{
-public:
-    typedef T value_type;
-
-    XVector3() : x(0.0f), y(0.0f), z(0.0f){};
-    XVector3(T a) : x(a), y(a), z(a){};
-    XVector3(const T* p) : x(p[0]), y(p[1]), z(p[2]){};
-    XVector3(T x_, T y_, T z_) : x(x_), y(y_), z(z_)
-    {
-    }
-
-    operator T*()
-    {
-        return &x;
-    }
-    operator const T*() const
-    {
-        return &x;
-    };
-
-    void Set(T x_, T y_, T z_)
-    {
-        x = x_;
-        y = y_;
-        z = z_;
-    }
-
-    XVector3<T> operator*(T scale) const
-    {
-        XVector3<T> r(*this);
-        r *= scale;
-        return r;
-    }
-    XVector3<T> operator/(T scale) const
-    {
-        XVector3<T> r(*this);
-        r /= scale;
-        return r;
-    }
-    XVector3<T> operator+(const XVector3<T>& v) const
-    {
-        XVector3<T> r(*this);
-        r += v;
-        return r;
-    }
-    XVector3<T> operator-(const XVector3<T>& v) const
-    {
-        XVector3<T> r(*this);
-        r -= v;
-        return r;
-    }
-    XVector3<T> operator/(const XVector3<T>& v) const
-    {
-        XVector3<T> r(*this);
-        r /= v;
-        return r;
-    }
-    XVector3<T> operator*(const XVector3<T>& v) const
-    {
-        XVector3<T> r(*this);
-        r *= v;
-        return r;
-    }
-
-    XVector3<T>& operator*=(T scale)
-    {
-        x *= scale;
-        y *= scale;
-        z *= scale;
-        return *this;
-    }
-    XVector3<T>& operator/=(T scale)
-    {
-        T s(1.0f / scale);
-        x *= s;
-        y *= s;
-        z *= s;
-        return *this;
-    }
-    XVector3<T>& operator+=(const XVector3<T>& v)
-    {
-        x += v.x;
-        y += v.y;
-        z += v.z;
-        return *this;
-    }
-    XVector3<T>& operator-=(const XVector3<T>& v)
-    {
-        x -= v.x;
-        y -= v.y;
-        z -= v.z;
-        return *this;
-    }
-    XVector3<T>& operator/=(const XVector3<T>& v)
-    {
-        x /= v.x;
-        y /= v.y;
-        z /= v.z;
-        return *this;
-    }
-    XVector3<T>& operator*=(const XVector3<T>& v)
-    {
-        x *= v.x;
-        y *= v.y;
-        z *= v.z;
-        return *this;
-    }
-
-    bool operator!=(const XVector3<T>& v) const
-    {
-        return (x != v.x || y != v.y || z != v.z);
-    }
-
-    // negate
-    XVector3<T> operator-() const
-    {
-        return XVector3<T>(-x, -y, -z);
-    }
-
-
-    T x, y, z;
-};
-
-typedef XVector3<double> Vector3;
-
-// lhs scalar scale
-template <typename T>
-XVector3<T> operator*(T lhs, const XVector3<T>& rhs)
-{
-    XVector3<T> r(rhs);
-    r *= lhs;
-    return r;
-}
-
-template <typename T>
-bool operator==(const XVector3<T>& lhs, const XVector3<T>& rhs)
-{
-    return (lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z);
-}
-
-template <typename T>
-typename T::value_type Dot3(const T& v1, const T& v2)
-{
-    return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
-}
-
-inline double Dot3(const double* v1, const double* v2)
-{
-    return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
-}
-
-
-template <typename T>
-inline T Dot(const XVector3<T>& v1, const XVector3<T>& v2)
-{
-    return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
-}
-
-inline Vector3 Cross(const Vector3& b, const Vector3& c)
-{
-    return Vector3(b.y * c.z - b.z * c.y, b.z * c.x - b.x * c.z, b.x * c.y - b.y * c.x);
-}
-
-template <typename T>
-inline XVector3<T> Max(const XVector3<T>& a, const XVector3<T>& b)
-{
-    return XVector3<T>(Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z));
-}
-
-template <typename T>
-inline XVector3<T> Min(const XVector3<T>& a, const XVector3<T>& b)
-{
-    return XVector3<T>(Min(a.x, b.x), Min(a.y, b.y), Min(a.z, b.z));
-}
-
-template <typename T>
-inline XVector3<T> Abs(const XVector3<T>& a)
-{
-    return XVector3<T>(Abs(a.x), Abs(a.y), Abs(a.z));
-}
-
-template <typename T>
-inline int LongestAxis(const XVector3<T>& v)
-{
-    if (v.x > v.y && v.x > v.z)
-        return 0;
-    else
-        return (v.y > v.z) ? 1 : 2;
-}
-
-struct Bounds
-{
-    inline Bounds() : lower(FLT_MAX), upper(-FLT_MAX)
-    {
-    }
-
-    inline Bounds(const Vector3& lower, const Vector3& upper) : lower(lower), upper(upper)
-    {
-    }
-
-    inline Vector3 GetCenter() const
-    {
-        return 0.5 * (lower + upper);
-    }
-
-    inline Vector3 GetEdges() const
-    {
-        return upper - lower;
-    }
-
-    inline void Expand(double r)
-    {
-        lower -= Vector3(r);
-        upper += Vector3(r);
-    }
-
-    inline void Expand(const Vector3& r)
-    {
-        lower -= r;
-        upper += r;
-    }
-
-    inline bool Empty() const
-    {
-        return lower.x >= upper.x || lower.y >= upper.y || lower.z >= upper.z;
-    }
-
-    inline bool Overlaps(const Vector3& p) const
-    {
-        if (p.x < lower.x || p.y < lower.y || p.z < lower.z || p.x > upper.x || p.y > upper.y || p.z > upper.z)
-        {
-            return false;
-        }
-        else
-        {
-            return true;
-        }
-    }
-
-    inline bool Overlaps(const Bounds& b) const
-    {
-        if (lower.x > b.upper.x || lower.y > b.upper.y || lower.z > b.upper.z || upper.x < b.lower.x ||
-            upper.y < b.lower.y || upper.z < b.lower.z)
-        {
-            return false;
-        }
-        else
-        {
-            return true;
-        }
-    }
-
-    Vector3 lower;
-    Vector3 upper;
-};
-
-inline Bounds Union(const Bounds& a, const Vector3& b)
-{
-    return Bounds(Min(a.lower, b), Max(a.upper, b));
-}
-
-inline Bounds Union(const Bounds& a, const Bounds& b)
-{
-    return Bounds(Min(a.lower, b.lower), Max(a.upper, b.upper));
-}
-
-inline Bounds Intersection(const Bounds& a, const Bounds& b)
-{
-    return Bounds(Max(a.lower, b.lower), Min(a.upper, b.upper));
-}
-
-
-
-#define VHACD_CROSS(dest, v1, v2)                                                                                            \
-    dest[0] = v1[1] * v2[2] - v1[2] * v2[1];                                                                           \
-    dest[1] = v1[2] * v2[0] - v1[0] * v2[2];                                                                           \
-    dest[2] = v1[0] * v2[1] - v1[1] * v2[0];
-
-#define VHACD_DOT(v1, v2) (v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2])
-
-#define VHACD_SUB(dest, v1, v2)                                                                                              \
-    dest[0] = v1[0] - v2[0];                                                                                           \
-    dest[1] = v1[1] - v2[1];                                                                                           \
-    dest[2] = v1[2] - v2[2];
-
-#define VHACD_FINDMINMAX(x0, x1, x2, min, max)                                                                               \
-    min = max = x0;                                                                                                    \
-    if (x1 < min)                                                                                                      \
-        min = x1;                                                                                                      \
-    if (x1 > max)                                                                                                      \
-        max = x1;                                                                                                      \
-    if (x2 < min)                                                                                                      \
-        min = x2;                                                                                                      \
-    if (x2 > max)                                                                                                      \
-        max = x2;
-
 
 /*======================== 0-tests ========================*/
 
@@ -6171,269 +4405,32 @@ inline Bounds Intersection(const Bounds& a, const Bounds& b)
     if (min > rad || max < -rad)                                                                                       \
         return 0;
 
-int planeBoxOverlap(double normal[3], double vert[3], double maxbox[3]) // -NJMP-
-{
-
-    int q;
-
-    double vmin[3], vmax[3], v;
-
-    for (q = 0; q <= 2; q++)
-    {
-        v = vert[q]; // -NJMP-
-
-        if (normal[q] > 0.0f)
-        {
-            vmin[q] = -maxbox[q] - v; // -NJMP-
-            vmax[q] = maxbox[q] - v; // -NJMP-
-        }
-        else
-        {
-            vmin[q] = maxbox[q] - v; // -NJMP-
-            vmax[q] = -maxbox[q] - v; // -NJMP-
-        }
-    }
-
-    if (VHACD_DOT(normal, vmin) > 0.0f)
-        return 0; // -NJMP-
-    if (VHACD_DOT(normal, vmax) >= 0.0f)
-        return 1; // -NJMP-
-
-    return 0;
-}
-
-
-int triBoxOverlap(double boxcenter[3], double boxhalfsize[3], double triverts[3][3])
-
-{
-
-    /*    use separating axis theorem to test overlap between triangle and box */
-    /*    need to test for overlap in these directions: */
-    /*    1) the {x,y,z}-directions (actually, since we use the AABB of the triangle */
-    /*       we do not even need to test these) */
-    /*    2) normal of the triangle */
-    /*    3) crossproduct(edge from tri, {x,y,z}-directin) */
-    /*       this gives 3x3=9 more tests */
-
-    double v0[3], v1[3], v2[3];
-
-    //   double axis[3];
-
-    double min, max, p0, p1, p2, rad, fex, fey, fez; // -NJMP- "d" local variable removed
-
-    double normal[3], e0[3], e1[3], e2[3];
-
-
-    /* This is the fastest branch on Sun */
-
-    /* move everything so that the boxcenter is in (0,0,0) */
-
-    VHACD_SUB(v0, triverts[0], boxcenter);
-
-    VHACD_SUB(v1, triverts[1], boxcenter);
-
-    VHACD_SUB(v2, triverts[2], boxcenter);
-
-
-    /* compute triangle edges */
-
-    VHACD_SUB(e0, v1, v0); /* tri edge 0 */
-
-    VHACD_SUB(e1, v2, v1); /* tri edge 1 */
-
-    VHACD_SUB(e2, v0, v2); /* tri edge 2 */
-
-
-    /* Bullet 3:  */
-
-    /*  test the 9 tests first (this was faster) */
-
-    fex = fabs(e0[0]);
-
-    fey = fabs(e0[1]);
-
-    fez = fabs(e0[2]);
-
-    VHACD_AXISTEST_X01(e0[2], e0[1], fez, fey);
-
-    VHACD_AXISTEST_Y02(e0[2], e0[0], fez, fex);
-
-    VHACD_AXISTEST_Z12(e0[1], e0[0], fey, fex);
-
-
-    fex = fabs(e1[0]);
-
-    fey = fabs(e1[1]);
-
-    fez = fabs(e1[2]);
-
-    VHACD_AXISTEST_X01(e1[2], e1[1], fez, fey);
-
-    VHACD_AXISTEST_Y02(e1[2], e1[0], fez, fex);
-
-    VHACD_AXISTEST_Z0(e1[1], e1[0], fey, fex);
-
-
-    fex = fabs(e2[0]);
-
-    fey = fabs(e2[1]);
-
-    fez = fabs(e2[2]);
-
-    VHACD_AXISTEST_X2(e2[2], e2[1], fez, fey);
-
-    VHACD_AXISTEST_Y1(e2[2], e2[0], fez, fex);
-
-    VHACD_AXISTEST_Z12(e2[1], e2[0], fey, fex);
-
-
-    /* Bullet 1: */
-
-    /*  first test overlap in the {x,y,z}-directions */
-
-    /*  find min, max of the triangle each direction, and test for overlap in */
-
-    /*  that direction -- this is equivalent to testing a minimal AABB around */
-
-    /*  the triangle against the AABB */
-
-
-    /* test in 0-direction */
-
-    VHACD_FINDMINMAX(v0[0], v1[0], v2[0], min, max);
-
-    if (min > boxhalfsize[0] || max < -boxhalfsize[0])
-        return 0;
-
-
-    /* test in 1-direction */
-
-    VHACD_FINDMINMAX(v0[1], v1[1], v2[1], min, max);
-
-    if (min > boxhalfsize[1] || max < -boxhalfsize[1])
-        return 0;
-
-
-    /* test in 2-direction */
-
-    VHACD_FINDMINMAX(v0[2], v1[2], v2[2], min, max);
-
-    if (min > boxhalfsize[2] || max < -boxhalfsize[2])
-        return 0;
-
-
-    /* Bullet 2: */
-
-    /*  test if the box intersects the plane of the triangle */
-
-    /*  compute plane equation of triangle: normal*x+d=0 */
-
-    VHACD_CROSS(normal, e0, e1);
-
-    // -NJMP- (line removed here)
-
-    if (!planeBoxOverlap(normal, v0, boxhalfsize))
-        return 0; // -NJMP-
-
-
-    return 1; /* box and triangle overlaps */
-}
-
-
-bool TriangleBoxOverlap(Vector3 lower, Vector3 upper, Vector3 a, Vector3 b, Vector3 c)
-{
-    Vector3 center = (lower + upper) * 0.5f;
-    Vector3 halfEdges = (upper - lower) * 0.5f;
-
-    double m[3][3];
-    (Vector3&)m[0] = a;
-    (Vector3&)m[1] = b;
-    (Vector3&)m[2] = c;
-
-    return triBoxOverlap((double*)&center.x, (double*)&halfEdges.x, m) ? true : false;
-}
-
-inline double minf(const double a, const double b)
-{
-    return a < b ? a : b;
-}
-inline double maxf(const double a, const double b)
-{
-    return a > b ? a : b;
-}
-
-inline bool IntersectRayAABBFast(const Vector3& pos, const Vector3& rcp_dir, const Vector3& min, const Vector3& max, double& t)
-{
-
-    double l1 = (min.x - pos.x) * rcp_dir.x, l2 = (max.x - pos.x) * rcp_dir.x, lmin = minf(l1, l2), lmax = maxf(l1, l2);
-
-    l1 = (min.y - pos.y) * rcp_dir.y;
-    l2 = (max.y - pos.y) * rcp_dir.y;
-    lmin = maxf(minf(l1, l2), lmin);
-    lmax = minf(maxf(l1, l2), lmax);
-
-    l1 = (min.z - pos.z) * rcp_dir.z;
-    l2 = (max.z - pos.z) * rcp_dir.z;
-    lmin = maxf(minf(l1, l2), lmin);
-    lmax = minf(maxf(l1, l2), lmax);
-
-    // return ((lmax > 0.f) & (lmax >= lmin));
-    // return ((lmax > 0.f) & (lmax > lmin));
-    bool hit = ((lmax >= 0.f) & (lmax >= lmin));
-    if (hit)
-        t = lmin;
-    return hit;
-}
-
-inline bool IntersectRayAABB(
-    const Vector3& start, const Vector3& dir, const Vector3& min, const Vector3& max, double& t, Vector3* /*normal*/)
+inline bool IntersectRayAABB(const nd::VHACD::Vect3<double>& start,
+                             const nd::VHACD::Vect3<double>& dir,
+                             const nd::VHACD::Vect3<double>& min,
+                             const nd::VHACD::Vect3<double>& max,
+                             double& t,
+                             nd::VHACD::Vect3<double>* /*normal*/)
 {
     //! calculate candidate plane on each axis
-    double tx = -1.0f, ty = -1.0f, tz = -1.0f;
     bool inside = true;
+    nd::VHACD::Vect3<double> ta(-1.0);
 
     //! use unrolled loops
-
-    //! x
-    if (start.x < min.x)
+    for (uint32_t i = 0; i < 3; ++i)
     {
-        if (dir.x != 0.0f)
-            tx = (min.x - start.x) / dir.x;
-        inside = false;
-    }
-    else if (start.x > max.x)
-    {
-        if (dir.x != 0.0f)
-            tx = (max.x - start.x) / dir.x;
-        inside = false;
-    }
-
-    //! y
-    if (start.y < min.y)
-    {
-        if (dir.y != 0.0f)
-            ty = (min.y - start.y) / dir.y;
-        inside = false;
-    }
-    else if (start.y > max.y)
-    {
-        if (dir.y != 0.0f)
-            ty = (max.y - start.y) / dir.y;
-        inside = false;
-    }
-
-    //! z
-    if (start.z < min.z)
-    {
-        if (dir.z != 0.0f)
-            tz = (min.z - start.z) / dir.z;
-        inside = false;
-    }
-    else if (start.z > max.z)
-    {
-        if (dir.z != 0.0f)
-            tz = (max.z - start.z) / dir.z;
-        inside = false;
+        if (start[i] < min[i])
+        {
+            if (dir[i] != 0.0f)
+                ta[i] = (min[i] - start[i]) / dir[i];
+            inside = false;
+        }
+        else if (start[i] > max[i])
+        {
+            if (dir[i] != 0.0f)
+                ta[i] = (max[i] - start[i]) / dir[i];
+            inside = false;
+        }
     }
 
     //! if point inside all planes
@@ -6445,19 +4442,8 @@ inline bool IntersectRayAABB(
 
     //! we now have t values for each of possible intersection planes
     //! find the maximum to get the intersection point
-    double tmax = tx;
-    int taxis = 0;
-
-    if (ty > tmax)
-    {
-        tmax = ty;
-        taxis = 1;
-    }
-    if (tz > tmax)
-    {
-        tmax = tz;
-        taxis = 2;
-    }
+    uint32_t taxis;
+    double tmax = ta.MaxCoeff(taxis);
 
     if (tmax < 0.0f)
         return false;
@@ -6468,13 +4454,13 @@ inline bool IntersectRayAABB(
     //! no eps for now
     double eps = 0.0f;
 
-    Vector3 hit = start + dir * tmax;
+    nd::VHACD::Vect3<double> hit = start + dir * tmax;
 
-    if ((hit.x < min.x - eps || hit.x > max.x + eps) && taxis != 0)
+    if ((hit.getX() < min.getX() - eps || hit.getX() > max.getX() + eps) && taxis != 0)
         return false;
-    if ((hit.y < min.y - eps || hit.y > max.y + eps) && taxis != 1)
+    if ((hit.getY() < min.getY() - eps || hit.getY() > max.getY() + eps) && taxis != 1)
         return false;
-    if ((hit.z < min.z - eps || hit.z > max.z + eps) && taxis != 2)
+    if ((hit.getZ() < min.getZ() - eps || hit.getZ() > max.getZ() + eps) && taxis != 2)
         return false;
 
     //! output results
@@ -6484,35 +4470,35 @@ inline bool IntersectRayAABB(
 }
 
 // Moller and Trumbore's method
-inline bool IntersectRayTriTwoSided(const Vector3& p,
-                                    const Vector3& dir,
-                                    const Vector3& a,
-                                    const Vector3& b,
-                                    const Vector3& c,
+inline bool IntersectRayTriTwoSided(const nd::VHACD::Vect3<double>& p,
+                                    const nd::VHACD::Vect3<double>& dir,
+                                    const nd::VHACD::Vect3<double>& a,
+                                    const nd::VHACD::Vect3<double>& b,
+                                    const nd::VHACD::Vect3<double>& c,
                                     double& t,
                                     double& u,
                                     double& v,
                                     double& w,
                                     double& sign,
-                                    Vector3* normal)
+                                    nd::VHACD::Vect3<double>* normal)
 {
-    Vector3 ab = b - a;
-    Vector3 ac = c - a;
-    Vector3 n = Cross(ab, ac);
+    nd::VHACD::Vect3<double> ab = b - a;
+    nd::VHACD::Vect3<double> ac = c - a;
+    nd::VHACD::Vect3<double> n = ab.Cross(ac);
 
-    double d = Dot(-dir, n);
+    double d = -dir.Dot(n);
     double ood = 1.0f / d; // No need to check for division by zero here as infinity aritmetic will save us...
-    Vector3 ap = p - a;
+    nd::VHACD::Vect3<double> ap = p - a;
 
-    t = Dot(ap, n) * ood;
+    t = (ap.Dot(n)) * ood;
     if (t < 0.0f)
         return false;
 
-    Vector3 e = Cross(-dir, ap);
-    v = Dot(ac, e) * ood;
+    nd::VHACD::Vect3<double> e = -dir.Cross(ap);
+    v = (ac.Dot(e)) * ood;
     if (v < 0.0f || v > 1.0f) // ...here...
         return false;
-    w = -Dot(ab, e) * ood;
+    w = -(ab.Dot(e)) * ood;
     if (w < 0.0f || v + w > 1.0f) // ...and here
         return false;
 
@@ -6525,9 +4511,11 @@ inline bool IntersectRayTriTwoSided(const Vector3& p,
     return true;
 }
 
-inline Vector3 ClosestPointToAABB(const Vector3& p, const Vector3& lower, const Vector3& upper)
+inline nd::VHACD::Vect3<double> ClosestPointToAABB(const nd::VHACD::Vect3<double>& p,
+                                                   const nd::VHACD::Vect3<double>& lower,
+                                                   const nd::VHACD::Vect3<double>& upper)
 {
-    Vector3 c;
+    nd::VHACD::Vect3<double> c;
 
     for (int i = 0; i < 3; ++i)
     {
@@ -6542,22 +4530,20 @@ inline Vector3 ClosestPointToAABB(const Vector3& p, const Vector3& lower, const 
     return c;
 }
 
-inline double DistanceToAABB(const Vector3& p, const Vector3& lower, const Vector3& upper)
-{
-    Vector3 cp = ClosestPointToAABB(p, lower, upper);
-
-    return Length(p - cp);
-}
-
 // RTCD 5.1.5, page 142
-inline Vector3 ClosestPointOnTriangle(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& p, double& v, double& w)
+inline nd::VHACD::Vect3<double> ClosestPointOnTriangle(const nd::VHACD::Vect3<double>& a,
+                                                       const nd::VHACD::Vect3<double>& b,
+                                                       const nd::VHACD::Vect3<double>& c,
+                                                       const nd::VHACD::Vect3<double>& p,
+                                                       double& v,
+                                                       double& w)
 {
-    Vector3 ab = b - a;
-    Vector3 ac = c - a;
-    Vector3 ap = p - a;
+    nd::VHACD::Vect3<double> ab = b - a;
+    nd::VHACD::Vect3<double> ac = c - a;
+    nd::VHACD::Vect3<double> ap = p - a;
 
-    double d1 = Dot(ab, ap);
-    double d2 = Dot(ac, ap);
+    double d1 = ab.Dot(ap);
+    double d2 = ac.Dot(ap);
     if (d1 <= 0.0f && d2 <= 0.0f)
     {
         v = 0.0f;
@@ -6565,9 +4551,9 @@ inline Vector3 ClosestPointOnTriangle(const Vector3& a, const Vector3& b, const 
         return a;
     }
 
-    Vector3 bp = p - b;
-    double d3 = Dot(ab, bp);
-    double d4 = Dot(ac, bp);
+    nd::VHACD::Vect3<double> bp = p - b;
+    double d3 = ab.Dot(bp);
+    double d4 = ac.Dot(bp);
     if (d3 >= 0.0f && d4 <= d3)
     {
         v = 1.0f;
@@ -6583,9 +4569,9 @@ inline Vector3 ClosestPointOnTriangle(const Vector3& a, const Vector3& b, const 
         return a + v * ab;
     }
 
-    Vector3 cp = p - c;
-    double d5 = Dot(ab, cp);
-    double d6 = Dot(ac, cp);
+    nd::VHACD::Vect3<double> cp = p - c;
+    double d5 = ab.Dot(cp);
+    double d6 = ac.Dot(cp);
     if (d6 >= 0.0f && d5 <= d6)
     {
         v = 0.0f;
@@ -6616,16 +4602,18 @@ inline Vector3 ClosestPointOnTriangle(const Vector3& a, const Vector3& b, const 
 }
 
 
-class AABBTreeImpl : public AABBTree
+class AABBTreeImpl
 {
 public:
-    AABBTreeImpl(const AABBTreeImpl&);
-    AABBTreeImpl& operator=(const AABBTreeImpl&);
+    AABBTreeImpl() = default;
+    AABBTreeImpl(AABBTreeImpl&&) = default;
+    AABBTreeImpl& operator=(AABBTreeImpl&&) = default;
 
-    AABBTreeImpl(const Vector3* vertices, uint32_t numVerts, const uint32_t* indices, uint32_t numFaces);
+    AABBTreeImpl(const std::vector<VHACD::Vertex>& vertices,
+                 const std::vector<VHACD::Triangle>& indices);
 
-    bool TraceRay(const Vector3& start,
-                  const Vector3& dir,
+    bool TraceRay(const nd::VHACD::Vect3<double>& start,
+                  const nd::VHACD::Vect3<double>& dir,
                   double& outT,
                   double& u,
                   double& v,
@@ -6634,105 +4622,118 @@ public:
                   uint32_t& faceIndex) const;
 
 
-    Vector3 GetCenter() const
+    nd::VHACD::Vect3<double> GetCenter() const
     {
         return (m_nodes[0].m_minExtents + m_nodes[0].m_maxExtents) * 0.5f;
     }
-    Vector3 GetMinExtents() const
+    nd::VHACD::Vect3<double> GetMinExtents() const
     {
         return m_nodes[0].m_minExtents;
     }
-    Vector3 GetMaxExtents() const
+    nd::VHACD::Vect3<double> GetMaxExtents() const
     {
         return m_nodes[0].m_maxExtents;
     }
 
-    virtual bool raycast(const double* start,
-                         const double* dir,
-                         double& outT,
-                         double& u,
-                         double& v,
-                         double& w,
-                         double& faceSign,
-                         uint32_t& faceIndex) const final
+    bool raycast(const nd::VHACD::Vect3<double>& start,
+                 const nd::VHACD::Vect3<double>& dir,
+                 double& outT,
+                 double& u,
+                 double& v,
+                 double& w,
+                 double& faceSign,
+                 uint32_t& faceIndex) const
     {
-        bool ret = TraceRay(*(const Vector3*)start, *(const Vector3*)dir, outT, u, v, w, faceSign, faceIndex);
-        return ret;
+        return TraceRay(start,
+                        dir,
+                        outT,
+                        u,
+                        v,
+                        w,
+                        faceSign,
+                        faceIndex);
     }
 
-    virtual void release(void) final
+    bool getClosestPointWithinDistance(const nd::VHACD::Vect3<double>& point,
+                                       double maxDistance,
+                                       nd::VHACD::Vect3<double>& closestPoint)
     {
-        delete this;
+        double dis, v, w;
+        uint32_t faceIndex;
+        bool hit = GetClosestPointWithinDistance(point,
+                                                 maxDistance,
+                                                 dis,
+                                                 v,
+                                                 w,
+                                                 faceIndex,
+                                                 closestPoint);
+        return hit;
     }
 
 private:
     struct Node
     {
-        Node() : m_numFaces(0), m_faces(NULL), m_minExtents(0.0f), m_maxExtents(0.0f)
-        {
-        }
-
         union
         {
             uint32_t m_children;
-            uint32_t m_numFaces;
+            uint32_t m_numFaces{ 0 };
         };
 
-        uint32_t* m_faces;
-        Vector3 m_minExtents;
-        Vector3 m_maxExtents;
+        uint32_t* m_faces{ nullptr };
+        nd::VHACD::Vect3<double> m_minExtents{ 0.0 };
+        nd::VHACD::Vect3<double> m_maxExtents{ 0.0 };
     };
 
 
     struct BoundsAABB
     {
-        BoundsAABB() : m_min(0.0f), m_max(0.0f)
-        {
-        }
-
-        BoundsAABB(const Vector3& min, const Vector3& max) : m_min(min), m_max(max)
+        BoundsAABB() = default;
+        BoundsAABB(const nd::VHACD::Vect3<double>& min,
+                   const nd::VHACD::Vect3<double>& max)
+            : m_min(min)
+            , m_max(max)
         {
         }
 
         inline double GetVolume() const
         {
-            Vector3 e = m_max - m_min;
-            return (e.x * e.y * e.z);
+            nd::VHACD::Vect3<double> e = m_max - m_min;
+            return (e.getX() * e.getY() * e.getZ());
         }
 
         inline double GetSurfaceArea() const
         {
-            Vector3 e = m_max - m_min;
-            return 2.0f * (e.x * e.y + e.x * e.z + e.y * e.z);
+            nd::VHACD::Vect3<double> e = m_max - m_min;
+            return 2.0f * (e.getX() * e.getY() + e.getX() * e.getZ() + e.getY() * e.getZ());
         }
 
         inline void Union(const BoundsAABB& b)
         {
-            m_min = Min(m_min, b.m_min);
-            m_max = Max(m_max, b.m_max);
+            m_min = m_min.CWiseMin(b.m_min);
+            m_max = m_max.CWiseMax(b.m_max);
         }
 
-        Vector3 m_min;
-        Vector3 m_max;
+        nd::VHACD::Vect3<double> m_min{ 0.0 };
+        nd::VHACD::Vect3<double> m_max{ 0.0 };
     };
 
-    typedef std::vector<uint32_t> IndexArray;
-    typedef std::vector<Vector3> PositionArray;
-    typedef std::vector<Node> NodeArray;
-    typedef std::vector<uint32_t> FaceArray;
-    typedef std::vector<BoundsAABB> FaceBoundsArray;
-
     // partition the objects and return the number of objects in the lower partition
-    uint32_t PartitionMedian(Node& n, uint32_t* faces, uint32_t numFaces);
-    uint32_t PartitionSAH(Node& n, uint32_t* faces, uint32_t numFaces);
+    uint32_t PartitionMedian(Node& n,
+                             uint32_t* faces,
+                             uint32_t numFaces);
+    uint32_t PartitionSAH(Node& n,
+                          uint32_t* faces,
+                          uint32_t numFaces);
 
     void Build();
 
-    void BuildRecursive(uint32_t nodeIndex, uint32_t* faces, uint32_t numFaces);
+    void BuildRecursive(uint32_t nodeIndex,
+                        uint32_t* faces,
+                        uint32_t numFaces);
 
     void TraceRecursive(uint32_t nodeIndex,
-                        const Vector3& start,
-                        const Vector3& dir,
+                        const nd::VHACD::Vect3<double>& start,
+                        const nd::VHACD::Vect3<double>& dir,
                         double& outT,
                         double& u,
                         double& v,
@@ -6741,31 +4742,30 @@ private:
                         uint32_t& faceIndex) const;
 
 
-    bool GetClosestPointWithinDistance(
-        const Vector3& point, const double maxDis, double& dis, double& v, double& w, uint32_t& faceIndex, Vector3& closest) const;
-
-    virtual bool getClosestPointWithinDistance(const double* point, double maxDistance, double* closestPoint) final
-    {
-        double dis, v, w;
-        uint32_t faceIndex;
-        bool hit =
-            GetClosestPointWithinDistance(*(const Vector3*)point, maxDistance, dis, v, w, faceIndex, *(Vector3*)closestPoint);
-        return hit;
-    }
+    bool GetClosestPointWithinDistance(const nd::VHACD::Vect3<double>& point,
+                                       const double maxDis,
+                                       double& dis,
+                                       double& v,
+                                       double& w,
+                                       uint32_t& faceIndex,
+                                       nd::VHACD::Vect3<double>& closest) const;
 
     void GetClosestPointWithinDistanceSqRecursive(uint32_t nodeIndex,
-                                                  const Vector3& point,
+                                                  const nd::VHACD::Vect3<double>& point,
                                                   double& outDisSq,
                                                   double& outV,
                                                   double& outW,
                                                   uint32_t& outFaceIndex,
-                                                  Vector3& closest) const;
+                                                  nd::VHACD::Vect3<double>& closest) const;
 
-    void CalculateFaceBounds(uint32_t* faces, uint32_t numFaces, Vector3& outMinExtents, Vector3& outMaxExtents);
+    void CalculateFaceBounds(uint32_t* faces,
+                             uint32_t numFaces,
+                             nd::VHACD::Vect3<double>& outMinExtents,
+                             nd::VHACD::Vect3<double>& outMaxExtents);
 
     uint32_t GetNumFaces() const
     {
-        return m_numFaces;
+        return uint32_t(m_indices->size());
     }
 
     uint32_t GetNumNodes() const
@@ -6776,33 +4776,27 @@ private:
     // track the next free node
     uint32_t m_freeNode;
 
-    const Vector3* m_vertices;
-    const uint32_t m_numVerts;
+    const std::vector<VHACD::Vertex>* m_vertices{nullptr};
 
-    const uint32_t* m_indices;
-    const uint32_t m_numFaces;
+    const std::vector<VHACD::Triangle>* m_indices{nullptr};
 
-    FaceArray m_faces;
-    NodeArray m_nodes;
-    FaceBoundsArray m_faceBounds;
+    std::vector<uint32_t> m_faces;
+    std::vector<Node> m_nodes;
+    std::vector<BoundsAABB> m_faceBounds;
 
     // stats
-    uint32_t m_treeDepth;
-    uint32_t m_innerNodes;
-    uint32_t m_leafNodes;
+    uint32_t m_treeDepth = 0;
+    uint32_t m_innerNodes = 0;
+    uint32_t m_leafNodes = 0;
 
     uint32_t s_depth{0};
 };
 
-
-AABBTreeImpl::AABBTreeImpl(const Vector3* vertices, uint32_t numVerts, const uint32_t* indices, uint32_t numFaces)
-    : m_vertices(vertices), m_numVerts(numVerts), m_indices(indices), m_numFaces(numFaces)
+AABBTreeImpl::AABBTreeImpl(const std::vector<VHACD::Vertex>& vertices,
+                           const std::vector<VHACD::Triangle>& indices)
+    : m_vertices(&vertices)
+    , m_indices(&indices)
 {
-    // build stats
-    m_treeDepth = 0;
-    m_innerNodes = 0;
-    m_leafNodes = 0;
-
     Build();
 }
 
@@ -6811,8 +4805,12 @@ namespace
 
 struct FaceSorter
 {
-    FaceSorter(const Vector3* positions, const uint32_t* indices, uint32_t n, uint32_t axis)
-        : m_vertices(positions), m_indices(indices), m_numIndices(n), m_axis(axis)
+    FaceSorter(const std::vector<VHACD::Vertex>& positions,
+               const std::vector<VHACD::Triangle>& indices,
+               uint32_t axis)
+        : m_vertices(positions)
+        , m_indices(indices)
+        , m_axis(axis)
     {
     }
 
@@ -6829,42 +4827,44 @@ struct FaceSorter
 
     inline double GetCentroid(uint32_t face) const
     {
-        const Vector3& a = m_vertices[m_indices[face * 3 + 0]];
-        const Vector3& b = m_vertices[m_indices[face * 3 + 1]];
-        const Vector3& c = m_vertices[m_indices[face * 3 + 2]];
+        const nd::VHACD::Vect3<double>& a = m_vertices[m_indices[face].mI0];
+        const nd::VHACD::Vect3<double>& b = m_vertices[m_indices[face].mI1];
+        const nd::VHACD::Vect3<double>& c = m_vertices[m_indices[face].mI2];
 
         return (a[m_axis] + b[m_axis] + c[m_axis]) / 3.0f;
     }
 
-    const Vector3* m_vertices;
-    const uint32_t* m_indices;
-    uint32_t m_numIndices;
+    const std::vector<VHACD::Vertex>& m_vertices;
+    const std::vector<VHACD::Triangle>& m_indices;
     uint32_t m_axis;
 };
 
 
 } // anonymous namespace
 
-void AABBTreeImpl::CalculateFaceBounds(uint32_t* faces, uint32_t numFaces, Vector3& outMinExtents, Vector3& outMaxExtents)
+void AABBTreeImpl::CalculateFaceBounds(uint32_t* faces,
+                                       uint32_t numFaces,
+                                       nd::VHACD::Vect3<double>& outMinExtents,
+                                       nd::VHACD::Vect3<double>& outMaxExtents)
 {
-    Vector3 minExtents(FLT_MAX);
-    Vector3 maxExtents(-FLT_MAX);
+    nd::VHACD::Vect3<double> minExtents(FLT_MAX);
+    nd::VHACD::Vect3<double> maxExtents(-FLT_MAX);
 
     // calculate face bounds
     for (uint32_t i = 0; i < numFaces; ++i)
     {
-        Vector3 a = Vector3(m_vertices[m_indices[faces[i] * 3 + 0]]);
-        Vector3 b = Vector3(m_vertices[m_indices[faces[i] * 3 + 1]]);
-        Vector3 c = Vector3(m_vertices[m_indices[faces[i] * 3 + 2]]);
+        nd::VHACD::Vect3<double> a = (*m_vertices)[(*m_indices)[faces[i]].mI0];
+        nd::VHACD::Vect3<double> b = (*m_vertices)[(*m_indices)[faces[i]].mI1];
+        nd::VHACD::Vect3<double> c = (*m_vertices)[(*m_indices)[faces[i]].mI2];
 
-        minExtents = Min(a, minExtents);
-        maxExtents = Max(a, maxExtents);
+        minExtents = a.CWiseMin(minExtents);
+        maxExtents = a.CWiseMax(maxExtents);
 
-        minExtents = Min(b, minExtents);
-        maxExtents = Max(b, maxExtents);
+        minExtents = b.CWiseMin(minExtents);
+        maxExtents = b.CWiseMax(maxExtents);
 
-        minExtents = Min(c, minExtents);
-        maxExtents = Max(c, maxExtents);
+        minExtents = c.CWiseMin(minExtents);
+        maxExtents = c.CWiseMax(maxExtents);
     }
 
     outMinExtents = minExtents;
@@ -6873,11 +4873,7 @@ void AABBTreeImpl::CalculateFaceBounds(uint32_t* faces, uint32_t numFaces, Vecto
 
 void AABBTreeImpl::Build()
 {
-    assert(m_numFaces * 3);
-
-    // const double startTime = GetSeconds();
-
-    const uint32_t numFaces = m_numFaces;
+    const uint32_t numFaces = uint32_t(m_indices->size());
 
     // build initial list of faces
     m_faces.reserve(numFaces);
@@ -6889,7 +4885,10 @@ void AABBTreeImpl::Build()
     for (uint32_t i = 0; i < numFaces; ++i)
     {
         BoundsAABB top;
-        CalculateFaceBounds(&i, 1, top.m_min, top.m_max);
+        CalculateFaceBounds(&i,
+                            1,
+                            top.m_min,
+                            top.m_max);
 
         m_faces.push_back(i);
         m_faceBounds.push_back(top);
@@ -6901,22 +4900,33 @@ void AABBTreeImpl::Build()
     m_freeNode = 1;
 
     // start building
-    BuildRecursive(0, &m_faces[0], numFaces);
+    BuildRecursive(0,
+                   m_faces.data(),
+                   numFaces);
 
     assert(s_depth == 0);
 }
 
 // partion faces around the median face
-uint32_t AABBTreeImpl::PartitionMedian(Node& n, uint32_t* faces, uint32_t numFaces)
+uint32_t AABBTreeImpl::PartitionMedian(Node& n,
+                                       uint32_t* faces,
+                                       uint32_t numFaces)
 {
-    FaceSorter predicate(&m_vertices[0], &m_indices[0], m_numFaces * 3, LongestAxis(n.m_maxExtents - n.m_minExtents));
-    std::nth_element(faces, faces + numFaces / 2, faces + numFaces, predicate);
+    FaceSorter predicate(*m_vertices,
+                         *m_indices,
+                         (n.m_maxExtents - n.m_minExtents).LongestAxis());
+    std::nth_element(faces,
+                     faces + numFaces / 2,
+                     faces + numFaces,
+                     predicate);
 
     return numFaces / 2;
 }
 
 // partion faces based on the surface area heuristic
-uint32_t AABBTreeImpl::PartitionSAH(Node& n, uint32_t* faces, uint32_t numFaces)
+uint32_t AABBTreeImpl::PartitionSAH(Node& n,
+                                    uint32_t* faces,
+                                    uint32_t numFaces)
 {
 //    (n);
     uint32_t bestAxis = 0;
@@ -6926,8 +4936,12 @@ uint32_t AABBTreeImpl::PartitionSAH(Node& n, uint32_t* faces, uint32_t numFaces)
     for (uint32_t a = 0; a < 3; ++a)
     {
         // sort faces by centroids
-        FaceSorter predicate(&m_vertices[0], &m_indices[0], m_numFaces * 3, a);
-        std::sort(faces, faces + numFaces, predicate);
+        FaceSorter predicate(*m_vertices,
+                             *m_indices,
+                             a);
+        std::sort(faces,
+                  faces + numFaces,
+                  predicate);
 
         // two passes over data to calculate upper and lower bounds
         std::vector<double> cumulativeLower(numFaces);
@@ -6964,13 +4978,19 @@ uint32_t AABBTreeImpl::PartitionSAH(Node& n, uint32_t* faces, uint32_t numFaces)
     }
 
     // re-sort by best axis
-    FaceSorter predicate(&m_vertices[0], &m_indices[0], m_numFaces * 3, bestAxis);
-    std::sort(faces, faces + numFaces, predicate);
+    FaceSorter predicate(*m_vertices,
+                         *m_indices,
+                         bestAxis);
+    std::sort(faces,
+              faces + numFaces,
+              predicate);
 
     return bestIndex + 1;
 }
 
-void AABBTreeImpl::BuildRecursive(uint32_t nodeIndex, uint32_t* faces, uint32_t numFaces)
+void AABBTreeImpl::BuildRecursive(uint32_t nodeIndex,
+                                  uint32_t* faces,
+                                  uint32_t numFaces)
 {
     const uint32_t kMaxFacesPerLeaf = 6;
 
@@ -6978,10 +4998,6 @@ void AABBTreeImpl::BuildRecursive(uint32_t nodeIndex, uint32_t* faces, uint32_t 
     if (nodeIndex >= m_nodes.size())
     {
         uint32_t s = std::max(uint32_t(1.5f * m_nodes.size()), 512U);
-
-        // cout << "Resizing tree, current size: " << m_nodes.size()*sizeof(Node) << " new size: " << s*sizeof(Node) <<
-        // endl;
-
         m_nodes.resize(s);
     }
 
@@ -6992,7 +5008,10 @@ void AABBTreeImpl::BuildRecursive(uint32_t nodeIndex, uint32_t* faces, uint32_t 
     ++s_depth;
     m_treeDepth = std::max(m_treeDepth, s_depth);
 
-    CalculateFaceBounds(faces, numFaces, n.m_minExtents, n.m_maxExtents);
+    CalculateFaceBounds(faces,
+                        numFaces,
+                        n.m_minExtents,
+                        n.m_maxExtents);
 
     // calculate bounds of faces and add node
     if (numFaces <= kMaxFacesPerLeaf)
@@ -7025,15 +5044,8 @@ void AABBTreeImpl::BuildRecursive(uint32_t nodeIndex, uint32_t* faces, uint32_t 
     --s_depth;
 }
 
-struct StackEntry
-{
-    uint32_t m_node;
-    double m_dist;
-};
-
-
-bool AABBTreeImpl::TraceRay(const Vector3& start,
-                            const Vector3& dir,
+bool AABBTreeImpl::TraceRay(const nd::VHACD::Vect3<double>& start,
+                            const nd::VHACD::Vect3<double>& dir,
                             double& outT,
                             double& u,
                             double& v,
@@ -7042,13 +5054,21 @@ bool AABBTreeImpl::TraceRay(const Vector3& start,
                             uint32_t& faceIndex) const
 {
     outT = FLT_MAX;
-    TraceRecursive(0, start, dir, outT, u, v, w, faceSign, faceIndex);
+    TraceRecursive(0,
+                   start,
+                   dir,
+                   outT,
+                   u,
+                   v,
+                   w,
+                   faceSign,
+                   faceIndex);
     return (outT != FLT_MAX);
 }
 
 void AABBTreeImpl::TraceRecursive(uint32_t nodeIndex,
-                                  const Vector3& start,
-                                  const Vector3& dir,
+                                  const nd::VHACD::Vect3<double>& start,
+                                  const nd::VHACD::Vect3<double>& dir,
                                   double& outT,
                                   double& outU,
                                   double& outV,
@@ -7066,8 +5086,18 @@ void AABBTreeImpl::TraceRecursive(uint32_t nodeIndex,
 
         double dist[2] = { FLT_MAX, FLT_MAX };
 
-        IntersectRayAABB(start, dir, leftChild.m_minExtents, leftChild.m_maxExtents, dist[0], NULL);
-        IntersectRayAABB(start, dir, rightChild.m_minExtents, rightChild.m_maxExtents, dist[1], NULL);
+        IntersectRayAABB(start,
+                         dir,
+                         leftChild.m_minExtents,
+                         leftChild.m_maxExtents,
+                         dist[0],
+                         nullptr);
+        IntersectRayAABB(start,
+                         dir,
+                         rightChild.m_minExtents,
+                         rightChild.m_maxExtents,
+                         dist[1],
+                         nullptr);
 
         uint32_t closest = 0;
         uint32_t furthest = 1;
@@ -7079,23 +5109,38 @@ void AABBTreeImpl::TraceRecursive(uint32_t nodeIndex,
         }
 
         if (dist[closest] < outT)
-            TraceRecursive(node.m_children + closest, start, dir, outT, outU, outV, outW, faceSign, faceIndex);
+            TraceRecursive(node.m_children + closest,
+                           start,
+                           dir,
+                           outT,
+                           outU,
+                           outV,
+                           outW,
+                           faceSign,
+                           faceIndex);
 
         if (dist[furthest] < outT)
-            TraceRecursive(node.m_children + furthest, start, dir, outT, outU, outV, outW, faceSign, faceIndex);
+            TraceRecursive(node.m_children + furthest,
+                           start,
+                           dir,
+                           outT,
+                           outU,
+                           outV,
+                           outW,
+                           faceSign,
+                           faceIndex);
     }
     else
     {
-        Vector3 normal;
         double t, u, v, w, s;
 
         for (uint32_t i = 0; i < node.m_numFaces; ++i)
         {
-            uint32_t indexStart = node.m_faces[i] * 3;
+            uint32_t indexStart = node.m_faces[i];
 
-            const Vector3& a = m_vertices[m_indices[indexStart + 0]];
-            const Vector3& b = m_vertices[m_indices[indexStart + 1]];
-            const Vector3& c = m_vertices[m_indices[indexStart + 2]];
+            const nd::VHACD::Vect3<double>& a = (*m_vertices)[(*m_indices)[indexStart].mI0];
+            const nd::VHACD::Vect3<double>& b = (*m_vertices)[(*m_indices)[indexStart].mI1];
+            const nd::VHACD::Vect3<double>& c = (*m_vertices)[(*m_indices)[indexStart].mI2];
             if (IntersectRayTriTwoSided(start, dir, a, b, c, t, u, v, w, s, NULL))
             {
                 if (t < outT)
@@ -7112,44 +5157,59 @@ void AABBTreeImpl::TraceRecursive(uint32_t nodeIndex,
     }
 }
 
-bool AABBTreeImpl::GetClosestPointWithinDistance(
-    const Vector3& point, const double maxDis, double& dis, double& v, double& w, uint32_t& faceIndex, Vector3& closest) const
+bool AABBTreeImpl::GetClosestPointWithinDistance(const nd::VHACD::Vect3<double>& point,
+                                                 const double maxDis,
+                                                 double& dis,
+                                                 double& v,
+                                                 double& w,
+                                                 uint32_t& faceIndex,
+                                                 nd::VHACD::Vect3<double>& closest) const
 {
     dis = maxDis;
     faceIndex = uint32_t(~0);
     double disSq = dis * dis;
 
-    GetClosestPointWithinDistanceSqRecursive(0, point, disSq, v, w, faceIndex, closest);
+    GetClosestPointWithinDistanceSqRecursive(0,
+                                             point,
+                                             disSq,
+                                             v,
+                                             w,
+                                             faceIndex,
+                                             closest);
     dis = sqrt(disSq);
 
-    return (faceIndex < (~((unsigned int)0)));
+    return (faceIndex < (~(static_cast<unsigned int>(0))));
 }
 
 void AABBTreeImpl::GetClosestPointWithinDistanceSqRecursive(uint32_t nodeIndex,
-                                                            const Vector3& point,
+                                                            const nd::VHACD::Vect3<double>& point,
                                                             double& outDisSq,
                                                             double& outV,
                                                             double& outW,
                                                             uint32_t& outFaceIndex,
-                                                            Vector3& closestPoint) const
+                                                            nd::VHACD::Vect3<double>& closestPoint) const
 {
     const Node& node = m_nodes[nodeIndex];
 
-    if (node.m_faces == NULL)
+    if (node.m_faces == nullptr)
     {
         // find closest node
         const Node& leftChild = m_nodes[node.m_children + 0];
         const Node& rightChild = m_nodes[node.m_children + 1];
 
         // double dist[2] = { FLT_MAX, FLT_MAX };
-        Vector3 lp = ClosestPointToAABB(point, leftChild.m_minExtents, leftChild.m_maxExtents);
-        Vector3 rp = ClosestPointToAABB(point, rightChild.m_minExtents, rightChild.m_maxExtents);
+        nd::VHACD::Vect3<double> lp = ClosestPointToAABB(point,
+                                                         leftChild.m_minExtents,
+                                                         leftChild.m_maxExtents);
+        nd::VHACD::Vect3<double> rp = ClosestPointToAABB(point,
+                                                         rightChild.m_minExtents,
+                                                         rightChild.m_maxExtents);
 
 
         uint32_t closest = 0;
         uint32_t furthest = 1;
-        double dcSq = LengthSq(point - lp);
-        double dfSq = LengthSq(point - rp);
+        double dcSq = (point - lp).GetNormSquared();
+        double dfSq = (point - rp).GetNormSquared();
         if (dfSq < dcSq)
         {
             closest = 1;
@@ -7159,14 +5219,24 @@ void AABBTreeImpl::GetClosestPointWithinDistanceSqRecursive(uint32_t nodeIndex,
 
         if (dcSq < outDisSq)
         {
-            GetClosestPointWithinDistanceSqRecursive(
-                node.m_children + closest, point, outDisSq, outV, outW, outFaceIndex, closestPoint);
+            GetClosestPointWithinDistanceSqRecursive(node.m_children + closest,
+                                                     point,
+                                                     outDisSq,
+                                                     outV,
+                                                     outW,
+                                                     outFaceIndex,
+                                                     closestPoint);
         }
 
         if (dfSq < outDisSq)
         {
-            GetClosestPointWithinDistanceSqRecursive(
-                node.m_children + furthest, point, outDisSq, outV, outW, outFaceIndex, closestPoint);
+            GetClosestPointWithinDistanceSqRecursive(node.m_children + furthest,
+                                                     point,
+                                                     outDisSq,
+                                                     outV,
+                                                     outW,
+                                                     outFaceIndex,
+                                                     closestPoint);
         }
     }
     else
@@ -7175,14 +5245,14 @@ void AABBTreeImpl::GetClosestPointWithinDistanceSqRecursive(uint32_t nodeIndex,
         double v, w;
         for (uint32_t i = 0; i < node.m_numFaces; ++i)
         {
-            uint32_t indexStart = node.m_faces[i] * 3;
+            uint32_t indexStart = node.m_faces[i];
 
-            const Vector3& a = m_vertices[m_indices[indexStart + 0]];
-            const Vector3& b = m_vertices[m_indices[indexStart + 1]];
-            const Vector3& c = m_vertices[m_indices[indexStart + 2]];
+            const nd::VHACD::Vect3<double>& a = (*m_vertices)[(*m_indices)[indexStart].mI0];
+            const nd::VHACD::Vect3<double>& b = (*m_vertices)[(*m_indices)[indexStart].mI1];
+            const nd::VHACD::Vect3<double>& c = (*m_vertices)[(*m_indices)[indexStart].mI2];
 
-            Vector3 cp = ClosestPointOnTriangle(a, b, c, point, v, w);
-            double disSq = LengthSq(cp - point);
+            nd::VHACD::Vect3<double> cp = ClosestPointOnTriangle(a, b, c, point, v, w);
+            double disSq = (cp - point).GetNormSquared();
 
             if (disSq < outDisSq)
             {
@@ -7196,66 +5266,7 @@ void AABBTreeImpl::GetClosestPointWithinDistanceSqRecursive(uint32_t nodeIndex,
     }
 }
 
-AABBTree* AABBTree::create(const double* vertices, uint32_t numVerts, const uint32_t* indices, uint32_t numFaces)
-{
-    auto ret = new AABBTreeImpl((const Vector3*)vertices, numVerts, indices, numFaces);
-    return static_cast<AABBTree*>(ret);
-}
-
-
 } // namespace aabbtree
-
-
-
-//******************************************************************************************
-//  Declaration of the RaycastMesh class
-//******************************************************************************************
-
-namespace VHACD
-{
-
-// Very simple brute force raycast against a triangle mesh.  Tests every triangle; no hierachy.
-// Does a deep copy, always does calculations with full double float precision
-class RaycastMesh
-{
-public:
-    static RaycastMesh* createRaycastMesh(uint32_t vcount, // The number of vertices in the source triangle mesh
-                                          const double* vertices, // The array of vertex positions in the format
-                                                                  // x1,y1,z1..x2,y2,z2.. etc.
-                                          uint32_t tcount, // The number of triangles in the source triangle mesh
-                                          const uint32_t* indices); // The triangle indices in the format of i1,i2,i3
-                                                                    // ... i4,i5,i6, ...
-
-    static RaycastMesh* createRaycastMesh(uint32_t vcount, // The number of vertices in the source triangle mesh
-                                          const float* vertices, // The array of vertex positions in the format
-                                                                 // x1,y1,z1..x2,y2,z2.. etc.
-                                          uint32_t tcount, // The number of triangles in the source triangle mesh
-                                          const uint32_t* indices); // The triangle indices in the format of i1,i2,i3
-                                                                    // ... i4,i5,i6, ...
-
-
-    // Uses high speed AABB raycasting
-    virtual bool raycast(const double* start,
-                         const double* dir,
-                         double& outT,
-                         double& u,
-                         double& v,
-                         double& w,
-                         double& faceSign,
-                         uint32_t& faceIndex) const = 0;
-
-    virtual bool raycast(
-        const double* start, const double* to, double& outT, double& faceSign, double* hitLocation) const = 0;
-
-    virtual bool getClosestPointWithinDistance(const double* point, double maxDistance, double* closestPoint) = 0;
-
-    virtual void release(void) = 0;
-
-protected:
-    virtual ~RaycastMesh(void){};
-};
-
-}
 
 //******************************************************************************************
 //  Implementation of the RaycastMesh class
@@ -7263,74 +5274,62 @@ protected:
 namespace VHACD
 {
 
-class MyRaycastMesh : public VHACD::RaycastMesh
+class MyRaycastMesh
 {
 public:
-    template <class T>
-    MyRaycastMesh(uint32_t vcount, const T* vertices, uint32_t tcount, const uint32_t* indices)
-    {
-        mVcount = vcount;
-        mVertices = new double[mVcount * 3];
-        for (uint32_t i = 0; i < mVcount; i++)
-        {
-            mVertices[i * 3 + 0] = vertices[0];
-            mVertices[i * 3 + 1] = vertices[1];
-            mVertices[i * 3 + 2] = vertices[2];
-            vertices += 3;
-        }
-        mTcount = tcount;
-        mIndices = new uint32_t[mTcount * 3];
-        for (uint32_t i = 0; i < mTcount; i++)
-        {
-            mIndices[i * 3 + 0] = indices[0];
-            mIndices[i * 3 + 1] = indices[1];
-            mIndices[i * 3 + 2] = indices[2];
-            indices += 3;
-        }
-        mAABBTree = VHACD::AABBTree::create(mVertices, mTcount, mIndices, mTcount);
-    }
+    MyRaycastMesh() = default;
+    MyRaycastMesh(MyRaycastMesh&& rhs) = default;
+    MyRaycastMesh& operator=(MyRaycastMesh&& rhs) = default;
 
-
-    ~MyRaycastMesh(void)
+    MyRaycastMesh(const std::vector<VHACD::Vertex>& vertices,
+                  const std::vector<VHACD::Triangle>& indices)
+        : mAABBTree(vertices, indices)
+        , mVertices(&vertices)
+        , mIndices(&indices)
     {
-        delete[] mVertices;
-        delete[] mIndices;
-        mAABBTree->release();
-    }
-
-    virtual void release(void)
-    {
-        delete this;
     }
 
     // Uses high speed AABB raycasting
-    virtual bool raycast(const double* start,
-                         const double* dir,
-                         double& outT,
-                         double& u,
-                         double& v,
-                         double& w,
-                         double& faceSign,
-                         uint32_t& faceIndex) const final
+    bool raycast(const nd::VHACD::Vect3<double>& start,
+                 const nd::VHACD::Vect3<double>& dir,
+                 double& outT,
+                 double& u,
+                 double& v,
+                 double& w,
+                 double& faceSign,
+                 uint32_t& faceIndex) const
     {
-        return mAABBTree->raycast(start, dir, outT, u, v, w, faceSign, faceIndex);
+        return mAABBTree.raycast(start,
+                                 dir,
+                                 outT,
+                                 u,
+                                 v,
+                                 w,
+                                 faceSign,
+                                 faceIndex);
     }
 
-    virtual bool raycast(const double* start, const double* to, double& outT, double& faceSign, double* hitLocation) const final
+    bool raycast(const nd::VHACD::Vect3<double>& start,
+                 const nd::VHACD::Vect3<double>& to,
+                 double& outT,
+                 double& faceSign,
+                 nd::VHACD::Vect3<double>& hitLocation) const
     {
-        double dir[3];
-        dir[0] = to[0] - start[0];
-        dir[1] = to[1] - start[1];
-        dir[2] = to[2] - start[2];
-        double distance = VHACD::fm_normalize(dir);
+        nd::VHACD::Vect3<double> dir = to - start;
+        double distance = dir.Normalize();
         double u, v, w;
         uint32_t faceIndex;
-        bool hit = mAABBTree->raycast(start, dir, outT, u, v, w, faceSign, faceIndex);
-        if (hit && hitLocation)
+        bool hit = mAABBTree.raycast(start,
+                                     dir,
+                                     outT,
+                                     u,
+                                     v,
+                                     w,
+                                     faceSign,
+                                     faceIndex);
+        if (hit)
         {
-            hitLocation[0] = start[0] + dir[0] * outT;
-            hitLocation[1] = start[1] + dir[1] * outT;
-            hitLocation[2] = start[2] + dir[2] * outT;
+            hitLocation = start + dir * outT;
         }
         if (hit && outT > distance)
         {
@@ -7339,50 +5338,21 @@ public:
         return hit;
     }
 
-    virtual bool getClosestPointWithinDistance(const double* point, double maxDistance, double* closestPoint) final
+    bool getClosestPointWithinDistance(const nd::VHACD::Vect3<double> point,
+                                       double maxDistance,
+                                       nd::VHACD::Vect3<double>& closestPoint)
     {
-        return mAABBTree->getClosestPointWithinDistance(point, maxDistance, closestPoint);
+        return mAABBTree.getClosestPointWithinDistance(point,
+                                                       maxDistance,
+                                                       closestPoint);
     }
 
-
-    VHACD::AABBTree* mAABBTree{ nullptr };
-    uint32_t mVcount;
-    double* mVertices;
-    uint32_t mTcount;
-    uint32_t* mIndices;
+    VHACD::AABBTreeImpl mAABBTree;
+    const std::vector<VHACD::Vertex>* mVertices = nullptr;
+    const std::vector<VHACD::Triangle>* mIndices = nullptr;
 };
 
-}; // namespace RAYCAST_MESH
-
-
-namespace VHACD
-{
-
-RaycastMesh* RaycastMesh::createRaycastMesh(uint32_t vcount, // The number of vertices in the source triangle mesh
-                                            const double* vertices, // The array of vertex positions in the format
-                                                                    // x1,y1,z1..x2,y2,z2.. etc.
-                                            uint32_t tcount, // The number of triangles in the source triangle mesh
-                                            const uint32_t* indices) // The triangle indices in the format of i1,i2,i3
-                                                                     // ... i4,i5,i6, ...
-{
-    MyRaycastMesh* m = new MyRaycastMesh(vcount, vertices, tcount, indices);
-    return static_cast<RaycastMesh*>(m);
-}
-
-RaycastMesh* RaycastMesh::createRaycastMesh(uint32_t vcount, // The number of vertices in the source triangle mesh
-                                            const float* vertices, // The array of vertex positions in the format
-                                                                   // x1,y1,z1..x2,y2,z2.. etc.
-                                            uint32_t tcount, // The number of triangles in the source triangle mesh
-                                            const uint32_t* indices) // The triangle indices in the format of i1,i2,i3
-                                                                     // ... i4,i5,i6, ...
-{
-    MyRaycastMesh* m = new MyRaycastMesh(vcount, vertices, tcount, indices);
-    return static_cast<RaycastMesh*>(m);
-}
-
-
 } // namespace VHACD
-
 
 //*************************************************************************************************************
 // Definition of the Volume class
@@ -7391,9 +5361,7 @@ RaycastMesh* RaycastMesh::createRaycastMesh(uint32_t vcount, // The number of ve
 namespace VHACD
 {
 
-class RaycastMesh;
-
-enum VOXEL_VALUE
+enum class VoxelValue : uint8_t
 {
     PRIMITIVE_UNDEFINED = 0,
     PRIMITIVE_OUTSIDE_SURFACE_TOWALK = 1,
@@ -7402,34 +5370,18 @@ enum VOXEL_VALUE
     PRIMITIVE_ON_SURFACE = 4
 };
 
-
-struct VoxelEntry
-{
-public:
-    short m_coord[3];
-    short m_data;
-};
-
-//!
 class Volume
 {
 public:
-    Volume(void);
-    //! Destructor.
-    ~Volume(void);
-
-    //! Voxelize
-    void Voxelize(const double* const points,
-                  const uint32_t nPoints,
-                  const int32_t* const triangles,
-                  const uint32_t nTriangles,
+    void Voxelize(const std::vector<VHACD::Vertex>& points,
+                  const std::vector<VHACD::Triangle>& triangles,
                   const size_t dim,
-                  VoxelFillMode fillMode,
-                  RaycastMesh* raycastMesh);
+                  FillMode fillMode,
+                  MyRaycastMesh* raycastMesh);
 
-    void raycastFill(RaycastMesh* raycastMesh);
+    void raycastFill(MyRaycastMesh* raycastMesh);
 
-    void SetVoxel(const size_t i, const size_t j, const size_t k, unsigned char value)
+    void SetVoxel(const size_t i, const size_t j, const size_t k, VoxelValue value)
     {
         assert(i < m_dim[0] || i >= 0);
         assert(j < m_dim[1] || j >= 0);
@@ -7438,7 +5390,7 @@ public:
         m_data[k + j * m_dim[2] + i * m_dim[1] * m_dim[2]] = value;
     }
 
-    unsigned char& GetVoxel(const size_t i, const size_t j, const size_t k)
+    VoxelValue& GetVoxel(const size_t i, const size_t j, const size_t k)
     {
         assert(i < m_dim[0] || i >= 0);
         assert(j < m_dim[1] || j >= 0);
@@ -7446,32 +5398,30 @@ public:
         return m_data[k + j * m_dim[2] + i * m_dim[1] * m_dim[2]];
     }
 
-    const unsigned char& GetVoxel(const size_t i, const size_t j, const size_t k) const
+    const VoxelValue& GetVoxel(const size_t i, const size_t j, const size_t k) const
     {
         assert(i < m_dim[0] || i >= 0);
-        assert(j < m_dim[0] || j >= 0);
-        assert(k < m_dim[0] || k >= 0);
+        assert(j < m_dim[1] || j >= 0);
+        assert(k < m_dim[2] || k >= 0);
         return m_data[k + j * m_dim[2] + i * m_dim[1] * m_dim[2]];
     }
 
-    const size_t GetNPrimitivesOnSurf() const
+    size_t GetNPrimitivesOnSurf() const
     {
         return m_numVoxelsOnSurface;
     }
 
-    const size_t GetNPrimitivesInsideSurf() const
+    size_t GetNPrimitivesInsideSurf() const
     {
         return m_numVoxelsInsideSurface;
     }
 
-    void AlignToPrincipalAxes(double (&rot)[3][3]) const;
-
-    const VHACD::VoxelVector& getSurfaceVoxels(void) const
+    const VHACD::VoxelVector& getSurfaceVoxels() const
     {
         return mSurfaceVoxels;
     }
 
-    const VHACD::VoxelVector& getInteriorVoxels(void) const
+    const VHACD::VoxelVector& getInteriorVoxels() const
     {
         return mInteriorVoxels;
     }
@@ -7482,60 +5432,54 @@ public:
         mSurfaceVoxels.push_back(v);
     }
 
-
     void addInteriorVoxel(int32_t x, int32_t y, int32_t z)
     {
         VHACD::Voxel v(x, y, z);
         mInteriorVoxels.push_back(v);
     }
 
-    Vec3<double> m_minBB;
-    Vec3<double> m_maxBB;
-    double m_scale;
-    size_t m_dim[3]; //>! dim
-    size_t m_numVoxelsOnSurface;
-    size_t m_numVoxelsInsideSurface;
-    size_t m_numVoxelsOutsideSurface;
-    unsigned char* m_data;
+    nd::VHACD::Vect3<double> m_minBB{ 0.0 };
+    nd::VHACD::Vect3<double> m_maxBB{ 1.0 };
+    double m_scale{ 1.0 };
+    nd::VHACD::Vect3<uint32_t> m_dim{ 0 };
+    size_t m_numVoxelsOnSurface{ 0 };
+    size_t m_numVoxelsInsideSurface{ 0 };
+    size_t m_numVoxelsOutsideSurface{ 0 };
+    std::vector<VoxelValue> m_data;
 
-//private:
-    void MarkOutsideSurface(
-        const size_t i0, const size_t j0, const size_t k0, const size_t i1, const size_t j1, const size_t k1);
+private:
+    void MarkOutsideSurface(const size_t i0,
+                            const size_t j0,
+                            const size_t k0,
+                            const size_t i1,
+                            const size_t j1,
+                            const size_t k1);
     void FillOutsideSurface();
 
     void FillInsideSurface();
 
-    void ComputeBB(const double* const points, const uint32_t nPoints);
+    void ComputeBB(const std::vector<VHACD::Vertex>& points);
 
     void Allocate();
-    void Free();
 
-    VHACD::VoxelVector   mSurfaceVoxels;
-    VHACD::VoxelVector   mInteriorVoxels;
+    std::vector<VHACD::Voxel> mSurfaceVoxels;
+    std::vector<VHACD::Voxel> mInteriorVoxels;
 };
 
-int32_t TriBoxOverlap(const Vec3<double>& boxcenter,
-                      const Vec3<double>& boxhalfsize,
-                      const Vec3<double>& triver0,
-                      const Vec3<double>& triver1,
-                      const Vec3<double>& triver2);
+int32_t TriBoxOverlap(const nd::VHACD::Vect3<double>& boxcenter,
+                      const nd::VHACD::Vect3<double>& boxhalfsize,
+                      const nd::VHACD::Vect3<double>& triver0,
+                      const nd::VHACD::Vect3<double>& triver1,
+                      const nd::VHACD::Vect3<double>& triver2);
 
-inline void ComputeAlignedPoint(const double* const points, const uint32_t idx, Vec3<double>& pt)
+inline void Volume::ComputeBB(const std::vector<VHACD::Vertex>& points)
 {
-    pt[0] = points[idx + 0];
-    pt[1] = points[idx + 1];
-    pt[2] = points[idx + 2];
-}
-
-inline void Volume::ComputeBB(const double* const points, const uint32_t nPoints)
-{
-    Vec3<double> pt;
-    ComputeAlignedPoint(points, 0, pt);
+    nd::VHACD::Vect3<double> pt = points[0];
     m_maxBB = pt;
     m_minBB = pt;
-    for (uint32_t v = 1; v < nPoints; ++v)
+    for (uint32_t v = 1; v < points.size(); ++v)
     {
-        ComputeAlignedPoint(points, v * 3, pt);
+        pt = points[v];
         for (int32_t i = 0; i < 3; ++i)
         {
             if (pt[i] < m_minBB[i])
@@ -7546,22 +5490,20 @@ inline void Volume::ComputeBB(const double* const points, const uint32_t nPoints
     }
 }
 
-inline void Volume::Voxelize(const double* const points,
-                             const uint32_t nPoints,
-                             const int32_t* const triangles,
-                             const uint32_t nTriangles,
+inline void Volume::Voxelize(const std::vector<VHACD::Vertex>& points,
+                             const std::vector<VHACD::Triangle>& indices,
                              const size_t dim,
-                             VoxelFillMode fillMode,
-                             RaycastMesh* raycastMesh)
+                             FillMode fillMode,
+                             VHACD::MyRaycastMesh* raycastMesh)
 {
-    if (nPoints == 0)
+    if (points.size() == 0)
     {
         return;
     }
 
-    ComputeBB(points, nPoints);
+    ComputeBB(points);
 
-    double d[3] = { m_maxBB[0] - m_minBB[0], m_maxBB[1] - m_minBB[1], m_maxBB[2] - m_minBB[2] };
+    nd::VHACD::Vect3<double> d = m_maxBB - m_minBB;
     double r;
     // Equal comparison is important here to avoid taking the last branch when d[0] == d[1] with d[2] being the smallest
     // dimension. That would lead to dimensions in i and j to be a lot bigger than expected and make the amount of
@@ -7569,23 +5511,23 @@ inline void Volume::Voxelize(const double* const points,
     if (d[0] >= d[1] && d[0] >= d[2])
     {
         r = d[0];
-        m_dim[0] = dim;
-        m_dim[1] = 2 + static_cast<size_t>(dim * d[1] / d[0]);
-        m_dim[2] = 2 + static_cast<size_t>(dim * d[2] / d[0]);
+        m_dim[0] = uint32_t(dim);
+        m_dim[1] = uint32_t(2 + static_cast<size_t>(dim * d[1] / d[0]));
+        m_dim[2] = uint32_t(2 + static_cast<size_t>(dim * d[2] / d[0]));
     }
     else if (d[1] >= d[0] && d[1] >= d[2])
     {
         r = d[1];
-        m_dim[1] = dim;
-        m_dim[0] = 2 + static_cast<size_t>(dim * d[0] / d[1]);
-        m_dim[2] = 2 + static_cast<size_t>(dim * d[2] / d[1]);
+        m_dim[1] = uint32_t(dim);
+        m_dim[0] = uint32_t(2 + static_cast<size_t>(dim * d[0] / d[1]));
+        m_dim[2] = uint32_t(2 + static_cast<size_t>(dim * d[2] / d[1]));
     }
     else
     {
         r = d[2];
-        m_dim[2] = dim;
-        m_dim[0] = 2 + static_cast<size_t>(dim * d[0] / d[2]);
-        m_dim[1] = 2 + static_cast<size_t>(dim * d[1] / d[2]);
+        m_dim[2] = uint32_t(dim);
+        m_dim[0] = uint32_t(2 + static_cast<size_t>(dim * d[0] / d[2]));
+        m_dim[1] = uint32_t(2 + static_cast<size_t>(dim * d[1] / d[2]));
     }
 
     m_scale = r / (dim - 1);
@@ -7596,19 +5538,19 @@ inline void Volume::Voxelize(const double* const points,
     m_numVoxelsInsideSurface = 0;
     m_numVoxelsOutsideSurface = 0;
 
-    Vec3<double> p[3];
+    nd::VHACD::Vect3<double> p[3];
     size_t i, j, k;
     size_t i0, j0, k0;
     size_t i1, j1, k1;
-    Vec3<double> boxcenter;
-    Vec3<double> pt;
-    const Vec3<double> boxhalfsize(0.5, 0.5, 0.5);
-    for (size_t t = 0, ti = 0; t < nTriangles; ++t, ti += 3)
+    nd::VHACD::Vect3<double> boxcenter;
+    nd::VHACD::Vect3<double> pt;
+    const nd::VHACD::Vect3<double> boxhalfsize(0.5, 0.5, 0.5);
+    for (size_t t = 0; t < indices.size(); ++t)
     {
-        Vec3<int32_t> tri(triangles[ti + 0], triangles[ti + 1], triangles[ti + 2]);
+        nd::VHACD::Vect3<uint32_t> tri = indices[t];
         for (int32_t c = 0; c < 3; ++c)
         {
-            ComputeAlignedPoint(points, tri[c] * 3, pt);
+            pt = points[tri[c]];
 
             p[c][0] = (pt[0] - m_minBB[0]) * invScale;
             p[c][1] = (pt[1] - m_minBB[1]) * invScale;
@@ -7628,18 +5570,12 @@ inline void Volume::Voxelize(const double* const points,
             }
             else
             {
-                if (i < i0)
-                    i0 = i;
-                if (j < j0)
-                    j0 = j;
-                if (k < k0)
-                    k0 = k;
-                if (i > i1)
-                    i1 = i;
-                if (j > j1)
-                    j1 = j;
-                if (k > k1)
-                    k1 = k;
+                i0 = Min(i0, i);
+                j0 = Min(j0, j);
+                k0 = Min(k0, k);
+                i1 = Max(i1, i);
+                j1 = Max(j1, j);
+                k1 = Max(k1, k);
             }
         }
         if (i0 > 0)
@@ -7656,18 +5592,18 @@ inline void Volume::Voxelize(const double* const points,
             ++k1;
         for (size_t i_id = i0; i_id < i1; ++i_id)
         {
-           boxcenter[0] = (double)i_id;
+            boxcenter[0] = uint32_t(i_id);
             for (size_t j_id = j0; j_id < j1; ++j_id)
             {
-                boxcenter[1] = (double)j_id;
+                boxcenter[1] = uint32_t(j_id);
                 for (size_t k_id = k0; k_id < k1; ++k_id)
                 {
-                    boxcenter[2] = (double)k_id;
+                    boxcenter[2] = uint32_t(k_id);
                     int32_t res = TriBoxOverlap(boxcenter, boxhalfsize, p[0], p[1], p[2]);
-                    unsigned char& value = GetVoxel(i_id, j_id, k_id);
-                    if (res == 1 && value == PRIMITIVE_UNDEFINED)
+                    VoxelValue& value = GetVoxel(i_id, j_id, k_id);
+                    if (res == 1 && value == VoxelValue::PRIMITIVE_UNDEFINED)
                     {
-                        value = PRIMITIVE_ON_SURFACE;
+                        value = VoxelValue::PRIMITIVE_ON_SURFACE;
                         ++m_numVoxelsOnSurface;
                         addSurfaceVoxel(int32_t(i_id),int32_t(j_id),int32_t(k_id));
                     }
@@ -7675,7 +5611,7 @@ inline void Volume::Voxelize(const double* const points,
             }
         }
     }
-    if (fillMode == VoxelFillMode::eSurfaceOnly)
+    if (fillMode == FillMode::SURFACE_ONLY)
     {
         const size_t i0_local = m_dim[0];
         const size_t j0_local = m_dim[1];
@@ -7686,16 +5622,16 @@ inline void Volume::Voxelize(const double* const points,
             {
                 for (size_t k_id = 0; k_id < k0_local; ++k_id)
                 {
-                    const unsigned char& voxel = GetVoxel(i_id, j_id, k_id);
-                    if (voxel != PRIMITIVE_ON_SURFACE)
+                    const VoxelValue& voxel = GetVoxel(i_id, j_id, k_id);
+                    if (voxel != VoxelValue::PRIMITIVE_ON_SURFACE)
                     {
-                        SetVoxel(i_id, j_id, k_id, PRIMITIVE_OUTSIDE_SURFACE);
+                        SetVoxel(i_id, j_id, k_id, VoxelValue::PRIMITIVE_OUTSIDE_SURFACE);
                     }
                 }
             }
         }
     }
-    else if (fillMode == VoxelFillMode::eFloodFill)
+    else if (fillMode == FillMode::FLOOD_FILL)
     {
         MarkOutsideSurface(0, 0, 0, m_dim[0], m_dim[1], 1);
         MarkOutsideSurface(0, 0, m_dim[2] - 1, m_dim[0], m_dim[1], m_dim[2]);
@@ -7706,12 +5642,13 @@ inline void Volume::Voxelize(const double* const points,
         FillOutsideSurface();
         FillInsideSurface();
     }
-    else if (fillMode == VoxelFillMode::eRaycastFill)
+    else if (fillMode == FillMode::RAYCAST_FILL)
     {
         raycastFill(raycastMesh);
     }
 
 }
+
 } // namespace VHACD
 
 //*************************************************************************************************************
@@ -7721,12 +5658,13 @@ inline void Volume::Voxelize(const double* const points,
 namespace VHACD
 {
 
-
-
-int32_t PlaneBoxOverlap(const Vec3<double>& normal, const Vec3<double>& vert, const Vec3<double>& maxbox)
+int32_t PlaneBoxOverlap(const nd::VHACD::Vect3<double>& normal,
+                        const nd::VHACD::Vect3<double>& vert,
+                        const nd::VHACD::Vect3<double>& maxbox)
 {
     int32_t q;
-    Vec3<double> vmin, vmax;
+    nd::VHACD::Vect3<double> vmin;
+    nd::VHACD::Vect3<double> vmax;
     double v;
     for (q = 0; q <= 2; q++)
     {
@@ -7742,18 +5680,18 @@ int32_t PlaneBoxOverlap(const Vec3<double>& normal, const Vec3<double>& vert, co
             vmax[q] = -maxbox[q] - v;
         }
     }
-    if (normal * vmin > 0.0)
+    if (normal.Dot(vmin) > 0.0)
         return 0;
-    if (normal * vmax >= 0.0)
+    if (normal.Dot(vmax) >= 0.0)
         return 1;
     return 0;
 }
 
-int32_t TriBoxOverlap(const Vec3<double>& boxcenter,
-                      const Vec3<double>& boxhalfsize,
-                      const Vec3<double>& triver0,
-                      const Vec3<double>& triver1,
-                      const Vec3<double>& triver2)
+int32_t TriBoxOverlap(const nd::VHACD::Vect3<double>& boxcenter,
+                      const nd::VHACD::Vect3<double>& boxhalfsize,
+                      const nd::VHACD::Vect3<double>& triver0,
+                      const nd::VHACD::Vect3<double>& triver1,
+                      const nd::VHACD::Vect3<double>& triver2)
 {
     /*    use separating axis theorem to test overlap between triangle and box */
     /*    need to test for overlap in these directions: */
@@ -7763,9 +5701,14 @@ int32_t TriBoxOverlap(const Vec3<double>& boxcenter,
     /*    3) crossproduct(edge from tri, {x,y,z}-directin) */
     /*       this gives 3x3=9 more tests */
 
-    Vec3<double> v0, v1, v2;
+    nd::VHACD::Vect3<double> v0;
+    nd::VHACD::Vect3<double> v1;
+    nd::VHACD::Vect3<double> v2;
     double min, max, p0, p1, p2, rad, fex, fey, fez; // -NJMP- "d" local variable removed
-    Vec3<double> normal, e0, e1, e2;
+    nd::VHACD::Vect3<double> normal;
+    nd::VHACD::Vect3<double> e0;
+    nd::VHACD::Vect3<double> e1;
+    nd::VHACD::Vect3<double> e2;
 
     /* This is the fastest branch on Sun */
     /* move everything so that the boxcenter is in (0,0,0) */
@@ -7812,161 +5755,46 @@ int32_t TriBoxOverlap(const Vec3<double>& boxcenter,
     /*  the triangle against the AABB */
 
     /* test in 0-direction */
-    VHACD_FINDMINMAX(v0[0], v1[0], v2[0], min, max);
+    min = std::min({v0.getX(), v1.getX(), v2.getX()});
+    max = std::max({v0.getX(), v1.getX(), v2.getX()});
     if (min > boxhalfsize[0] || max < -boxhalfsize[0])
         return 0;
 
     /* test in 1-direction */
-    VHACD_FINDMINMAX(v0[1], v1[1], v2[1], min, max);
+    min = std::min({v0.getY(), v1.getY(), v2.getY()});
+    max = std::max({v0.getY(), v1.getY(), v2.getY()});
     if (min > boxhalfsize[1] || max < -boxhalfsize[1])
         return 0;
 
     /* test in getZ-direction */
-    VHACD_FINDMINMAX(v0[2], v1[2], v2[2], min, max);
+    min = std::min({v0.getZ(), v1.getZ(), v2.getZ()});
+    max = std::max({v0.getZ(), v1.getZ(), v2.getZ()});
     if (min > boxhalfsize[2] || max < -boxhalfsize[2])
         return 0;
 
     /* Bullet 2: */
     /*  test if the box intersects the plane of the triangle */
     /*  compute plane equation of triangle: normal*x+d=0 */
-    normal = e0 ^ e1;
+    normal = e0.Cross(e1);
 
     if (!PlaneBoxOverlap(normal, v0, boxhalfsize))
         return 0;
     return 1; /* box and triangle overlaps */
 }
 
-// Slightly modified version of  Stan Melax's code for 3x3 matrix diagonalization (Thanks Stan!)
-// source: http://www.melax.com/diag.html?attredirects=0
-void Diagonalize(const double (&A)[3][3], double (&Q)[3][3], double (&D)[3][3])
-{
-    // A must be a symmetric matrix.
-    // returns Q and D such that
-    // Diagonal matrix D = QT * A * Q;  and  A = Q*D*QT
-    const int32_t maxsteps = 24; // certainly wont need that many.
-    int32_t k0, k1, k2;
-    double o[3], m[3];
-    double q[4] = { 0.0, 0.0, 0.0, 1.0 };
-    double jr[4];
-    double sqw, sqx, sqy, sqz;
-    double tmp1, tmp2, mq;
-    double AQ[3][3];
-    double thet, sgn, t, c;
-    for (int32_t i = 0; i < maxsteps; ++i)
-    {
-        // quat to matrix
-        sqx = q[0] * q[0];
-        sqy = q[1] * q[1];
-        sqz = q[2] * q[2];
-        sqw = q[3] * q[3];
-        Q[0][0] = (sqx - sqy - sqz + sqw);
-        Q[1][1] = (-sqx + sqy - sqz + sqw);
-        Q[2][2] = (-sqx - sqy + sqz + sqw);
-        tmp1 = q[0] * q[1];
-        tmp2 = q[2] * q[3];
-        Q[1][0] = 2.0 * (tmp1 + tmp2);
-        Q[0][1] = 2.0 * (tmp1 - tmp2);
-        tmp1 = q[0] * q[2];
-        tmp2 = q[1] * q[3];
-        Q[2][0] = 2.0 * (tmp1 - tmp2);
-        Q[0][2] = 2.0 * (tmp1 + tmp2);
-        tmp1 = q[1] * q[2];
-        tmp2 = q[0] * q[3];
-        Q[2][1] = 2.0 * (tmp1 + tmp2);
-        Q[1][2] = 2.0 * (tmp1 - tmp2);
-
-        // AQ = A * Q
-        AQ[0][0] = Q[0][0] * A[0][0] + Q[1][0] * A[0][1] + Q[2][0] * A[0][2];
-        AQ[0][1] = Q[0][1] * A[0][0] + Q[1][1] * A[0][1] + Q[2][1] * A[0][2];
-        AQ[0][2] = Q[0][2] * A[0][0] + Q[1][2] * A[0][1] + Q[2][2] * A[0][2];
-        AQ[1][0] = Q[0][0] * A[0][1] + Q[1][0] * A[1][1] + Q[2][0] * A[1][2];
-        AQ[1][1] = Q[0][1] * A[0][1] + Q[1][1] * A[1][1] + Q[2][1] * A[1][2];
-        AQ[1][2] = Q[0][2] * A[0][1] + Q[1][2] * A[1][1] + Q[2][2] * A[1][2];
-        AQ[2][0] = Q[0][0] * A[0][2] + Q[1][0] * A[1][2] + Q[2][0] * A[2][2];
-        AQ[2][1] = Q[0][1] * A[0][2] + Q[1][1] * A[1][2] + Q[2][1] * A[2][2];
-        AQ[2][2] = Q[0][2] * A[0][2] + Q[1][2] * A[1][2] + Q[2][2] * A[2][2];
-        // D = Qt * AQ
-        D[0][0] = AQ[0][0] * Q[0][0] + AQ[1][0] * Q[1][0] + AQ[2][0] * Q[2][0];
-        D[0][1] = AQ[0][0] * Q[0][1] + AQ[1][0] * Q[1][1] + AQ[2][0] * Q[2][1];
-        D[0][2] = AQ[0][0] * Q[0][2] + AQ[1][0] * Q[1][2] + AQ[2][0] * Q[2][2];
-        D[1][0] = AQ[0][1] * Q[0][0] + AQ[1][1] * Q[1][0] + AQ[2][1] * Q[2][0];
-        D[1][1] = AQ[0][1] * Q[0][1] + AQ[1][1] * Q[1][1] + AQ[2][1] * Q[2][1];
-        D[1][2] = AQ[0][1] * Q[0][2] + AQ[1][1] * Q[1][2] + AQ[2][1] * Q[2][2];
-        D[2][0] = AQ[0][2] * Q[0][0] + AQ[1][2] * Q[1][0] + AQ[2][2] * Q[2][0];
-        D[2][1] = AQ[0][2] * Q[0][1] + AQ[1][2] * Q[1][1] + AQ[2][2] * Q[2][1];
-        D[2][2] = AQ[0][2] * Q[0][2] + AQ[1][2] * Q[1][2] + AQ[2][2] * Q[2][2];
-        o[0] = D[1][2];
-        o[1] = D[0][2];
-        o[2] = D[0][1];
-        m[0] = fabs(o[0]);
-        m[1] = fabs(o[1]);
-        m[2] = fabs(o[2]);
-
-        k0 = (m[0] > m[1] && m[0] > m[2]) ? 0 : (m[1] > m[2]) ? 1 : 2; // index of largest element of offdiag
-        k1 = (k0 + 1) % 3;
-        k2 = (k0 + 2) % 3;
-        if (o[k0] == 0.0)
-        {
-            break; // diagonal already
-        }
-        thet = (D[k2][k2] - D[k1][k1]) / (2.0 * o[k0]);
-        sgn = (thet > 0.0) ? 1.0 : -1.0;
-        thet *= sgn; // make it positive
-        t = sgn / (thet + ((thet < 1.E6) ? sqrt(thet * thet + 1.0) : thet)); // sign(T)/(|T|+sqrt(T^2+1))
-        c = 1.0 / sqrt(t * t + 1.0); //  c= 1/(t^2+1) , t=s/c
-        if (c == 1.0)
-        {
-            break; // no room for improvement - reached machine precision.
-        }
-        jr[0] = jr[1] = jr[2] = jr[3] = 0.0;
-        jr[k0] = sgn * sqrt((1.0 - c) / 2.0); // using 1/2 angle identity sin(a/2) = sqrt((1-cos(a))/2)
-        jr[k0] *= -1.0; // since our quat-to-matrix convention was for v*M instead of M*v
-        jr[3] = sqrt(1.0 - jr[k0] * jr[k0]);
-        if (jr[3] == 1.0)
-        {
-            break; // reached limits of floating point precision
-        }
-        q[0] = (q[3] * jr[0] + q[0] * jr[3] + q[1] * jr[2] - q[2] * jr[1]);
-        q[1] = (q[3] * jr[1] - q[0] * jr[2] + q[1] * jr[3] + q[2] * jr[0]);
-        q[2] = (q[3] * jr[2] + q[0] * jr[1] - q[1] * jr[0] + q[2] * jr[3]);
-        q[3] = (q[3] * jr[3] - q[0] * jr[0] - q[1] * jr[1] - q[2] * jr[2]);
-        mq = sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
-        q[0] /= mq;
-        q[1] /= mq;
-        q[2] /= mq;
-        q[3] /= mq;
-    }
-}
-Volume::Volume(void)
-{
-    m_dim[0] = m_dim[1] = m_dim[2] = 0;
-    m_minBB[0] = m_minBB[1] = m_minBB[2] = 0.0;
-    m_maxBB[0] = m_maxBB[1] = m_maxBB[2] = 1.0;
-    m_numVoxelsOnSurface = 0;
-    m_numVoxelsInsideSurface = 0;
-    m_numVoxelsOutsideSurface = 0;
-    m_scale = 1.0;
-    m_data = 0;
-}
-Volume::~Volume(void)
-{
-    delete[] m_data;
-}
 void Volume::Allocate()
 {
-    delete[] m_data;
     size_t size = m_dim[0] * m_dim[1] * m_dim[2];
-    m_data = new unsigned char[size];
-    memset(m_data, PRIMITIVE_UNDEFINED, sizeof(unsigned char) * size);
-}
-void Volume::Free()
-{
-    delete[] m_data;
-    m_data = 0;
+    m_data = std::vector<VoxelValue>(size,
+                                     VoxelValue::PRIMITIVE_UNDEFINED);
 }
 
-void Volume::MarkOutsideSurface(
-    const size_t i0, const size_t j0, const size_t k0, const size_t i1, const size_t j1, const size_t k1)
+void Volume::MarkOutsideSurface(const size_t i0,
+                                const size_t j0,
+                                const size_t k0,
+                                const size_t i1,
+                                const size_t j1,
+                                const size_t k1)
 {
     for (size_t i = i0; i < i1; ++i)
     {
@@ -7974,31 +5802,31 @@ void Volume::MarkOutsideSurface(
         {
             for (size_t k = k0; k < k1; ++k)
             {
-                unsigned char& v = GetVoxel(i, j, k);
-                if (v == PRIMITIVE_UNDEFINED)
+                VoxelValue& v = GetVoxel(i, j, k);
+                if (v == VoxelValue::PRIMITIVE_UNDEFINED)
                 {
-                    v = PRIMITIVE_OUTSIDE_SURFACE_TOWALK;
+                    v = VoxelValue::PRIMITIVE_OUTSIDE_SURFACE_TOWALK;
                 }
             }
         }
     }
 }
 
-inline void WalkForward(int64_t start, int64_t end, unsigned char* ptr, int64_t stride, int64_t maxDistance)
+inline void WalkForward(int64_t start, int64_t end, VoxelValue* ptr, int64_t stride, int64_t maxDistance)
 {
-    for (int64_t i = start, count = 0; count < maxDistance && i < end && *ptr == PRIMITIVE_UNDEFINED;
+    for (int64_t i = start, count = 0; count < maxDistance && i < end && *ptr == VoxelValue::PRIMITIVE_UNDEFINED;
          ++i, ptr += stride, ++count)
     {
-        *ptr = PRIMITIVE_OUTSIDE_SURFACE_TOWALK;
+        *ptr = VoxelValue::PRIMITIVE_OUTSIDE_SURFACE_TOWALK;
     }
 }
 
-inline void WalkBackward(int64_t start, int64_t end, unsigned char* ptr, int64_t stride, int64_t maxDistance)
+inline void WalkBackward(int64_t start, int64_t end, VoxelValue* ptr, int64_t stride, int64_t maxDistance)
 {
-    for (int64_t i = start, count = 0; count < maxDistance && i >= end && *ptr == PRIMITIVE_UNDEFINED;
+    for (int64_t i = start, count = 0; count < maxDistance && i >= end && *ptr == VoxelValue::PRIMITIVE_UNDEFINED;
          --i, ptr -= stride, ++count)
     {
-        *ptr = PRIMITIVE_OUTSIDE_SURFACE_TOWALK;
+        *ptr = VoxelValue::PRIMITIVE_OUTSIDE_SURFACE_TOWALK;
     }
 }
 
@@ -8036,11 +5864,11 @@ void Volume::FillOutsideSurface()
             {
                 for (int64_t k = 0; k < k0; ++k)
                 {
-                    unsigned char& voxel = GetVoxel(i, j, k);
-                    if (voxel == PRIMITIVE_OUTSIDE_SURFACE_TOWALK)
+                    VoxelValue& voxel = GetVoxel(i, j, k);
+                    if (voxel == VoxelValue::PRIMITIVE_OUTSIDE_SURFACE_TOWALK)
                     {
                         voxelsWalked++;
-                        voxel = PRIMITIVE_OUTSIDE_SURFACE;
+                        voxel = VoxelValue::PRIMITIVE_OUTSIDE_SURFACE;
 
                         // walk in each direction to mark other voxel that should be walked.
                         // this will generate a 3d pattern that will help the overall
@@ -8069,12 +5897,12 @@ void Volume::FillInsideSurface()
     const uint32_t i0 = uint32_t(m_dim[0]);
     const uint32_t j0 = uint32_t(m_dim[1]);
     const uint32_t k0 = uint32_t(m_dim[2]);
-#if 1
 
     size_t maxSize = i0*j0*k0;
 
-    uint32_t *temp = new uint32_t[maxSize];
-    uint32_t *dest = temp;
+    std::vector<uint32_t> temp;
+    temp.reserve(maxSize);
+    uint32_t count{ 0 };
 
     for (uint32_t i = 0; i < i0; ++i)
     {
@@ -8082,33 +5910,44 @@ void Volume::FillInsideSurface()
         {
             for (uint32_t k = 0; k < k0; ++k)
             {
-                unsigned char& v = GetVoxel((size_t)i, (size_t)j, (size_t)k);
-                if (v == PRIMITIVE_UNDEFINED)
+                VoxelValue& v = GetVoxel(i, j, k);
+                if (v == VoxelValue::PRIMITIVE_UNDEFINED)
                 {
-                    v = PRIMITIVE_INSIDE_SURFACE;
-                    uint32_t index = (i<<VHACD_VOXEL_BITS2) | (j<<VHACD_VOXEL_BITS) | k;
-                    *dest++ = index;
+                    v = VoxelValue::PRIMITIVE_INSIDE_SURFACE;
+                    uint32_t index = (i << VHACD_VOXEL_BITS2) | (j << VHACD_VOXEL_BITS) | k;
+                    temp.push_back(index);
+                    count++;
                     ++m_numVoxelsInsideSurface;
                 }
             }
         }
     }
 
-    uint32_t count = dest - temp;
     if ( count )
     {
         mInteriorVoxels.resize(count);
-        memcpy(&mInteriorVoxels[0],temp,sizeof(uint32_t)*count);
+        std::copy(temp.begin(),
+                  temp.end(),
+                  mInteriorVoxels.begin());
     }
-    delete []temp;
-#endif
 }
 
-void traceRay(RaycastMesh* raycastMesh, const double* start, const double* dir, uint32_t& insideCount, uint32_t& outsideCount)
+void traceRay(VHACD::MyRaycastMesh* raycastMesh,
+              const nd::VHACD::Vect3<double>& start,
+              const nd::VHACD::Vect3<double>& dir,
+              uint32_t& insideCount,
+              uint32_t& outsideCount)
 {
     double outT, u, v, w, faceSign;
     uint32_t faceIndex;
-    bool hit = raycastMesh->raycast(start, dir, outT, u, v, w, faceSign, faceIndex);
+    bool hit = raycastMesh->raycast(start,
+                                    dir,
+                                    outT,
+                                    u,
+                                    v,
+                                    w,
+                                    faceSign,
+                                    faceIndex);
     if (hit)
     {
         if (faceSign >= 0)
@@ -8122,28 +5961,22 @@ void traceRay(RaycastMesh* raycastMesh, const double* start, const double* dir, 
     }
 }
 
-inline void initVec3(double* dest, uint32_t vindex, double x, double y, double z)
-{
-    dest[vindex * 3 + 0] = x;
-    dest[vindex * 3 + 1] = y;
-    dest[vindex * 3 + 2] = z;
-}
-
-void Volume::raycastFill(RaycastMesh* raycastMesh)
+void Volume::raycastFill(VHACD::MyRaycastMesh* raycastMesh)
 {
     if (!raycastMesh)
     {
         return;
     }
 
-    const uint32_t i0 = (uint32_t)m_dim[0];
-    const uint32_t j0 = (uint32_t)m_dim[1];
-    const uint32_t k0 = (uint32_t)m_dim[2];
+    const uint32_t i0 = m_dim[0];
+    const uint32_t j0 = m_dim[1];
+    const uint32_t k0 = m_dim[2];
 
     size_t maxSize = i0 * j0*k0;
 
-    uint32_t *temp = new uint32_t[maxSize];
-    uint32_t *dest = temp;
+    std::vector<uint32_t> temp;
+    temp.reserve(maxSize);
+    uint32_t count{ 0 };
     m_numVoxelsInsideSurface = 0;
     for (uint32_t i = 0; i < i0; ++i)
     {
@@ -8151,10 +5984,10 @@ void Volume::raycastFill(RaycastMesh* raycastMesh)
         {
             for (uint32_t k = 0; k < k0; ++k)
             {
-                unsigned char& voxel = GetVoxel(i, j, k);
-                if (voxel != VHACD::PRIMITIVE_ON_SURFACE)
+                VoxelValue& voxel = GetVoxel(i, j, k);
+                if (voxel != VoxelValue::PRIMITIVE_ON_SURFACE)
                 {
-                    double start[3];
+                    nd::VHACD::Vect3<double> start;
 
                     start[0] = float(i) * m_scale + m_minBB[0];
                     start[1] = float(j) * m_scale + m_minBB[1];
@@ -8163,18 +5996,18 @@ void Volume::raycastFill(RaycastMesh* raycastMesh)
                     uint32_t insideCount = 0;
                     uint32_t outsideCount = 0;
 
-                    double directions[6 * 3];
-
-                    initVec3(directions, 0, 1, 0, 0);
-                    initVec3(directions, 1, 1, 0, 0);
-                    initVec3(directions, 2, 0, 1, 0);
-                    initVec3(directions, 3, 0, -1, 0);
-                    initVec3(directions, 4, 0, 0, 1);
-                    initVec3(directions, 5, 0, 0, -1);
+                    nd::VHACD::Vect3<double> directions[6] = {
+                        nd::VHACD::Vect3<double>( 1,  0,  0),
+                        nd::VHACD::Vect3<double>(-1,  0,  0), // this was 1, 0, 0 in the original code, but looks wrong
+                        nd::VHACD::Vect3<double>( 0,  1,  0),
+                        nd::VHACD::Vect3<double>( 0, -1,  0),
+                        nd::VHACD::Vect3<double>( 0,  0,  1),
+                        nd::VHACD::Vect3<double>( 0,  0, -1)
+                    };
 
                     for (uint32_t r = 0; r < 6; r++)
                     {
-                        traceRay(raycastMesh, start, &directions[r * 3], insideCount, outsideCount);
+                        traceRay(raycastMesh, start, directions[r], insideCount, outsideCount);
                         // Early out if we hit the outside of the mesh
                         if (outsideCount)
                         {
@@ -8189,82 +6022,32 @@ void Volume::raycastFill(RaycastMesh* raycastMesh)
 
                     if (outsideCount == 0 && insideCount >= 3)
                     {
-                        voxel = VHACD::PRIMITIVE_INSIDE_SURFACE;
+                        voxel = VoxelValue::PRIMITIVE_INSIDE_SURFACE;
                         uint32_t index = (i << VHACD_VOXEL_BITS2) | (j << VHACD_VOXEL_BITS) | k;
-                        *dest++ = index;
+                        temp.push_back(index);
+                        count++;
                         m_numVoxelsInsideSurface++;
                     }
                     else
                     {
-                        voxel = VHACD::PRIMITIVE_OUTSIDE_SURFACE;
+                        voxel = VoxelValue::PRIMITIVE_OUTSIDE_SURFACE;
                     }
                 }
             }
         }
     }
-    uint32_t count = dest - temp;
+
     if (count)
     {
         mInteriorVoxels.resize(count);
-        memcpy(&mInteriorVoxels[0], temp, sizeof(uint32_t)*count);
+        std::copy(temp.begin(),
+                  temp.end(),
+                  mInteriorVoxels.begin());
     }
-    delete[]temp;
 }
 
-}
+} // namespace VHACD
 
-//*************************************************************************************************************
-// Definition of the Voxelize class
-//*************************************************************************************************************
-namespace VHACD
-{
-
-class RaycastMesh;
-
-enum class VoxelValue : uint8_t
-{
-    PRIMITIVE_UNDEFINED = 0,
-    PRIMITIVE_OUTSIDE_SURFACE_TOWALK = 1,
-    PRIMITIVE_OUTSIDE_SURFACE = 2,
-    PRIMITIVE_INSIDE_SURFACE = 3,
-    PRIMITIVE_ON_SURFACE = 4
-};
-
-
-class Voxelize
-{
-public:
-    static Voxelize *create(void);
-
-    virtual uint32_t voxelize(VHACD::RaycastMesh *raycastMesh,
-        const double* const vertices,
-        const uint32_t vertexCount,
-        const uint32_t* indices,
-        const uint32_t triangleCount,
-        const uint32_t resolution,
-        VoxelFillMode fillMode) = 0;
-
-    virtual double getScale(void) const = 0;
-
-    virtual bool getBoundsMin(double bmin[3]) const = 0;
-    virtual bool getBoundsMax(double bmax[3]) const = 0;
-    virtual bool getDimensions(uint32_t dim[3]) const = 0;
-    virtual uint8_t getVoxel(uint32_t x,uint32_t y,uint32_t z) const = 0;
-    virtual void setVoxel(uint32_t x,uint32_t y,uint32_t z,uint8_t value) = 0;
-
-    virtual bool getVoxel(const double *pos,uint32_t &x,uint32_t &y, uint32_t &z) const = 0;
-
-    virtual bool getSurfaceVoxels(VoxelVector &surfaceVoxels) = 0;
-    virtual bool getInteriorVoxels(VoxelVector &interiorVoxels) = 0;
-
-    virtual void release(void) = 0;
-protected:
-    virtual ~Voxelize(void)
-    {
-    }
-};
-
-}
 
 //*************************************************************************************************************
 // Implementation of the Voxelize class
@@ -8272,196 +6055,108 @@ protected:
 namespace VHACD
 {
 
-class VoxelizeImpl : public Voxelize
+class VoxelizeImpl
 {
 public:
-    VoxelizeImpl(void)
+    uint32_t voxelize(VHACD::MyRaycastMesh& raycastMesh,
+                      const std::vector<VHACD::Vertex>& vertices,
+                      const std::vector<VHACD::Triangle>& indices,
+                      const uint32_t resolution,
+                      FillMode fillMode)
     {
-    }
-
-    virtual ~VoxelizeImpl(void)
-    {
-        delete mVolume;
-    }
-
-    virtual uint32_t voxelize(VHACD::RaycastMesh *raycastMesh,
-        const double* const vertices,
-        const uint32_t vertexCount,
-        const uint32_t* indices,
-        const uint32_t triangleCount,
-        const uint32_t resolution,VoxelFillMode fillMode) final
-    {
-        double a = pow((double)(resolution), 0.33);
-        mDimensions = (uint32_t)(a*1.5);
+        double a = pow(resolution, 0.33);
+        mDimensions = (a*1.5);
         // Minimum voxel resolution is 32x32x32
-        if (mDimensions < 32)
-        {
-            mDimensions = 32;
-        }
+        mDimensions = Max(mDimensions, uint32_t(32));
 
-        delete mVolume;
-        mVolume = new VHACD::Volume;
-
-        mVolume->Voxelize(vertices, vertexCount, (const int32_t *)indices, triangleCount, mDimensions, fillMode, raycastMesh);
+        mVolume = VHACD::Volume();
+        mVolume.Voxelize(vertices,
+                         indices,
+                         mDimensions,
+                         fillMode,
+                         &raycastMesh);
 
         return mDimensions;
     }
 
-    virtual void release(void) final
+    double getScale() const
     {
-        delete this;
+        return mVolume.m_scale;;
     }
 
-    virtual double getScale(void) const final
+    nd::VHACD::Vect3<double> getBoundsMin() const
     {
-        double ret = 1;
-
-        if ( mVolume )
-        {
-            ret = mVolume->m_scale;
-        }
-
-        return ret;
+        return mVolume.m_minBB;
     }
 
-    virtual bool getBoundsMin(double bmin[3]) const final
+    nd::VHACD::Vect3<double> getBoundsMax() const
+    {
+        return mVolume.m_maxBB;
+    }
+
+    nd::VHACD::Vect3<uint32_t> getDimensions() const
+    {
+        return mVolume.m_dim;
+    }
+
+    VoxelValue getVoxel(uint32_t x,
+                        uint32_t y,
+                        uint32_t z) const
+    {
+        return mVolume.GetVoxel(x,y,z);;
+    }
+
+    void setVoxel(uint32_t x,
+                  uint32_t y,
+                  uint32_t z,
+                  VoxelValue value)
+    {
+        mVolume.SetVoxel(x,y,z,value);
+    }
+
+    bool getVoxel(const nd::VHACD::Vect3<double>& pos,
+                  uint32_t &x,
+                  uint32_t &y,
+                  uint32_t &z) const
     {
         bool ret = false;
 
-        if ( mVolume )
-        {
-            bmin[0] = mVolume->m_minBB[0];
-            bmin[1] = mVolume->m_minBB[1];
-            bmin[2] = mVolume->m_minBB[2];
-            ret = true;
-        }
-
-        return ret;
-    }
-
-    virtual bool getBoundsMax(double bmax[3]) const final
-    {
-        bool ret = false;
-
-        if (mVolume)
-        {
-            bmax[0] = mVolume->m_maxBB[0];
-            bmax[1] = mVolume->m_maxBB[1];
-            bmax[2] = mVolume->m_maxBB[2];
-            ret = true;
-        }
-
-        return ret;
-    }
-
-    virtual bool getDimensions(uint32_t dim[3]) const final
-    {
-        bool ret = false;
-
-        if ( mVolume )
-        {
-            dim[0] = uint32_t(mVolume->m_dim[0]);
-            dim[1] = uint32_t(mVolume->m_dim[1]);
-            dim[2] = uint32_t(mVolume->m_dim[2]);
-            ret = true;
-        }
-
-        return ret;
-    }
-
-    virtual uint8_t getVoxel(uint32_t x, uint32_t y, uint32_t z) const final
-    {
-        uint8_t ret = 0;
-
-        if ( mVolume )
-        {
-            ret = mVolume->GetVoxel(x,y,z);
-        }
-
-        return ret;
-    }
-
-    virtual void setVoxel(uint32_t x, uint32_t y, uint32_t z, uint8_t value) final
-    {
-        if ( mVolume )
-        {
-            mVolume->SetVoxel(x,y,z,value);
-        }
-    }
-
-    virtual bool getVoxel(const double *pos,uint32_t &x,uint32_t &y, uint32_t &z) const  final
-    {
-        bool ret = false;
-
-        double bmin[3];
-        double bmax[3];
-
-        getBoundsMin(bmin);
-        getBoundsMax(bmax);
+        nd::VHACD::Vect3<double> bmin = getBoundsMin();
+        nd::VHACD::Vect3<double> bmax = getBoundsMax();
 
         if ( pos[0] >= bmin[0] && pos[0] < bmax[0] &&
              pos[1] >= bmin[1] && pos[1] < bmax[1] &&
              pos[2] >= bmin[2] && pos[2] < bmax[2] )
         {
             double recipScale = 1.0 / getScale();
-            x = uint32_t( (pos[0] - bmin[0])*recipScale);
-            y = uint32_t( (pos[1] - bmin[1])*recipScale);
-            z = uint32_t( (pos[2] - bmin[2])*recipScale);
+            x = uint32_t( (pos[0] - bmin[0]) * recipScale);
+            y = uint32_t( (pos[1] - bmin[1]) * recipScale);
+            z = uint32_t( (pos[2] - bmin[2]) * recipScale);
             ret = true;
         }
         return ret;
     }
 
-    virtual bool getSurfaceVoxels(VoxelVector &surfaceVoxels) final
+    bool getSurfaceVoxels(VoxelVector &surfaceVoxels)
     {
-        bool ret = false;
+        surfaceVoxels.clear();
+        surfaceVoxels = mVolume.getSurfaceVoxels();
 
-        if ( mVolume )
-        {
-            surfaceVoxels.clear();
-            surfaceVoxels = mVolume->getSurfaceVoxels();
-            ret = !surfaceVoxels.empty();
-        }
-
-        return ret;
+        return !surfaceVoxels.empty();
     }
 
-    virtual bool getInteriorVoxels(VoxelVector &interiorVoxels) final
+    bool getInteriorVoxels(VoxelVector &interiorVoxels)
     {
-        bool ret = false;
-
-        if (mVolume)
-        {
-            interiorVoxels.clear();
-            interiorVoxels = mVolume->getInteriorVoxels();
-            ret = !interiorVoxels.empty();
-        }
-
-        return ret;
+        interiorVoxels.clear();
+        interiorVoxels = mVolume.getInteriorVoxels();
+        return !interiorVoxels.empty();
     }
 
     uint32_t        mDimensions{32};
-    VHACD::Volume	*mVolume{nullptr};
+    VHACD::Volume   mVolume;
 };
 
-Voxelize *Voxelize::create(void)
-{
-    auto ret = new VoxelizeImpl;
-    return static_cast< Voxelize *>(ret);
-}
-
-
-}
-
-
-
-
-
-
-
-
-
-
+} // namespace VHACD
 
 //******************************************************************************************
 //  ShrinkWrap helper class
@@ -8483,60 +6178,6 @@ Voxelize *Voxelize::create(void)
 // * Step #8 : If all of the previous conditions are met, then we take the raycast hit location as the 'new position'
 // * Step #9 : Once all points have been projected, if possible, we need to recompute the convex hull again based on these shrinkwrapped points
 // * Step #10 : In theory that should work.. let's see...
-#include <stdint.h>
-
-namespace VHACD
-{
-
-class SimpleMesh;
-class RaycastMesh;
-
-
-class ShrinkWrap
-{
-public:
-    static ShrinkWrap *create(void);
-
-    virtual void shrinkWrap(SimpleMesh &sourceConvexHull,
-        RaycastMesh &raycastMesh,
-        uint32_t maxHullVertexCount,
-        double distanceThreshold,
-        bool doShrinkWrap) = 0;
-
-    virtual void release(void) = 0;
-};
-
-}
-
-//***********************************************************************************************
-// QuickHull definition
-//***********************************************************************************************
-namespace VHACD
-{
-
-class HullPoints
-{
-public:
-    uint32_t    mVertexCount{0};                        // Number of input vertices
-    const double *mVertices{nullptr};                    // array of input vertices
-    uint32_t    mMaxHullVertices{60};                   // Maximum number of vertices in the output convex hull
-};
-
-class QuickHull
-{
-public:
-    static QuickHull *create(void);
-
-    virtual uint32_t computeConvexHull(const HullPoints &hp) = 0;
-    virtual const double *getVertices(uint32_t &vcount) const = 0;
-    virtual const uint32_t *getIndices(uint32_t &tcount) const = 0;
-
-    virtual void release(void) = 0;
-protected:
-    virtual ~QuickHull(void) { };
-};
-
-}
 
 //***********************************************************************************************
 // QuickHull implementation
@@ -8546,94 +6187,55 @@ namespace VHACD
 
 //////////////////////////////////////////////////////////////////////////
 // Quickhull base class holding the hull during construction
-class QuickHullImpl : public QuickHull
+class QuickHullImpl
 {
 public:
-
-    QuickHullImpl(void)
+    uint32_t computeConvexHull(const std::vector<VHACD::Vertex>& vertices,
+                               uint32_t maxHullVertices)
     {
-    }
-
-    ~QuickHullImpl()
-    {
-    }
-
-    virtual void release(void) final
-    {
-        delete this;
-    }
-
-    virtual uint32_t computeConvexHull(const HullPoints &hp) final
-    {
-        mTriangleCount = 0;
         mIndices.clear();
 
-        nd::VHACD::ConvexHull ch(hp.mVertices,sizeof(double)*3,hp.mVertexCount,0.0001,hp.mMaxHullVertices);
+        nd::VHACD::ConvexHull ch(vertices,
+                                 0.0001,
+                                 maxHullVertices);
 
-        auto &vlist = ch.GetVertexPool();
+        auto& vlist = ch.GetVertexPool();
         if ( !vlist.empty() )
         {
             size_t vcount = vlist.size();
-            mVertices.resize(vcount*3);
-            memcpy(&mVertices[0],&vlist[0],sizeof(double)*3*vcount);
+            mVertices.resize(vcount);
+            std::copy(vlist.begin(),
+                      vlist.end(),
+                      mVertices.begin());
         }
         
 		for (nd::VHACD::ConvexHull::ndNode* node = ch.GetFirst(); node; node = node->GetNext())
 		{
 			nd::VHACD::ConvexHullFace* const face = &node->GetInfo();
-            mIndices.push_back(face->m_index[0]);
-            mIndices.push_back(face->m_index[1]);
-            mIndices.push_back(face->m_index[2]);
-            mTriangleCount++;
+            mIndices.emplace_back(face->m_index[0],
+                                  face->m_index[1],
+                                  face->m_index[2]);
 		}
 
-        return mTriangleCount;
+        return uint32_t(mIndices.size());
     }
 
-    virtual const double *getVertices(uint32_t &vcount) const final
+    const std::vector<VHACD::Vertex>& getVertices() const
     {
-        const double *ret = nullptr;
-
-        vcount = (uint32_t)mVertices.size()/3;
-
-        if ( vcount )
-        {
-            ret = &mVertices[0];
-        }
-
-        return ret;
+        return mVertices;
     }
 
-    virtual const uint32_t *getIndices(uint32_t &tcount) const final
+    const std::vector<VHACD::Triangle>& getIndices() const
     {
-        const uint32_t *ret = nullptr;
-        tcount = mTriangleCount;
-        if ( mTriangleCount )
-        {
-            ret = &mIndices[0];
-        }
-
-        return ret;
+        return mIndices;
     }
 
 private:
-    std::vector< double >   mVertices;
-    uint32_t                mTriangleCount{0};
-    std::vector<uint32_t>   mIndices;
+    std::vector<VHACD::Vertex>   mVertices;
+    std::vector<VHACD::Triangle> mIndices;
 };
 
-QuickHull *QuickHull::create(void)
-{
-    auto ret = new QuickHullImpl;
-    return static_cast< QuickHull *>(ret);
-}
-
-
-
 } // end of VHACD namespace
-
-
-
 
 //******************************************************************************************
 // Implementation of the ShrinkWrap class
@@ -8646,101 +6248,45 @@ QuickHull *QuickHull::create(void)
 namespace VHACD
 {
 
-class SVec3
+class ShrinkWrapImpl
 {
 public:
-    SVec3(void) { };
-
-    SVec3(double _x,double _y,double _z) : x(_x), y(_y), z(_z)
+    void shrinkWrap(SimpleMesh &sourceConvexHull,
+                    VHACD::MyRaycastMesh &raycastMesh,
+                    uint32_t maxHullVertexCount,
+                    double distanceThreshold,
+                    bool doShrinkWrap)
     {
-    }
-
-    double x;
-    double y;
-    double z;
-};
-
-
-
-class ShrinkWrapImpl : public ShrinkWrap
-{
-public:
-    ShrinkWrapImpl(void)
-    {
-    }
-
-    virtual ~ShrinkWrapImpl(void)
-    {
-    }
-
-    virtual void shrinkWrap(SimpleMesh &sourceConvexHull, 
-                            RaycastMesh &raycastMesh, 
-                            uint32_t maxHullVertexCount,
-                            double distanceThreshold,
-                            bool doShrinkWrap) final
-    {
-        std::vector< SVec3 > verts; // New verts for the new convex hull
+        std::vector<VHACD::Vertex> verts; // New verts for the new convex hull
+        verts.reserve(sourceConvexHull.mVertices.size());
         // Examine each vertex and see if it is within the voxel distance.
         // If it is, then replace the point with the shrinkwrapped / projected point
-        for (uint32_t j = 0; j < sourceConvexHull.mVertexCount; j++)
+        for (uint32_t j = 0; j < sourceConvexHull.mVertices.size(); j++)
         {
-            double *p = &sourceConvexHull.mVertices[j * 3];
+            VHACD::Vertex& p = sourceConvexHull.mVertices[j];
             if (doShrinkWrap)
             {
-                double closest[3];
+                nd::VHACD::Vect3<double> closest;
                 if (raycastMesh.getClosestPointWithinDistance(p, distanceThreshold, closest))
                 {
-                    p[0] = closest[0];
-                    p[1] = closest[1];
-                    p[2] = closest[2];
+                    p = closest;
                 }
             }
-            SVec3 point(p[0], p[1], p[2]);
-            verts.push_back(point);
+            verts.emplace_back(p);
         }
         // Final step is to recompute the convex hull
-        VHACD::QuickHull *qh = VHACD::QuickHull::create();
-        VHACD::HullPoints hp;
-        hp.mVertexCount = (uint32_t)verts.size();
-        hp.mVertices = &verts[0].x;
-        hp.mMaxHullVertices = maxHullVertexCount;
-        uint32_t tcount = qh->computeConvexHull(hp);
+        VHACD::QuickHullImpl qh;
+        uint32_t tcount = qh.computeConvexHull(verts,
+                                               maxHullVertexCount);
         if (tcount)
         {
-            delete[]sourceConvexHull.mVertices;
-            delete[]sourceConvexHull.mIndices;
-
-            sourceConvexHull.mVertices = nullptr;
-            sourceConvexHull.mIndices = nullptr;
-
-            const double *vtx = qh->getVertices(sourceConvexHull.mVertexCount);
-            const uint32_t *idx = qh->getIndices(sourceConvexHull.mTriangleCount);
-
-            sourceConvexHull.mVertices = new double[sourceConvexHull.mVertexCount * 3];
-            sourceConvexHull.mIndices = new uint32_t[sourceConvexHull.mTriangleCount * 3];
-            memcpy(sourceConvexHull.mVertices, vtx, sizeof(double)*sourceConvexHull.mVertexCount * 3);
-            memcpy(sourceConvexHull.mIndices, idx, sizeof(uint32_t)*sourceConvexHull.mTriangleCount * 3);
+            sourceConvexHull.mVertices = qh.getVertices();
+            sourceConvexHull.mIndices = qh.getIndices();
         }
-        qh->release();
-    }
-
-    virtual void release(void) final
-    {
-        delete this;
     }
 };
 
-ShrinkWrap *ShrinkWrap::create(void)
-{
-    auto ret = new ShrinkWrapImpl;
-    return static_cast< ShrinkWrap *>(ret);
 }
-
-
-}
-
-
-
 
 //********************************************************************************************************************
 
@@ -8849,7 +6395,7 @@ namespace VHACD
 {
 
 
-using AABBTreeVector = std::vector< VHACD::AABBTree *>;
+using AABBTreeVector = std::vector< VHACD::AABBTreeImpl* >;
 using VoxelVector = std::vector< VHACD::Voxel >;
 using ConvexHullVector = std::vector< IVHACD::ConvexHull *>;
 
@@ -8874,8 +6420,8 @@ public:
     virtual void progressUpdate(Stages stage,double stageProgress,const char *operation) = 0;
     virtual bool isCanceled(void) const = 0;
 
+    virtual ~VHACDCallbacks() = default;
 };
-
 
 enum class SplitAxis
 {
@@ -8889,19 +6435,6 @@ enum class SplitAxis
 
 // Maps from a voxel index to a vertex position index
 using VoxelIndexMap = std::unordered_map< uint32_t, uint32_t >;
-
-class IVec3
-{
-public:
-    IVec3(void) { };
-    IVec3(int32_t _x,int32_t _y,int32_t _z) : x(_x), y(_y), z(_z)
-    {
-    }
-    int32_t x{0};
-    int32_t y{0};
-    int32_t z{0};
-};
-
 
 // This class represents a collection of voxels, the convex hull
 // which surrounds them, and a triangle mesh representation of those voxels
@@ -8921,53 +6454,47 @@ public:
         mVoxels = parent.mVoxels;   // Copy the parent's voxels pointer
         mParams = parent.mParams;   // Copy the parent's parameters
         mVoxelScale = mVoxels->getScale();  // Get the scale of a single voxel
-        mVoxels->getBoundsMin(mVoxelBmin);  // Get the 3d bounding volume minimum for this voxel space
-        mVoxels->getBoundsMax(mVoxelBmax);  // Get the 3d bounding volume maximum for this voxel space
-        mVoxelScaleHalf = mVoxelScale*0.5;  // Compute half of the voxel size
+        mVoxelBmin = mVoxels->getBoundsMin();  // Get the 3d bounding volume minimum for this voxel space
+        mVoxelBmax = mVoxels->getBoundsMax();  // Get the 3d bounding volume maximum for this voxel space
+        mVoxelScaleHalf = mVoxelScale * 0.5;  // Compute half of the voxel size
 
-        mVoxelAdjust[0] = mVoxelBmin[0]-mVoxelScaleHalf;    // The adjustment to move from voxel coordinate to a 3d position
-        mVoxelAdjust[1] = mVoxelBmin[1]-mVoxelScaleHalf;
-        mVoxelAdjust[2] = mVoxelBmin[2]-mVoxelScaleHalf;
+        mVoxelAdjust = mVoxelBmin - mVoxelScaleHalf; // The adjustment to move from voxel coordinate to a 3d position
 
         // Default copy the voxel region from the parent, but values will
         // be adjusted next based on the split axis and location
-        mX1 = parent.mX1;
-        mX2 = parent.mX2;
-        mY1 = parent.mY1;
-        mY2 = parent.mY2;
-        mZ1 = parent.mZ1;
-        mZ2 = parent.mZ2;
+        m1 = parent.m1;
+        m2 = parent.m2;
 
         switch ( mAxis )
         {
             case SplitAxis::X_AXIS_NEGATIVE:
-                mX2 = splitLoc;
+                m2.getX() = splitLoc;
                 break;
             case SplitAxis::X_AXIS_POSITIVE:
-                mX1 = splitLoc+1;
+                m1.getX() = splitLoc + 1;
                 break;
             case SplitAxis::Y_AXIS_NEGATIVE:
-                mY2 = splitLoc;
+                m2.getY() = splitLoc;
                 break;
             case SplitAxis::Y_AXIS_POSITIVE:
-                mY1 = splitLoc+1;
+                m1.getY() = splitLoc + 1;
                 break;
             case SplitAxis::Z_AXIS_NEGATIVE:
-                mZ2 = splitLoc;
+                m2.getZ() = splitLoc;
                 break;
             case SplitAxis::Z_AXIS_POSITIVE:
-                mZ1 = splitLoc+1;
+                m1.getZ() = splitLoc + 1;
                 break;
         }
         // First, we copy all of the interior voxels from our parent
         // which intersect our region
-        for (auto &i:parent.mInteriorVoxels)
+        for (auto &i : parent.mInteriorVoxels)
         {
-            uint32_t x,y,z;
-            i.getVoxel(x,y,z);
-            if ( x >= mX1 && x <= mX2 &&
-                 y >= mY1 && y <= mY2 &&
-                 z >= mZ1 && z <= mZ2 )
+            uint32_t x, y, z;
+            i.getVoxel(x, y, z);
+            if ( x >= m1.getX() && x <= m2.getX() &&
+                 y >= m1.getY() && y <= m2.getY() &&
+                 z >= m1.getZ() && z <= m2.getZ() )
             {
                 bool newSurface = false;
                 switch ( mAxis )
@@ -8979,7 +6506,7 @@ public:
                         }
                         break;
                     case SplitAxis::X_AXIS_POSITIVE:
-                        if ( x == mX1 )
+                        if ( x == m1.getX() )
                         {
                             newSurface = true;
                         }
@@ -8991,7 +6518,7 @@ public:
                         }
                         break;
                     case SplitAxis::Y_AXIS_POSITIVE:
-                        if ( y == mY1 )
+                        if ( y == m1.getY() )
                         {
                             newSurface = true;
                         }
@@ -9003,7 +6530,7 @@ public:
                         }
                         break;
                     case SplitAxis::Z_AXIS_POSITIVE:
-                        if ( z == mZ1 )
+                        if ( z == m1.getZ() )
                         {
                             newSurface = true;
                         }
@@ -9022,46 +6549,42 @@ public:
             }
         }
         // Next we copy all of the surface voxels which intersect our region
-        for (auto &i:parent.mSurfaceVoxels)
+        for (auto &i : parent.mSurfaceVoxels)
         {
-            uint32_t x,y,z;
-            i.getVoxel(x,y,z);
-            if ( x >= mX1 && x <= mX2 &&
-                 y >= mY1 && y <= mY2 &&
-                 z >= mZ1 && z <= mZ2 )
+            uint32_t x, y, z;
+            i.getVoxel(x, y, z);
+            if ( x >= m1.getX() && x <= m2.getX() &&
+                 y >= m1.getY() && y <= m2.getY() &&
+                 z >= m1.getZ() && z <= m2.getZ() )
             {
                 mSurfaceVoxels.push_back(i);
             }
         }
         // Our parent's new surface voxels become our new surface voxels so long as they intersect our region
-        for (auto &i:parent.mNewSurfaceVoxels)
+        for (auto &i : parent.mNewSurfaceVoxels)
         {
-            uint32_t x,y,z;
-            i.getVoxel(x,y,z);
-            if ( x >= mX1 && x <= mX2 &&
-                 y >= mY1 && y <= mY2 &&
-                 z >= mZ1 && z <= mZ2 )
+            uint32_t x, y, z;
+            i.getVoxel(x, y, z);
+            if ( x >= m1.getX() && x <= m2.getX() &&
+                 y >= m1.getY() && y <= m2.getY() &&
+                 z >= m1.getZ() && z <= m2.getZ() )
             {
                 mNewSurfaceVoxels.push_back(i);
             }
         }
 
         // Recompute the min-max bounding box which would be different after the split occurs
-        mX1 = 0x7FFFFFFF;
-        mY1 = 0x7FFFFFFF;
-        mZ1 = 0x7FFFFFFF;
-        mX2 = 0;
-        mY2 = 0;
-        mZ2 = 0;
-        for (auto &i:mSurfaceVoxels)
+        m1 = nd::VHACD::Vect3<uint32_t>(0x7FFFFFFF);
+        m2 = nd::VHACD::Vect3<uint32_t>(0);
+        for (auto &i : mSurfaceVoxels)
         {
             minMaxVoxelRegion(i);
         }
-        for (auto &i:mNewSurfaceVoxels)
+        for (auto &i : mNewSurfaceVoxels)
         {
             minMaxVoxelRegion(i);
         }
-        for (auto &i:mInteriorVoxels)
+        for (auto &i : mInteriorVoxels)
         {
             minMaxVoxelRegion(i);
         }
@@ -9074,41 +6597,39 @@ public:
     // Helper method to refresh the min/max voxel bounding region
     void minMaxVoxelRegion(const Voxel &v)
     {
-        uint32_t x,y,z;
-        v.getVoxel(x,y,z);
-        if ( x < mX1 ) mX1 = x;
-        if ( x > mX2 ) mX2 = x;
-        if ( y < mY1 ) mY1 = y;
-        if ( y > mY2 ) mY2 = y;
-        if ( z < mZ1 ) mZ1 = z;
-        if ( z > mZ2 ) mZ2 = z;
+        uint32_t x, y, z;
+        v.getVoxel(x, y, z);
+        m1.getX() = Min(m1.getX(), x);
+        m2.getX() = Max(m2.getX(), x);
+        m1.getY() = Min(m1.getY(), y);
+        m2.getY() = Max(m2.getY(), y);
+        m1.getZ() = Min(m1.getZ(), z);
+        m2.getZ() = Max(m2.getZ(), z);
     }
 
 
     // Here we construct the intitial convex hull around the
     // entire voxel set
-    VoxelHull(Voxelize *voxels,
+    VoxelHull(VoxelizeImpl& voxels,
               const SimpleMesh &inputMesh,
               const IVHACD::Parameters &params,
-              VHACDCallbacks *callbacks) : mVoxels(voxels), mParams(params), mCallbacks(callbacks)
+              VHACDCallbacks *callbacks)
+        : mVoxels(&voxels)
+        , mParams(params)
+        , mCallbacks(callbacks)
     {
         mVoxelHullCount++;
         mIndex = mVoxelHullCount;
-        uint32_t dimensions[3];
-        mVoxels->getDimensions(dimensions);
+        nd::VHACD::Vect3<uint32_t> dimensions = mVoxels->getDimensions();
 
-        mX2 = dimensions[0]-1;
-        mY2 = dimensions[1]-1;
-        mZ2 = dimensions[2]-1;
+        m2 = dimensions - 1;
 
         mVoxelScale = mVoxels->getScale();
-        mVoxels->getBoundsMin(mVoxelBmin);
-        mVoxels->getBoundsMax(mVoxelBmax);
-        mVoxelScaleHalf = mVoxelScale*0.5;
+        mVoxelBmin = mVoxels->getBoundsMin();
+        mVoxelBmax = mVoxels->getBoundsMax();
+        mVoxelScaleHalf = mVoxelScale * 0.5;
 
-        mVoxelAdjust[0] = mVoxelBmin[0]-mVoxelScaleHalf;
-        mVoxelAdjust[1] = mVoxelBmin[1]-mVoxelScaleHalf;
-        mVoxelAdjust[2] = mVoxelBmin[2]-mVoxelScaleHalf;
+        mVoxelAdjust = mVoxelBmin - mVoxelScaleHalf;
 
         // Here we get a copy of all voxels which lie on the surface mesh
         mVoxels->getSurfaceVoxels(mSurfaceVoxels);
@@ -9120,18 +6641,15 @@ public:
         computeConvexHull();
     }
 
-    virtual ~VoxelHull(void)
+    ~VoxelHull(void)
     {
         if ( mConvexHull )
         {
-            delete []mConvexHull->m_points;
-            delete []mConvexHull->m_triangles;
             delete mConvexHull;
             mConvexHull = nullptr;
         }
         delete mHullA;
         delete mHullB;
-        VHACD_SAFE_RELEASE(mRaycastMesh);
     }
 
     void buildRaycastMesh(void)
@@ -9139,7 +6657,8 @@ public:
         // Create a raycast mesh representation of the voxelized surface mesh
         if ( !mIndices.empty() )
         {
-            mRaycastMesh = RaycastMesh::createRaycastMesh(uint32_t(mVertices.size())/3,&mVertices[0],uint32_t(mIndices.size())/3,&mIndices[0]);
+            mRaycastMesh = MyRaycastMesh(mVertices,
+                                         mIndices);
         }
     }
 
@@ -9150,51 +6669,49 @@ public:
         if ( !mVertices.empty() )
         {
             // we compute the convex hull as follows...
-            VHACD::QuickHull *qh = VHACD::QuickHull::create();
-
-            VHACD::HullPoints hp;
-            hp.mVertexCount = (uint32_t)mVertices.size()/3;
-            hp.mVertices = &mVertices[0];
-            hp.mMaxHullVertices = hp.mVertexCount;
-            uint32_t tcount = qh->computeConvexHull(hp);
+            VHACD::QuickHullImpl qh;
+            uint32_t tcount = qh.computeConvexHull(mVertices,
+                                                   uint32_t(mVertices.size()));
             if ( tcount )
             {
                 mConvexHull = new IVHACD::ConvexHull;
 
-                const double *vertices = qh->getVertices(mConvexHull->m_nPoints);
-                mConvexHull->m_points = new double[mConvexHull->m_nPoints*3];
-                memcpy(mConvexHull->m_points,vertices,sizeof(double)*mConvexHull->m_nPoints*3);
+                const std::vector<VHACD::Vertex>& vertices = qh.getVertices();
+                mConvexHull->m_points.resize(vertices.size());
+                std::copy(vertices.begin(),
+                          vertices.end(),
+                          mConvexHull->m_points.begin());
 
-                const uint32_t *indices = qh->getIndices(mConvexHull->m_nTriangles);
-                mConvexHull->m_triangles = new uint32_t[mConvexHull->m_nTriangles*3];
-                memcpy(mConvexHull->m_triangles,indices,mConvexHull->m_nTriangles*sizeof(uint32_t)*3);
+                const std::vector<VHACD::Triangle>& indices = qh.getIndices();
+                mConvexHull->m_triangles.resize(indices.size());
+                std::copy(indices.begin(),
+                          indices.end(),
+                          mConvexHull->m_triangles.begin());
 
-                VHACD::fm_computeCentroid(mConvexHull->m_nPoints,mConvexHull->m_points,mConvexHull->m_nTriangles,mConvexHull->m_triangles, mConvexHull->m_center);
-                mConvexHull->m_volume = VHACD::fm_computeMeshVolume(mConvexHull->m_points,mConvexHull->m_nTriangles,mConvexHull->m_triangles);
+                VHACD::fm_computeCentroid(mConvexHull->m_points,
+                                          mConvexHull->m_triangles,
+                                          mConvexHull->m_center);
+                mConvexHull->m_volume = VHACD::fm_computeMeshVolume(mConvexHull->m_points,
+                                                                    mConvexHull->m_triangles);
             }
-            VHACD_SAFE_RELEASE(qh);
         }
         if ( mConvexHull )
         {
             mHullVolume = mConvexHull->m_volume;
         }
         // This is the volume of a single voxel
-        double singleVoxelVolume = mVoxelScale*mVoxelScale*mVoxelScale;
+        double singleVoxelVolume = mVoxelScale * mVoxelScale * mVoxelScale;
         size_t voxelCount = mInteriorVoxels.size() + mNewSurfaceVoxels.size() + mSurfaceVoxels.size();
         mVoxelVolume = singleVoxelVolume * double(voxelCount);
-        double diff = fabs(mHullVolume-mVoxelVolume);
-        mVolumeError = (diff*100)/mVoxelVolume;
+        double diff = fabs(mHullVolume - mVoxelVolume);
+        mVolumeError = (diff * 100) / mVoxelVolume;
     }
 
     // Returns true if this convex hull should be considered done
     bool isComplete(void)
     {
         bool ret = false;
-        if ( mRaycastMesh == nullptr )
-        {
-            ret = true;
-        }
-        else if ( mConvexHull == nullptr )
+        if ( mConvexHull == nullptr )
         {
             ret = true;
         }
@@ -9209,12 +6726,10 @@ public:
         else
         {
             // We compute the voxel width on all 3 axes and see if they are below the min threshold size
-            uint32_t dx = mX2-mX1;
-            uint32_t dy = mY2-mY1;
-            uint32_t dz = mZ2-mZ1;
-            if ( dx <= mParams.m_minEdgeLength &&
-                 dy <= mParams.m_minEdgeLength &&
-                 dz <= mParams.m_minEdgeLength )
+            nd::VHACD::Vect3<uint32_t> d = m2 - m1;
+            if ( d.getX() <= mParams.m_minEdgeLength &&
+                 d.getY() <= mParams.m_minEdgeLength &&
+                 d.getZ() <= mParams.m_minEdgeLength )
             {
                 ret = true;
             }
@@ -9224,16 +6739,15 @@ public:
 
     
     // Convert a voxel position into it's correct double precision location
-    inline void getPoint(const int32_t x,
-                  const int32_t y,
-                  const int32_t z,
-                  const double scale,
-                  const double *bmin,
-                  double *dest) const
+    inline nd::VHACD::Vect3<double> getPoint(const int32_t x,
+                                             const int32_t y,
+                                             const int32_t z,
+                                             const double scale,
+                                             const nd::VHACD::Vect3<double>& bmin) const
     {
-        dest[0] = (double(x)*scale + bmin[0]);
-        dest[1] = (double(y)*scale + bmin[1]);
-        dest[2] = (double(z)*scale + bmin[2]);
+        return nd::VHACD::Vect3<double>(x * scale + bmin.getX(),
+                                        y * scale + bmin.getY(),
+                                        z * scale + bmin.getZ());
     }
 
     // Sees if we have already got an index for this voxel position.
@@ -9241,10 +6755,10 @@ public:
     // that index value.
     // If not, then we convert it into the floating point position and
     // add it to the index map
-    inline uint32_t getVertexIndex(const IVec3 &p)
+    inline uint32_t getVertexIndex(const nd::VHACD::Vect3<int32_t>& p)
     {
         uint32_t ret = 0;
-        uint32_t address = (p.x<<20)|(p.y<<10)|p.z;
+        uint32_t address = (p.getX() << 20) | (p.getY() << 10) | p.getZ();
         VoxelIndexMap::iterator found = mVoxelIndexMap.find(address);
         if ( found != mVoxelIndexMap.end() )
         {
@@ -9252,13 +6766,14 @@ public:
         }
         else
         {
-            double vertex[3];
-            getPoint(p.x,p.y,p.z,mVoxelScale,mVoxelAdjust,vertex);
-            ret = (uint32_t)mVoxelIndexMap.size();
+            nd::VHACD::Vect3<double> vertex = getPoint(p.getX(),
+                                                       p.getY(),
+                                                       p.getZ(),
+                                                       mVoxelScale,
+                                                       mVoxelAdjust);
+            ret = uint32_t(mVoxelIndexMap.size());
             mVoxelIndexMap[address] = ret;
-            mVertices.push_back(vertex[0]);
-            mVertices.push_back(vertex[1]);
-            mVertices.push_back(vertex[2]);
+            mVertices.emplace_back(vertex);
         }
         return ret;
     }
@@ -9293,22 +6808,26 @@ public:
     inline void addVoxelBox(const Voxel &v)
     {
         // The voxel position of the upper left corner of the box
-        IVec3 bmin(v.getX(),v.getY(),v.getZ());
+        nd::VHACD::Vect3<int32_t> bmin(v.getX(),
+                                       v.getY(),
+                                       v.getZ());
         // The voxel position of the lower right corner of the box
-        IVec3 bmax(bmin.x+1,bmin.y+1,bmin.z+1);
+        nd::VHACD::Vect3<int32_t> bmax(bmin.getX() + 1,
+                                       bmin.getY() + 1,
+                                       bmin.getZ() + 1);
 
         // Build the set of 8 voxel positions representing
         // the coordinates of the box
-        IVec3 box[8];
+        nd::VHACD::Vect3<int32_t> box[8];
 
-        box[0] = IVec3(bmin.x, bmin.y, bmin.z);
-        box[1] = IVec3(bmax.x, bmin.y, bmin.z);
-        box[2] = IVec3(bmax.x, bmax.y, bmin.z);
-        box[3] = IVec3(bmin.x, bmax.y, bmin.z);
-        box[4] = IVec3(bmin.x, bmin.y, bmax.z);
-        box[5] = IVec3(bmax.x, bmin.y, bmax.z);
-        box[6] = IVec3(bmax.x, bmax.y, bmax.z);
-        box[7] = IVec3(bmin.x, bmax.y, bmax.z);
+        box[0] = nd::VHACD::Vect3<int32_t>(bmin.getX(), bmin.getY(), bmin.getZ());
+        box[1] = nd::VHACD::Vect3<int32_t>(bmax.getX(), bmin.getY(), bmin.getZ());
+        box[2] = nd::VHACD::Vect3<int32_t>(bmax.getX(), bmax.getY(), bmin.getZ());
+        box[3] = nd::VHACD::Vect3<int32_t>(bmin.getX(), bmax.getY(), bmin.getZ());
+        box[4] = nd::VHACD::Vect3<int32_t>(bmin.getX(), bmin.getY(), bmax.getZ());
+        box[5] = nd::VHACD::Vect3<int32_t>(bmax.getX(), bmin.getY(), bmax.getZ());
+        box[6] = nd::VHACD::Vect3<int32_t>(bmax.getX(), bmax.getY(), bmax.getZ());
+        box[7] = nd::VHACD::Vect3<int32_t>(bmin.getX(), bmax.getY(), bmax.getZ());
 
         // Now add the 12 triangles comprising the 3d box
         addTri(box, 2, 1, 0);
@@ -9333,33 +6852,32 @@ public:
     
     // Add the triangle represented by these 3 indices into the 'box' set of vertices
     // to the output mesh
-    inline void addTri(const IVec3 *box, 
+    inline void addTri(const nd::VHACD::Vect3<int32_t>* box,
                        uint32_t i1, 
                        uint32_t i2, 
                        uint32_t i3)
     {
-        const IVec3 &p1 = box[i1];
-        const IVec3 &p2 = box[i2];
-        const IVec3 &p3 = box[i3];
-        addTriangle(box[i1],box[i2],box[i3]);
+        addTriangle(box[i1], box[i2], box[i3]);
     }
 
     // Here we convert from voxel space to a 3d position, index it, and add
     // the triangle positions and indices for the output mesh
-    inline void addTriangle(const IVec3 &p1,const IVec3 &p2,const IVec3 &p3)
+    inline void addTriangle(const nd::VHACD::Vect3<int32_t>& p1,
+                            const nd::VHACD::Vect3<int32_t>& p2,
+                            const nd::VHACD::Vect3<int32_t>& p3)
     {
         uint32_t i1 = getVertexIndex(p1);
         uint32_t i2 = getVertexIndex(p2);
         uint32_t i3 = getVertexIndex(p3);
 
-        mIndices.push_back(i1);
-        mIndices.push_back(i2);
-        mIndices.push_back(i3);
+        mIndices.emplace_back(i1, i2, i3);
     }
 
     // Used only for debugging. Saves the voxelized mesh to disk
     // Optionally saves the original source mesh as well for comparison
-    void saveVoxelMesh(const SimpleMesh &inputMesh,bool saveVoxelMesh,bool saveSourceMesh)
+    void saveVoxelMesh(const SimpleMesh &inputMesh,
+                       bool saveVoxelMesh,
+                       bool saveSourceMesh)
     {
         char scratch[512];
         snprintf(scratch,sizeof(scratch),"voxel-mesh-%03d.obj", mIndex);
@@ -9369,29 +6887,45 @@ public:
             uint32_t baseIndex = 1;
             if ( saveVoxelMesh )
             {
-                for (size_t i=0; i<mVertices.size()/3; i++)
+                for (size_t i = 0; i < mVertices.size(); i++)
                 {
-                    const double *p = &mVertices[i*3];
-                    fprintf(fph,"v %0.9f %0.9f %0.9f\n", p[0], p[1], p[2]);
+                    const VHACD::Vertex& p = mVertices[i];
+                    fprintf(fph,
+                            "v %0.9f %0.9f %0.9f\n",
+                            p.mX,
+                            p.mY,
+                            p.mZ);
                     baseIndex++;
                 }
-                for (size_t i=0; i<mIndices.size()/3; i++)
+                for (size_t i = 0; i < mIndices.size(); i++)
                 {
-                    const uint32_t *idx = &mIndices[i*3];
-                    fprintf(fph,"f %d %d %d\n", idx[0]+1, idx[1]+1, idx[2]+1);
+                    const VHACD::Triangle& t = mIndices[i];
+                    fprintf(fph,
+                            "f %d %d %d\n",
+                            t.mI0 + 1,
+                            t.mI1 + 1,
+                            t.mI2 + 1);
                 }
             }
             if ( saveSourceMesh )
             {
-                for (uint32_t i=0; i<inputMesh.mVertexCount; i++)
+                for (uint32_t i = 0; i < inputMesh.mVertices.size(); i++)
                 {
-                    const double *p = &inputMesh.mVertices[i*3];
-                    fprintf(fph,"v %0.9f %0.9f %0.9f\n", p[0], p[1], p[2]);
+                    const VHACD::Vertex& p = inputMesh.mVertices[i];
+                    fprintf(fph,
+                            "v %0.9f %0.9f %0.9f\n",
+                            p.mX,
+                            p.mY,
+                            p.mZ);
                 }
-                for (uint32_t i=0; i<inputMesh.mTriangleCount; i++)
+                for (uint32_t i = 0; i < inputMesh.mIndices.size(); i++)
                 {
-                    const uint32_t *idx = &inputMesh.mIndices[i*3];
-                    fprintf(fph,"f %d %d %d\n", idx[0]+baseIndex, idx[1]+baseIndex, idx[2]+baseIndex);
+                    const VHACD::Triangle& idx = inputMesh.mIndices[i];
+                    fprintf(fph,
+                            "f %d %d %d\n",
+                            idx.mI0 + baseIndex,
+                            idx.mI1 + baseIndex,
+                            idx.mI2 + baseIndex);
                 }
             }
             fclose(fph);
@@ -9409,24 +6943,22 @@ public:
     {
         SplitAxis ret = SplitAxis::X_AXIS_NEGATIVE;
 
-        uint32_t dx = mX2-mX1;
-        uint32_t dy = mY2-mY1;
-        uint32_t dz = mZ2-mZ1;
+        nd::VHACD::Vect3<uint32_t> d = m2 - m1;
 
-        if ( dx >= dy && dx >= dz )
+        if ( d.getX() >= d.getY() && d.getX() >= d.getZ() )
         {
             ret = SplitAxis::X_AXIS_NEGATIVE;
-            location = (mX2+1+mX1)/2;
+            location = (m2.getX() + 1 + m1.getX()) / 2;
             uint32_t edgeLoc;
             if ( mParams.m_findBestPlane && findConcavityX(edgeLoc) )
             {
                 location = edgeLoc;
             }
         }
-        else if ( dy >= dx && dy >= dz )
+        else if ( d.getY() >= d.getX() && d.getY() >= d.getZ() )
         {
             ret = SplitAxis::Y_AXIS_NEGATIVE;
-            location = (mY2 + 1 + mY1) / 2;
+            location = (m2.getY() + 1 + m1.getY()) / 2;
             uint32_t edgeLoc;
             if ( mParams.m_findBestPlane &&  findConcavityY(edgeLoc) )
             {
@@ -9436,7 +6968,7 @@ public:
         else
         {
             ret = SplitAxis::Z_AXIS_NEGATIVE;
-            location = (mZ2 + 1 + mZ1) / 2;
+            location = (m2.getZ() + 1 + m1.getZ()) / 2;
             uint32_t edgeLoc;
             if ( mParams.m_findBestPlane &&  findConcavityZ(edgeLoc) )
             {
@@ -9447,25 +6979,28 @@ public:
         return ret;
     }
 
-    inline void getDoublePosition(const IVec3 &ip,double *p) const
+    inline nd::VHACD::Vect3<double> getPosition(const nd::VHACD::Vect3<int32_t>& ip) const
     {
-        getPoint(ip.x,ip.y,ip.z,mVoxelScale,mVoxelAdjust,p);
+        return getPoint(ip.getX(),
+                        ip.getY(),
+                        ip.getZ(),
+                        mVoxelScale,
+                        mVoxelAdjust);
     }
 
-    double raycast(const IVec3 &p1,const IVec3& p2) const
+    double raycast(const nd::VHACD::Vect3<int32_t>& p1,
+                   const nd::VHACD::Vect3<int32_t>& p2) const
     {
         double ret;
-        double from[3];
-        double to[3];
-        getDoublePosition(p1,from);
-        getDoublePosition(p2,to);
+        nd::VHACD::Vect3<double> from = getPosition(p1);
+        nd::VHACD::Vect3<double> to = getPosition(p2);
 
         double outT;
         double faceSign;
-        double hitLocation[3];
-        if ( mRaycastMesh->raycast(from,to,outT,faceSign,hitLocation) )
+        nd::VHACD::Vect3<double> hitLocation;
+        if ( mRaycastMesh.raycast(from, to, outT, faceSign, hitLocation) )
         {
-            ret = fm_distance(from,hitLocation);
+            ret = (from - hitLocation).GetNorm();
         }
         else
         {
@@ -9475,39 +7010,163 @@ public:
         return ret;
     }
 
+//     bool findConcavity(uint32_t idx,
+//                        uint32_t &splitLoc)
+//     {
+//         bool ret = false;
+//
+//         int32_t d = (m2[idx] - m1[idx]) + 1; // The length of the getX axis in voxel space
+//
+//         uint32_t idx1;
+//         uint32_t idx2;
+//         uint32_t idx3;
+//         switch (idx)
+//         {
+//             case 0: // X
+//                 idx1 = 0;
+//                 idx2 = 1;
+//                 idx3 = 2;
+//                 break;
+//             case 1: // Y
+//                 idx1 = 1;
+//                 idx2 = 0;
+//                 idx3 = 2;
+//                 break;
+//             case 2:
+//                 idx1 = 2;
+//                 idx2 = 1;
+//                 idx3 = 0;
+//                 break;
+//         }
+//
+//         // We will compute the edge error on the XY plane and the XZ plane
+//         // searching for the greatest location of concavity
+//         std::vector<double> edgeError1 = std::vector<double>(d);
+//         std::vector<double> edgeError2 = std::vector<double>(d);
+//
+//         // Counter of number of voxel samples on the XY plane we have accumulated
+//         uint32_t indexZ = 0;
+//
+//         // Compute Edge Error on the XY plane
+//         for (int32_t x=(int32_t)m1[idx1]; x<=(int32_t)m2[idx1]; x++)
+//         {
+//             double errorTotal = 0;
+//             // We now perform a raycast from the sides inward on the XY plane to
+//             // determine the total error (distance of the surface from the sides)
+//             // along this getX position.
+//             for (int32_t y=(int32_t)m1[idx2]; y<=(int32_t)m2[idx2]; y++)
+//             {
+//                 IVec3 p1(x, y, m1[idx3] - 2);
+//                 IVec3 p2(x, y, m2[idx3] + 2);
+//
+//                 double e1 = raycast(p1, p2);
+//                 double e2 = raycast(p2, p1);
+//
+//                 errorTotal = errorTotal+e1+e2;
+//             }
+//             // The total amount of edge error along this voxel location
+//             edgeError1[indexZ] = errorTotal;
+//             indexZ++;
+//         }
+//
+//         // Compute edge error along the XZ plane
+//         uint32_t indexY = 0;
+//
+//         for (int32_t x=(int32_t)m1[idx1]; x<=(int32_t)m2[idx1]; x++)
+//         {
+//             double errorTotal = 0;
+//
+//             for (int32_t z=(int32_t)m1[idx3]; z<=(int32_t)m2[idx3]; z++)
+//             {
+//                 IVec3 p1(x, m1[idx2] - 2, z);
+//                 IVec3 p2(x, m2[idx2] + 2, z);
+//
+//                 double e1 = raycast(p1, p2); // raycast from one side to the interior
+//                 double e2 = raycast(p2, p1); // raycast from the other side to the interior
+//
+//                 errorTotal = errorTotal+e1+e2;
+//             }
+//             edgeError2[indexY] = errorTotal;
+//             indexY++;
+//         }
+//
+//
+//         // we now compute the first derivitave to find the greatest spot of concavity on the XY plane
+//         double maxDiff = 0;
+//         uint32_t maxC = 0;
+//         int32_t wid = (m2[idx1] - m1[idx1]) / 2 + 1;
+//         for (uint32_t x=1; x<indexZ; x++)
+//         {
+//             if ( edgeError1[x] > 0 &&  edgeError1[x-1] > 0 )
+//             {
+//                 double diff = abs(edgeError1[x] - edgeError1[x-1]);
+//                 if ( diff > maxDiff )
+//                 {
+//                     maxDiff = diff;
+//                     maxC = x-1;
+//                 }
+//             }
+//         }
+//
+//         // Now see if there is a greater concavity on the XZ plane
+//         for (uint32_t x=1; x<indexY; x++)
+//         {
+//             if ( edgeError2[x] > 0 && edgeError2[x-1] > 0 )
+//             {
+//                 double diff = abs(edgeError2[x] - edgeError2[x-1]);
+//                 if ( diff > maxDiff )
+//                 {
+//                     maxDiff = diff;
+//                     maxC = x-1;
+//                 }
+//             }
+//         }
+//
+//         splitLoc = maxC + m1[idx1];
+//
+//         // we do not allow an edge split if it is too close to the ends
+//         if ( splitLoc > (m1[idx1] + 4) && splitLoc < (m2[idx1] - 4) )
+//         {
+//             ret = true;
+//         }
+//
+//
+//         return ret;
+//     }
+
     // Finding the greatest area of concavity..
     bool findConcavityX(uint32_t &splitLoc)
     {
+//         return findConcavity(0, splitLoc);
         bool ret = false;
 
-        int32_t dx = (mX2-mX1)+1; // The length of the getX axis in voxel space
+        uint32_t dx = (m2.getX() - m1.getX()) + 1; // The length of the getX axis in voxel space
 
         // We will compute the edge error on the XY plane and the XZ plane
         // searching for the greatest location of concavity
 
-        double *edgeErrorZ = new double[dx];
-        double *edgeErrorY = new double[dx];
+        std::vector<double> edgeErrorZ = std::vector<double>(dx);
+        std::vector<double> edgeErrorY = std::vector<double>(dx);
 
         // Counter of number of voxel samples on the XY plane we have accumulated
         uint32_t indexZ = 0;
 
         // Compute Edge Error on the XY plane
-        for (int32_t x=(int32_t)mX1; x<=(int32_t)mX2; x++)
+        for (uint32_t x = m1.getX(); x <= m2.getX(); x++)
         {
-
             double errorTotal = 0;
             // We now perform a raycast from the sides inward on the XY plane to
             // determine the total error (distance of the surface from the sides)
             // along this getX position.
-            for (int32_t y=(int32_t)mY1; y<=(int32_t)mY2; y++)
+            for (uint32_t y = m1.getY(); y <= m2.getY(); y++)
             {
-                IVec3 p1(x,y,mZ1-2);
-                IVec3 p2(x,y,mZ2+2);
+                nd::VHACD::Vect3<int32_t> p1(x, y, m1.getZ() - 2);
+                nd::VHACD::Vect3<int32_t> p2(x, y, m2.getZ() + 2);
 
-                double e1 = raycast(p1,p2);
-                double e2 = raycast(p2,p1);
+                double e1 = raycast(p1, p2);
+                double e2 = raycast(p2, p1);
 
-                errorTotal = errorTotal+e1+e2;
+                errorTotal = errorTotal + e1 + e2;
             }
             // The total amount of edge error along this voxel location
             edgeErrorZ[indexZ] = errorTotal;
@@ -9517,20 +7176,19 @@ public:
         // Compute edge error along the XZ plane
         uint32_t indexY = 0;
 
-        for (int32_t x=(int32_t)mX1; x<=(int32_t)mX2; x++)
+        for (uint32_t x = m1.getX(); x <= m2.getX(); x++)
         {
-
             double errorTotal = 0;
 
-            for (int32_t z=(int32_t)mZ1; z<=(int32_t)mZ2; z++)
+            for (uint32_t z = m1.getZ(); z <= m2.getZ(); z++)
             {
-                IVec3 p1(x,mY1-2,z);
-                IVec3 p2(x,mY2+2,z);
+                nd::VHACD::Vect3<int32_t> p1(x, m1.getY() - 2, z);
+                nd::VHACD::Vect3<int32_t> p2(x, m2.getY() + 2, z);
 
-                double e1 = raycast(p1,p2); // raycast from one side to the interior
-                double e2 = raycast(p2,p1); // raycast from the other side to the interior
+                double e1 = raycast(p1, p2); // raycast from one side to the interior
+                double e2 = raycast(p2, p1); // raycast from the other side to the interior
 
-                errorTotal = errorTotal+e1+e2;
+                errorTotal = errorTotal + e1 + e2;
             }
             edgeErrorY[indexY] = errorTotal;
             indexY++;
@@ -9540,12 +7198,11 @@ public:
         // we now compute the first derivitave to find the greatest spot of concavity on the XY plane
         double maxDiff = 0;
         uint32_t maxC = 0;
-        int32_t wid = (mX2-mX1)/2+1;
-        for (uint32_t x=1; x<indexZ; x++)
+        for (uint32_t x = 1; x < indexZ; x++)
         {
-            if ( edgeErrorZ[x] > 0 &&  edgeErrorZ[x-1] > 0 )
+            if ( edgeErrorZ[x] > 0 &&  edgeErrorZ[x - 1] > 0 )
             {
-                double diff = abs(edgeErrorZ[x] - edgeErrorZ[x-1]);
+                double diff = abs(edgeErrorZ[x] - edgeErrorZ[x - 1]);
                 if ( diff > maxDiff )
                 {
                     maxDiff = diff;
@@ -9554,11 +7211,11 @@ public:
             }
         }
         // Now see if there is a greater concavity on the XZ plane
-        for (uint32_t x=1; x<indexY; x++)
+        for (uint32_t x = 1; x < indexY; x++)
         {
-            if ( edgeErrorY[x] > 0 && edgeErrorY[x-1] > 0 )
+            if ( edgeErrorY[x] > 0 && edgeErrorY[x - 1] > 0 )
             {
-                double diff = abs(edgeErrorY[x] - edgeErrorY[x-1]);
+                double diff = abs(edgeErrorY[x] - edgeErrorY[x - 1]);
                 if ( diff > maxDiff )
                 {
                     maxDiff = diff;
@@ -9567,18 +7224,13 @@ public:
             }
         }
 
-
-        delete []edgeErrorZ;
-        delete []edgeErrorY;
-
-        splitLoc = maxC+mX1;
+        splitLoc = maxC + m1.getX();
 
         // we do not allow an edge split if it is too close to the ends
-        if ( splitLoc > (mX1+4) && splitLoc < (mX2-4) )
+        if ( splitLoc > (m1.getX() + 4) && splitLoc < (m2.getX() - 4) )
         {
             ret = true;
         }
-
 
         return ret;
     }
@@ -9587,36 +7239,36 @@ public:
     // Finding the greatest area of concavity..
     bool findConcavityY(uint32_t &splitLoc)
     {
+//         return findConcavity(1, splitLoc);
         bool ret = false;
 
-        int32_t dy = (mY2-mY1)+1; // The length of the getX axis in voxel space
+        uint32_t dy = (m2.getY() - m1.getY()) + 1; // The length of the getX axis in voxel space
 
         // We will compute the edge error on the XY plane and the XZ plane
         // searching for the greatest location of concavity
 
-        double *edgeErrorZ = new double[dy];
-        double *edgeErrorX = new double[dy];
+        std::vector<double> edgeErrorZ = std::vector<double>(dy);
+        std::vector<double> edgeErrorX = std::vector<double>(dy);
 
         // Counter of number of voxel samples on the XY plane we have accumulated
         uint32_t indexZ = 0;
 
         // Compute Edge Error on the XY plane
-        for (int32_t y=(int32_t)mY1; y<=(int32_t)mY2; y++)
+        for (uint32_t y = m1.getY(); y <= m2.getY(); y++)
         {
-
             double errorTotal = 0;
             // We now perform a raycast from the sides inward on the XY plane to
             // determine the total error (distance of the surface from the sides)
             // along this getX position.
-            for (int32_t x=(int32_t)mX1; x<=(int32_t)mX2; x++)
+            for (uint32_t x = m1.getX(); x <= m2.getX(); x++)
             {
-                IVec3 p1(x,y,mZ1-2);
-                IVec3 p2(x,y,mZ2+2);
+                nd::VHACD::Vect3<int32_t> p1(x, y, m1.getZ() - 2);
+                nd::VHACD::Vect3<int32_t> p2(x, y, m2.getZ() + 2);
 
-                double e1 = raycast(p1,p2);
-                double e2 = raycast(p2,p1);
+                double e1 = raycast(p1, p2);
+                double e2 = raycast(p2, p1);
 
-                errorTotal = errorTotal+e1+e2;
+                errorTotal = errorTotal + e1 + e2;
             }
             // The total amount of edge error along this voxel location
             edgeErrorZ[indexZ] = errorTotal;
@@ -9626,20 +7278,19 @@ public:
         // Compute edge error along the XZ plane
         uint32_t indexX = 0;
 
-        for (int32_t y=(int32_t)mY1; y<=(int32_t)mY2; y++)
+        for (uint32_t y = m1.getY(); y <= m2.getY(); y++)
         {
-
             double errorTotal = 0;
 
-            for (int32_t z=(int32_t)mZ1; z<=(int32_t)mZ2; z++)
+            for (uint32_t z = m1.getZ(); z <= m2.getZ(); z++)
             {
-                IVec3 p1(mX1-2,y,z);
-                IVec3 p2(mX2+2,y,z);
+                nd::VHACD::Vect3<int32_t> p1(m1.getX() - 2, y, z);
+                nd::VHACD::Vect3<int32_t> p2(m2.getX() + 2, y, z);
 
-                double e1 = raycast(p1,p2); // raycast from one side to the interior
-                double e2 = raycast(p2,p1); // raycast from the other side to the interior
+                double e1 = raycast(p1, p2); // raycast from one side to the interior
+                double e2 = raycast(p2, p1); // raycast from the other side to the interior
 
-                errorTotal = errorTotal+e1+e2;
+                errorTotal = errorTotal + e1 + e2;
             }
             edgeErrorX[indexX] = errorTotal;
             indexX++;
@@ -9648,12 +7299,11 @@ public:
         // we now compute the first derivitave to find the greatest spot of concavity on the XY plane
         double maxDiff = 0;
         uint32_t maxC = 0;
-        int32_t wid = (mY2-mY1)/2+1;
-        for (uint32_t y=1; y<indexZ; y++)
+        for (uint32_t y = 1; y < indexZ; y++)
         {
-            if ( edgeErrorZ[y] > 0 && edgeErrorZ[y-1] > 0 )
+            if ( edgeErrorZ[y] > 0 && edgeErrorZ[y - 1] > 0 )
             {
-                double diff = abs(edgeErrorZ[y] - edgeErrorZ[y-1]);
+                double diff = abs(edgeErrorZ[y] - edgeErrorZ[y - 1]);
                 if ( diff > maxDiff )
                 {
                     maxDiff = diff;
@@ -9662,68 +7312,62 @@ public:
             }
         }
         // Now see if there is a greater concavity on the XZ plane
-        for (uint32_t y=1; y<indexX; y++)
+        for (uint32_t y = 1; y < indexX; y++)
         {
-            if ( edgeErrorX[y] >0 &&  edgeErrorX[y-1] > 0 )
+            if ( edgeErrorX[y] >0 &&  edgeErrorX[y - 1] > 0 )
             {
-                double diff = abs(edgeErrorX[y] - edgeErrorX[y-1]);
+                double diff = abs(edgeErrorX[y] - edgeErrorX[y - 1]);
                 if ( diff > maxDiff )
                 {
                     maxDiff = diff;
-                    maxC = y-1;
+                    maxC = y - 1;
                 }
             }
         }
 
-        delete []edgeErrorZ;
-        delete []edgeErrorX;
-
-        splitLoc = maxC+mY1;
+        splitLoc = maxC + m1.getY();
 
         // we do not allow an edge split if it is too close to the ends
-        if ( splitLoc > (mY1+4) && splitLoc < (mY2-4) )
+        if ( splitLoc > (m1.getY() + 4) && splitLoc < (m2.getY() - 4) )
         {
             ret = true;
         }
 
-
         return ret;
     }
-
 
     // Finding the greatest area of concavity..
     bool findConcavityZ(uint32_t &splitLoc)
     {
+//         return findConcavity(2, splitLoc);
         bool ret = false;
 
-        int32_t dz = (mZ2-mZ1)+1; // The length of the getX axis in voxel space
+        int32_t dz = (m2.getZ() - m1.getZ()) + 1; // The length of the getX axis in voxel space
 
         // We will compute the edge error on the XY plane and the XZ plane
         // searching for the greatest location of concavity
-
-        double *edgeErrorX = new double[dz];
-        double *edgeErrorY = new double[dz];
+        std::vector<double> edgeErrorX = std::vector<double>(dz);
+        std::vector<double> edgeErrorY = std::vector<double>(dz);
 
         // Counter of number of voxel samples on the XY plane we have accumulated
         uint32_t indexX = 0;
 
         // Compute Edge Error on the XY plane
-        for (int32_t z=(int32_t)mZ1; z<=(int32_t)mZ2; z++)
+        for (uint32_t z = m1.getZ(); z <= m2.getZ(); z++)
         {
-
             double errorTotal = 0;
             // We now perform a raycast from the sides inward on the XY plane to
             // determine the total error (distance of the surface from the sides)
             // along this getX position.
-            for (int32_t y=(int32_t)mY1; y<=(int32_t)mY2; y++)
+            for (uint32_t y = m1.getY(); y <= m2.getY(); y++)
             {
-                IVec3 p1(mX1-2,y,z);
-                IVec3 p2(mX2+1,y,z);
+                nd::VHACD::Vect3<int32_t> p1(m1.getX() - 2, y, z);
+                nd::VHACD::Vect3<int32_t> p2(m2.getX() + 1, y, z);
 
-                double e1 = raycast(p1,p2);
-                double e2 = raycast(p2,p1);
+                double e1 = raycast(p1, p2);
+                double e2 = raycast(p2, p1);
 
-                errorTotal = errorTotal+e1+e2;
+                errorTotal = errorTotal + e1 + e2;
             }
             // The total amount of edge error along this voxel location
             edgeErrorX[indexX] = errorTotal;
@@ -9733,20 +7377,19 @@ public:
         // Compute edge error along the XZ plane
         uint32_t indexY = 0;
 
-        for (int32_t z=(int32_t)mZ1; z<=(int32_t)mZ2; z++)
+        for (uint32_t z = m1.getZ(); z <= m2.getZ(); z++)
         {
-
             double errorTotal = 0;
 
-            for (int32_t x=(int32_t)mX1; x<=(int32_t)mX2; x++)
+            for (uint32_t x = m1.getX(); x <= m2.getX(); x++)
             {
-                IVec3 p1(x,mY1-2,z);
-                IVec3 p2(x,mY2+2,z);
+                nd::VHACD::Vect3<int32_t> p1(x, m1.getY() - 2, z);
+                nd::VHACD::Vect3<int32_t> p2(x, m2.getY() + 2, z);
 
-                double e1 = raycast(p1,p2); // raycast from one side to the interior
-                double e2 = raycast(p2,p1); // raycast from the other side to the interior
+                double e1 = raycast(p1, p2); // raycast from one side to the interior
+                double e2 = raycast(p2, p1); // raycast from the other side to the interior
 
-                errorTotal = errorTotal+e1+e2;
+                errorTotal = errorTotal + e1 + e2;
             }
             edgeErrorY[indexY] = errorTotal;
             indexY++;
@@ -9756,25 +7399,24 @@ public:
         // we now compute the first derivitave to find the greatest spot of concavity on the XY plane
         double maxDiff = 0;
         uint32_t maxC = 0;
-        int32_t wid = (mZ2 - mZ1)/2+1;
-        for (uint32_t z=1; z<indexX; z++)
+        for (uint32_t z = 1; z < indexX; z++)
         {
-            if ( edgeErrorX[z] > 0 && edgeErrorX[z-1] > 0 )
+            if ( edgeErrorX[z] > 0 && edgeErrorX[z - 1] > 0 )
             {
-                double diff = abs(edgeErrorX[z] - edgeErrorX[z-1]);
+                double diff = abs(edgeErrorX[z] - edgeErrorX[z - 1]);
                 if ( diff > maxDiff )
                 {
                     maxDiff = diff;
-                    maxC = z-1;
+                    maxC = z - 1;
                 }
             }
         }
         // Now see if there is a greater concavity on the XZ plane
         for (uint32_t z=1; z<indexY; z++)
         {
-            if ( edgeErrorY[z] > 0 &&- edgeErrorY[z-1] > 0 )
+            if ( edgeErrorY[z] > 0 && edgeErrorY[z - 1] > 0 )
             {
-                double diff = abs(edgeErrorY[z] - edgeErrorY[z-1]);
+                double diff = abs(edgeErrorY[z] - edgeErrorY[z - 1]);
                 if ( diff > maxDiff )
                 {
                     maxDiff = diff;
@@ -9783,24 +7425,16 @@ public:
             }
         }
 
-
-        delete []edgeErrorX;
-        delete []edgeErrorY;
-
-        splitLoc = maxC+mX1;
+        splitLoc = maxC + m1.getX();
 
         // we do not allow an edge split if it is too close to the ends
-        if ( splitLoc > (mZ1+4) && splitLoc < (mZ2-4) )
+        if ( splitLoc > (m1.getZ() + 4) && splitLoc < (m2.getZ() - 4) )
         {
             ret = true;
         }
 
-
         return ret;
     }
-
-
-
 
     // This operation is performed in a background thread.
     //It splits the voxels by a plane
@@ -9837,49 +7471,49 @@ public:
         }
     }
 
-    void saveOBJ(const char *fname,VoxelHull *h)
+    void saveOBJ(const char *fname,
+                 const VoxelHull *h)
     {
         FILE *fph = fopen(fname,"wb");
         if ( fph )
         {
             uint32_t baseIndex = 1;
-            size_t vcount = mVertices.size()/3;
-            size_t tcount = mIndices.size()/3;
-
-            for (size_t i=0; i<vcount; i++)
+            for (size_t i = 0; i < mVertices.size(); ++i)
             {
-                fprintf(fph,"v %0.9f %0.9f %0.9f\n", 
-                    mVertices[i*3+0],
-                    mVertices[i*3+1],
-                    mVertices[i*3+2]);
-            }
-            for (size_t i=0; i<tcount; i++)
-            {
-                fprintf(fph,"f %d %d %d\n", 
-                    mIndices[i*3+0]+baseIndex,
-                    mIndices[i*3+1]+baseIndex,
-                    mIndices[i*3+2]+baseIndex);
+                const VHACD::Vertex& v = mVertices[i];
+                fprintf(fph, "v %0.9f %0.9f %0.9f\n",
+                        v.mX,
+                        v.mY,
+                        v.mZ);
             }
 
-            baseIndex+=uint32_t(vcount);
-
-            vcount = h->mVertices.size()/3;
-            tcount = h->mIndices.size()/3;
-
-            for (size_t i=0; i<vcount; i++)
+            for (size_t i = 0; i < mIndices.size(); ++i)
             {
-                fprintf(fph,"v %0.9f %0.9f %0.9f\n", 
-                    h->mVertices[i*3+0],
-                    h->mVertices[i*3+1]+0.1,
-                    h->mVertices[i*3+2]);
+                const VHACD::Triangle& t = mIndices[i];
+                fprintf(fph, "f %d %d %d\n",
+                        t.mI0 + baseIndex,
+                        t.mI1 + baseIndex,
+                        t.mI2 + baseIndex);
             }
 
-            for (size_t i=0; i<tcount; i++)
+            baseIndex += uint32_t(mVertices.size());
+
+            for (size_t i = 0; i < h->mVertices.size(); ++i)
             {
-                fprintf(fph,"f %d %d %d\n", 
-                    h->mIndices[i*3+0]+baseIndex,
-                    h->mIndices[i*3+1]+baseIndex,
-                    h->mIndices[i*3+2]+baseIndex);
+                const VHACD::Vertex& v = h->mVertices[i];
+                fprintf(fph, "v %0.9f %0.9f %0.9f\n",
+                        v.mX,
+                        v.mY + 0.1,
+                        v.mZ);
+            }
+
+            for (size_t i = 0; i < h->mIndices.size(); ++i)
+            {
+                const VHACD::Triangle& t = h->mIndices[i];
+                fprintf(fph, "f %d %d %d\n",
+                        t.mI0 + baseIndex,
+                        t.mI1 + baseIndex,
+                        t.mI2 + baseIndex);
             }
             fclose(fph);
         }
@@ -9887,31 +7521,41 @@ public:
 
     void saveOBJ(const char *fname)
     {
-        FILE *fph = fopen(fname,"wb");
+        FILE *fph = fopen(fname, "wb");
         if ( fph )
         {
-            size_t vcount = mVertices.size()/3;
-            size_t tcount = mIndices.size()/3;
-            printf("Saving '%s' with %d vertices and %d triangles\n", fname, uint32_t(vcount),uint32_t(tcount));
-            for (size_t i=0; i<vcount; i++)
+            printf("Saving '%s' with %d vertices and %d triangles\n",
+                   fname,
+                   uint32_t(mVertices.size()),
+                   uint32_t(mIndices.size()));
+            for (size_t i = 0; i < mVertices.size(); ++i)
             {
-                fprintf(fph,"v %0.9f %0.9f %0.9f\n", mVertices[i*3+0],mVertices[i*3+1],mVertices[i*3+2]);
+                const VHACD::Vertex& v = mVertices[i];
+                fprintf(fph, "v %0.9f %0.9f %0.9f\n",
+                        v.mX,
+                        v.mY,
+                        v.mZ);
             }
-            for (size_t i=0; i<tcount; i++)
+
+            for (size_t i = 0; i < mIndices.size(); ++i)
             {
-                fprintf(fph,"f %d %d %d\n", mIndices[i*3+0]+1,mIndices[i*3+1]+1,mIndices[i*3+2]+1);
+                const VHACD::Triangle& t = mIndices[i];
+                fprintf(fph, "f %d %d %d\n",
+                        t.mI0 + 1,
+                        t.mI1 + 1,
+                        t.mI2 + 1);
             }
             fclose(fph);
         }
     }
 
     SplitAxis           mAxis{SplitAxis::X_AXIS_NEGATIVE};
-    Voxelize            *mVoxels{nullptr};  // The voxelized data set
+    VoxelizeImpl        *mVoxels{nullptr};  // The voxelized data set
     double              mVoxelScale{0};     // Size of a single voxel
     double              mVoxelScaleHalf{0}; // 1/2 of the size of a single voxel
-    double              mVoxelAdjust[3];    // Minimum coordinates of the voxel space, with adjustment
-    double              mVoxelBmin[3];      // Minimum coordinates of the voxel space
-    double              mVoxelBmax[3];      // Maximum coordinates of the voxel space
+    nd::VHACD::Vect3<double> mVoxelAdjust;    // Minimum coordinates of the voxel space, with adjustment
+    nd::VHACD::Vect3<double> mVoxelBmin;      // Minimum coordinates of the voxel space
+    nd::VHACD::Vect3<double> mVoxelBmax;      // Maximum coordinates of the voxel space
     uint32_t            mDepth{0};          // How deep in the recursion of the binary tree this hull is
     uint32_t            mIndex{0};          // Each convex hull is given a unique id to distinguish it from the others
     double              mVolumeError{0};    // The percentage error from the convex hull volume vs. the voxel volume
@@ -9928,16 +7572,12 @@ public:
 
     // Defines the coordinates this convex hull comprises within the voxel volume
     // of the entire source
-    uint32_t                mX1{0};
-    uint32_t                mY1{0};
-    uint32_t                mZ1{0};
-    uint32_t                mX2{0};
-    uint32_t                mY2{0};
-    uint32_t                mZ2{0};
-    RaycastMesh             *mRaycastMesh{nullptr};
+    nd::VHACD::Vect3<uint32_t> m1{0};
+    nd::VHACD::Vect3<uint32_t> m2{0};
+    MyRaycastMesh           mRaycastMesh;
     VoxelIndexMap           mVoxelIndexMap; // Maps from a voxel coordinate space into a vertex index space
-    std::vector< double >   mVertices;  // Vertices for the voxelized mesh
-    std::vector<uint32_t>   mIndices;   // indices for the voxelized mesh
+    std::vector<VHACD::Vertex> mVertices;
+    std::vector<VHACD::Triangle> mIndices;
     static uint32_t         mVoxelHullCount;
     IVHACD::Parameters      mParams;
     VHACDCallbacks          *mCallbacks{nullptr};
@@ -9985,71 +7625,6 @@ public:
 using HullPairQueue = std::priority_queue< HullPair >;
 using HullMap = std::unordered_map< uint32_t, IVHACD::ConvexHull * >;
 
-class Vec3d
-{
-public:
-    Vec3d(void)
-    {
-    }
-    Vec3d(double _x,double _y,double _z) : x(_x), y(_y), z(_z)
-    {
-    }
-    Vec3d(const double *v)
-    {
-        x = v[0];
-        y = v[1];
-        z = v[2];
-    }
-
-    // The multiply operator appears to be a dot-product
-    inline double operator*(const Vec3d& rhs) const
-    {
-        return (x * rhs.x + y * rhs.y + z * rhs.z);
-    }
-
-    inline Vec3d operator-(const Vec3d& rhs) const
-    {
-        return Vec3d(x - rhs.x, y - rhs.y, z - rhs.z);
-    }
-
-    inline Vec3d operator+(const Vec3d& rhs) const
-    {
-        return Vec3d(x + rhs.x, y + rhs.y, z + rhs.z);
-    }
-
-    inline void operator+=(const Vec3d& rhs) 
-    {
-        x+=rhs.x;
-        y+=rhs.y;
-        z+=rhs.z;
-    }
-
-    inline void operator*=(const double v)
-    {
-        x = x*v;
-        y = y*v;
-        z = z*v;
-    }
-
-    inline void operator/=(const double v)
-    {
-        x = x / v;
-        y = y / v;
-        z = z / v;
-    }
-
-    inline Vec3d operator^(const Vec3d& rhs) const
-    {
-        return Vec3d(y * rhs.z - z * rhs.y,
-            z * rhs.x - x * rhs.z,
-            x * rhs.y - y * rhs.x);
-    }
-
-    double x;
-    double y;
-    double z;
-};
-
 void jobCallback(void *userPtr);
 
 // Don't consider more than 100,000 convex hulls.
@@ -10058,46 +7633,75 @@ void jobCallback(void *userPtr);
 class VHACDImpl : public IVHACD, public VHACDCallbacks
 {
 public:
-    VHACDImpl(void)
-    {
-    }
+    VHACDImpl() = default;
 
-    virtual ~VHACDImpl(void)
+    ~VHACDImpl() override
     {
         Clean();
     }
 
-    virtual void Cancel() final
+    void Cancel() override final
     {
         mCanceled = true;
     }
 
-    virtual bool Compute(const float* const points,
-                         const uint32_t countPoints,
-                         const uint32_t* const triangles,
-                         const uint32_t countTriangles,
-                         const Parameters& params) final
+    bool Compute(const float* const points,
+                 const uint32_t countPoints,
+                 const uint32_t* const triangles,
+                 const uint32_t countTriangles,
+                 const Parameters& params) override final
     {
-        bool ret = false;
-
-        double *dpoints = new double[countPoints*3];
-        for (uint32_t i=0; i<countPoints*3; i++)
+        std::vector<VHACD::Vertex> v;
+        v.reserve(countPoints);
+        for (uint32_t i = 0; i < countPoints; ++i)
         {
-            dpoints[i] = points[i];
+            v.emplace_back(points[i * 3 + 0],
+                           points[i * 3 + 1],
+                           points[i * 3 + 2]);
         }
-        ret = Compute(dpoints,countPoints,triangles,countTriangles,params);
-        delete []dpoints;
 
-        return ret;
+        std::vector<VHACD::Triangle> t;
+        t.reserve(countTriangles);
+        for (uint32_t i = 0; i < countTriangles; ++i)
+        {
+            t.emplace_back(triangles[i * 3 + 0],
+                           triangles[i * 3 + 1],
+                           triangles[i * 3 + 2]);
+        }
+
+        return Compute(v, t, params);
     }
 
+    bool Compute(const double* const points,
+                 const uint32_t countPoints,
+                 const uint32_t* const triangles,
+                 const uint32_t countTriangles,
+                 const Parameters& params) override final
+    {
+        std::vector<VHACD::Vertex> v;
+        v.reserve(countPoints);
+        for (uint32_t i = 0; i < countPoints; ++i)
+        {
+            v.emplace_back(points[i * 3 + 0],
+                           points[i * 3 + 1],
+                           points[i * 3 + 2]);
+        }
 
-   
-    virtual bool Compute(const double* const points,
-                         const uint32_t countPoints,
-                         const uint32_t* const triangles,
-                         const uint32_t countTriangles,
-                         const Parameters& params) final
+        std::vector<VHACD::Triangle> t;
+        t.reserve(countTriangles);
+        for (uint32_t i = 0; i < countTriangles; ++i)
+        {
+            t.emplace_back(triangles[i * 3 + 0],
+                           triangles[i * 3 + 1],
+                           triangles[i * 3 + 2]);
+        }
+
+        return Compute(v, t, params);
+    }
+
+    bool Compute(const std::vector<VHACD::Vertex>& points,
+                 const std::vector<VHACD::Triangle>& triangles,
+                 const Parameters& params)
     {
         bool ret = false;
 
@@ -10111,7 +7715,8 @@ public:
             mThreadPool = new ThreadPool(8);
         }
 #endif
-        copyInputMesh(points,countPoints,triangles,countTriangles);
+        copyInputMesh(points,
+                      triangles);
         if ( !mCanceled )
         {
             // We now recursively perform convex decomposition until complete
@@ -10138,12 +7743,12 @@ public:
         return ret;
     }
 
-    virtual uint32_t GetNConvexHulls() const final
+    uint32_t GetNConvexHulls() const override final
     {
         return uint32_t(mConvexHulls.size());
     }
 
-    virtual bool GetConvexHull(const uint32_t index, ConvexHull& ch) const final
+    bool GetConvexHull(const uint32_t index, ConvexHull& ch) const override final
     {
         bool ret = false;
 
@@ -10156,19 +7761,13 @@ public:
         return ret;
     }
 
-    virtual void Clean(void) final  // release internally allocated memory
+    void Clean() override final  // release internally allocated memory
     {
 #if !VHACD_DISABLE_THREADING
         delete mThreadPool;
         mThreadPool = nullptr;
 #endif
-        VHACD_SAFE_RELEASE(mRaycastMesh);
-        VHACD_SAFE_RELEASE(mVoxelize);
 
-        for (auto &i:mTrees)
-        {
-            VHACD_SAFE_RELEASE(i);
-        }
         mTrees.clear();
 
         for (auto &ch:mConvexHulls)
@@ -10199,14 +7798,14 @@ public:
         mIndices.clear();
     }
 
-    virtual void Release(void) final
+    void Release(void) override final
     {
         delete this;
     }
 
     // Will compute the center of mass of the convex hull decomposition results and return it
     // in 'centerOfMass'.  Returns false if the center of mass could not be computed.
-    virtual bool ComputeCenterOfMass(double centerOfMass[3]) const final
+    bool ComputeCenterOfMass(double centerOfMass[3]) const override final
     {
         bool ret = false;
 
@@ -10217,7 +7816,7 @@ public:
     // In asynchronous mode, this returns true if the background thread is not still actively computing
     // a new solution.  In an asynchronous config the 'IsReady' call will report any update or log
     // messages in the caller's current thread.
-    virtual bool IsReady(void) const final
+    bool IsReady(void) const override final
     {
         return true;
     }
@@ -10232,67 +7831,70 @@ public:
     * 
     * @return : Returns which convex hull this position is closest to.
     */
-    virtual uint32_t findNearestConvexHull(const double pos[3],double &distanceToHull) final
+    uint32_t findNearestConvexHull(const double pos[3],
+                                   double &distanceToHull) override final
     {
-	uint32_t ret = 0; // The default return code is zero
+        uint32_t ret = 0; // The default return code is zero
 
-    uint32_t hullCount = GetNConvexHulls();
-    distanceToHull = 0;
-	// First, make sure that we have valid and completed results
-	if ( hullCount )
-	{
-		// See if we already have AABB trees created for each convex hull
-		if ( mTrees.empty() )
-		{
-			// For each convex hull, we generate an AABB tree for fast closest point queries
-			for (uint32_t i=0; i<hullCount; i++)
-			{
-				VHACD::IVHACD::ConvexHull ch;
-				GetConvexHull(i,ch);
-				// Pass the triangle mesh to create an AABB tree instance based on it.
-				AABBTree *t  = AABBTree::create(ch.m_points,ch.m_nPoints,ch.m_triangles,ch.m_nTriangles);
-				// Save the AABB tree into the container 'mTrees'
-				mTrees.push_back(t);
-			}
-		}
-		// We now compute the closest point to each convex hull and save the nearest one
-		double closest = 1e99;
-		for (uint32_t i=0; i<hullCount; i++)
-		{
-			AABBTree *t = mTrees[i];
-			if ( t )
-			{
-				double closestPoint[3];
-				if ( t->getClosestPointWithinDistance(pos,1e99,closestPoint))
-				{
-					double dx = pos[0] - closestPoint[0];
-					double dy = pos[1] - closestPoint[1];
-					double dz = pos[2] - closestPoint[2];
-					double distanceSquared = dx*dx + dy*dy + dz*dz;
-					if ( distanceSquared < closest )
-					{
-						closest = distanceSquared;
-						ret = i;
-					}
-				}
-			}
-		}
-        distanceToHull = sqrt(closest); // compute the distance to the nearest convex hull
-	}
+        uint32_t hullCount = GetNConvexHulls();
+        distanceToHull = 0;
+        // First, make sure that we have valid and completed results
+        if ( hullCount )
+        {
+            // See if we already have AABB trees created for each convex hull
+            if ( mTrees.empty() )
+            {
+                // For each convex hull, we generate an AABB tree for fast closest point queries
+                for (uint32_t i=0; i<hullCount; i++)
+                {
+                    VHACD::IVHACD::ConvexHull ch;
+                    GetConvexHull(i,ch);
+                    // Pass the triangle mesh to create an AABB tree instance based on it.
+                    AABBTreeImpl *t = new AABBTreeImpl(ch.m_points,
+                                                       ch.m_triangles);
+                    // Save the AABB tree into the container 'mTrees'
+                    mTrees.push_back(t);
+                }
+            }
+            // We now compute the closest point to each convex hull and save the nearest one
+            double closest = 1e99;
+            for (uint32_t i=0; i<hullCount; i++)
+            {
+                AABBTreeImpl *t = mTrees[i];
+                if ( t )
+                {
+                    nd::VHACD::Vect3<double> closestPoint;
+                    if ( t->getClosestPointWithinDistance(*(const nd::VHACD::Vect3<double>*)pos,1e99,closestPoint))
+                    {
+                        double dx = pos[0] - closestPoint[0];
+                        double dy = pos[1] - closestPoint[1];
+                        double dz = pos[2] - closestPoint[2];
+                        double distanceSquared = dx*dx + dy*dy + dz*dz;
+                        if ( distanceSquared < closest )
+                        {
+                            closest = distanceSquared;
+                            ret = i;
+                        }
+                    }
+                }
+            }
+            distanceToHull = sqrt(closest); // compute the distance to the nearest convex hull
+        }
 
-	return ret;
+        return ret;
 
     }
 
     // Take the source position, normalize it, and then convert it into an index position
-    uint32_t getIndex(VHACD::fm_VertexIndex *vi,const double *p)
+    uint32_t getIndex(VHACD::MyVertexIndex& vi,
+                      const VHACD::Vertex& p)
     {
-        double pos[3];
-        pos[0] = (p[0]-mCenter[0])*mRecipScale;
-        pos[1] = (p[1]-mCenter[1])*mRecipScale;
-        pos[2] = (p[2]-mCenter[2])*mRecipScale;
+        nd::VHACD::Vect3<double> pos;
+        pos[0] = (p.mX - mCenter[0]) * mRecipScale;
+        pos[1] = (p.mY - mCenter[1]) * mRecipScale;
+        pos[2] = (p.mZ - mCenter[2]) * mRecipScale;
         bool newPos;
-        uint32_t ret = vi->getIndex(pos,newPos);
+        uint32_t ret = vi.getIndex(pos,newPos);
         return ret;
     }
 
@@ -10300,69 +7902,52 @@ public:
     // This copies the input mesh while scaling the input positions
     // to fit into a normalized unit cube. It also re-indexes all of the
     // vertex positions in case they weren't clean coming in. 
-    void copyInputMesh(const double* const points,
-                         const uint32_t countPoints,
-                         const uint32_t* const triangles,
-                         const uint32_t countTriangles)
+    void copyInputMesh(const std::vector<VHACD::Vertex>& points,
+                       const std::vector<VHACD::Triangle>& triangles)
     {
         mVertices.clear();
         mIndices.clear();
-        mIndices.reserve(countTriangles*3);
+        mIndices.reserve(triangles.size());
 
         // First we must find the bounding box of this input vertices and normalize them into a unit-cube
-        double bmin[3];
-        double bmax[3];
-        VHACD::fm_initMinMax(bmin,bmax);
-        progressUpdate(Stages::COMPUTE_BOUNDS_OF_INPUT_MESH,0,"ComputingBounds");
-        for (uint32_t i=0; i<countPoints; i++)
+        nd::VHACD::Vect3<double> bmin(FLT_MAX);
+        nd::VHACD::Vect3<double> bmax(-FLT_MAX);
+        progressUpdate(Stages::COMPUTE_BOUNDS_OF_INPUT_MESH,
+                       0,
+                       "ComputingBounds");
+        for (uint32_t i = 0; i < points.size(); i++)
         {
-            const double *p = &points[i*3];
-            VHACD::fm_minmax(p,bmin,bmax);
+            const VHACD::Vertex& p = points[i];
+
+            bmin = bmin.CWiseMin(p);
+            bmax = bmax.CWiseMax(p);
         }
-        progressUpdate(Stages::COMPUTE_BOUNDS_OF_INPUT_MESH,100,"ComputingBounds");
+        progressUpdate(Stages::COMPUTE_BOUNDS_OF_INPUT_MESH,
+                       100,
+                       "ComputingBounds");
 
-        mCenter[0] = (bmax[0]+bmin[0])*0.5;
-        mCenter[1] = (bmax[1]+bmin[1])*0.5;
-        mCenter[2] = (bmax[2]+bmin[2])*0.5;
+        mCenter = (bmax + bmin) * 0.5;
 
-        double scaleX = bmax[0] - bmin[0];
-        double scaleY = bmax[1] - bmin[1];
-        double scaleZ = bmax[2] - bmin[2];
-
-        double scale = scaleX;
-
-        if ( scaleY > scale )
-        {
-            scale = scaleY;
-        }
-
-        if ( scaleZ > scale )
-        {
-            scale = scaleZ;
-        }
-
-        mScale = scale;
+        nd::VHACD::Vect3<double> scale = bmax - bmin;
+        mScale = Max(Max(scale.getX(), scale.getY()), scale.getZ());
 
         mRecipScale = mScale > 0 ? 1.0 / mScale : 0;
 
         {
-            VHACD::fm_VertexIndex *vi = VHACD::fm_createVertexIndex(0.001,false);
+            VHACD::MyVertexIndex vi = VHACD::MyVertexIndex(0.001, false);
 
             uint32_t dcount=0;
 
-            for (uint32_t i=0; i<countTriangles && !mCanceled; i++)
+            for (uint32_t i = 0; i < triangles.size() && !mCanceled; ++i)
             {
-                uint32_t i1 = triangles[i*3+0];
-                uint32_t i2 = triangles[i*3+1];
-                uint32_t i3 = triangles[i*3+2];
+                const VHACD::Triangle& t = triangles[i];
+                const VHACD::Vertex& p1 = points[t.mI0];
+                const VHACD::Vertex& p2 = points[t.mI1];
+                const VHACD::Vertex& p3 = points[t.mI2];
 
-                const double *p1 = &points[i1*3];
-                const double *p2 = &points[i2*3];
-                const double *p3 = &points[i3*3];
-
-                i1 = getIndex(vi,p1);
-                i2 = getIndex(vi,p2);
-                i3 = getIndex(vi,p3);
+                uint32_t i1 = getIndex(vi, p1);
+                uint32_t i2 = getIndex(vi, p2);
+                uint32_t i3 = getIndex(vi, p3);
 
                 if ( i1 == i2 || i1 == i3 || i2 == i3 )
                 {
@@ -10370,9 +7955,7 @@ public:
                 }
                 else
                 {
-                    mIndices.push_back(i1);
-                    mIndices.push_back(i2);
-                    mIndices.push_back(i3);
+                    mIndices.emplace_back(i1, i2, i3);
                 }
             }
             if ( dcount )
@@ -10380,72 +7963,93 @@ public:
                 if ( mParams.m_logger )
                 {
                     char scratch[512];
-                    snprintf(scratch,sizeof(scratch),"Skipped %d degeneratate triangles", dcount);
+                    snprintf(scratch,
+                             sizeof(scratch),
+                             "Skipped %d degenerate triangles", dcount);
                     mParams.m_logger->Log(scratch);
                 }
             }
-            uint32_t vcount = vi->getVcount();
-            mVertices.resize(vcount*3);
-            memcpy(&mVertices[0],vi->getVerticesDouble(),sizeof(double)*vcount*3);
 
-
-            VHACD::fm_releaseVertexIndex(vi);
+            mVertices = vi.takeVertices();
         }
 
         // Create the raycast mesh
         if ( !mCanceled )
         {
-            progressUpdate(Stages::CREATE_RAYCAST_MESH,0,"Building RaycastMesh");
-            mRaycastMesh = RaycastMesh::createRaycastMesh(uint32_t(mVertices.size())/3,&mVertices[0],uint32_t(mIndices.size())/3,&mIndices[0]);
-            progressUpdate(Stages::CREATE_RAYCAST_MESH,100,"RaycastMesh completed");
+            progressUpdate(Stages::CREATE_RAYCAST_MESH,
+                           0,
+                           "Building RaycastMesh");
+            mRaycastMesh = VHACD::MyRaycastMesh(mVertices,
+                                                mIndices);
+            progressUpdate(Stages::CREATE_RAYCAST_MESH,
+                           100,
+                           "RaycastMesh completed");
         }
         if ( !mCanceled )
         {
-            progressUpdate(Stages::VOXELIZING_INPUT_MESH,0,"Voxelizing Input Mesh");
-            mVoxelize = Voxelize::create();
-            mVoxelize->voxelize(mRaycastMesh,&mVertices[0],uint32_t(mVertices.size())/3,&mIndices[0],uint32_t(mIndices.size())/3,mParams.m_resolution,(VoxelFillMode)mParams.m_fillMode);
-            mVoxelScale = mVoxelize->getScale();
-            mVoxelHalfScale = mVoxelScale*0.5;
-            mVoxelize->getBoundsMin(mVoxelBmin);
-            mVoxelize->getBoundsMax(mVoxelBmax);
-            progressUpdate(Stages::VOXELIZING_INPUT_MESH,100,"Voxelization complete");
+            progressUpdate(Stages::VOXELIZING_INPUT_MESH,
+                           0,
+                           "Voxelizing Input Mesh");
+            mVoxelize = VHACD::VoxelizeImpl();
+            mVoxelize.voxelize(mRaycastMesh,
+                               mVertices,
+                               mIndices,
+                               mParams.m_resolution,
+                               mParams.m_fillMode);
+            mVoxelScale = mVoxelize.getScale();
+            mVoxelHalfScale = mVoxelScale * 0.5;
+            mVoxelBmin = mVoxelize.getBoundsMin();
+            mVoxelBmax = mVoxelize.getBoundsMax();
+            progressUpdate(Stages::VOXELIZING_INPUT_MESH,
+                           100,
+                           "Voxelization complete");
         }
 
-
-        mInputMesh.mVertexCount = (uint32_t)mVertices.size()/3;
-        mInputMesh.mVertices = &mVertices[0];
-        mInputMesh.mTriangleCount = (uint32_t)mIndices.size()/3;
-        mInputMesh.mIndices = &mIndices[0];
+        mInputMesh.mVertices = mVertices;
+        mInputMesh.mIndices = mIndices;
         if ( !mCanceled )
         {
-            progressUpdate(Stages::BUILD_INITIAL_CONVEX_HULL,0,"Build initial ConvexHull");
-            VoxelHull *vh = new VoxelHull(mVoxelize,mInputMesh,mParams,this);
+            progressUpdate(Stages::BUILD_INITIAL_CONVEX_HULL,
+                           0,
+                           "Build initial ConvexHull");
+            VoxelHull *vh = new VoxelHull(mVoxelize,
+                                          mInputMesh,
+                                          mParams,
+                                          this);
             if ( vh->mConvexHull )
             {
                 mOverallHullVolume = vh->mConvexHull->m_volume;
             }
             mPendingHulls.push_back(vh);
-            progressUpdate(Stages::BUILD_INITIAL_CONVEX_HULL,100,"Initial ConvexHull complete");
+            progressUpdate(Stages::BUILD_INITIAL_CONVEX_HULL,
+                           100,
+                           "Initial ConvexHull complete");
         }
     }
 
     void scaleOutputConvexHull(ConvexHull &ch)
     {
-        for (uint32_t i=0; i<ch.m_nPoints; i++)
+        for (uint32_t i = 0; i < ch.m_points.size(); i++)
         {
-            double *p = &ch.m_points[i*3];
-            p[0] = (p[0]*mScale)+mCenter[0];
-            p[1] = (p[1]*mScale)+mCenter[1];
-            p[2] = (p[2]*mScale)+mCenter[2];
+            VHACD::Vertex& p = ch.m_points[i];
+            p.mX = (p.mX * mScale) + mCenter[0];
+            p.mY = (p.mY * mScale) + mCenter[1];
+            p.mZ = (p.mZ * mScale) + mCenter[2];
         }
         ch.m_volume = computeConvexHullVolume(ch); // get the combined volume
-        fm_getAABB(ch.m_nPoints,ch.m_points,sizeof(double)*3,ch.mBmin,ch.mBmax);
-        fm_computeCentroid(ch.m_nPoints,ch.m_points,ch.m_nTriangles,ch.m_triangles,ch.m_center);
+        fm_getAABB(ch.m_points,
+                   ch.mBmin,
+                   ch.mBmax);
+        fm_computeCentroid(ch.m_points,
+                           ch.m_triangles,
+                           ch.m_center);
     }
 
     void addCostToPriorityQueue(CostTask *task)
     {
-        HullPair hp(task->mHullA->m_meshId,task->mHullB->m_meshId,task->mConcavity);
+        HullPair hp(task->mHullA->m_meshId,
+                    task->mHullB->m_meshId,
+                    task->mConcavity);
         mHullPairQueue.push(hp);
     }
 
@@ -10453,8 +8057,6 @@ public:
     {
         if ( ch )
         {
-            delete []ch->m_points;
-            delete []ch->m_triangles;
             delete ch;
         }
     }
@@ -10462,8 +8064,9 @@ public:
     void performConvexDecomposition(void)
     {
         {
-            ScopedTime st("Convex Decompostion",mParams.m_logger);
-            double maxHulls = pow(2,mParams.m_maxRecursionDepth);
+            ScopedTime st("Convex Decompostion",
+                          mParams.m_logger);
+            double maxHulls = pow(2, mParams.m_maxRecursionDepth);
             // We recursively split convex hulls until we can
             // no longer recurse further.
             Timer t;
@@ -10475,10 +8078,10 @@ public:
                 if ( e >= 0.1 )
                 {
                     t.reset();
-                    {
-                        double stageProgress = (double(count)*100.0) / maxHulls;
-                        progressUpdate(Stages::PERFORMING_DECOMPOSITION,stageProgress,"Performing recursive decomposition of convex hulls");
-                    }
+                    double stageProgress = (double(count) * 100.0) / maxHulls;
+                    progressUpdate(Stages::PERFORMING_DECOMPOSITION,
+                                   stageProgress,
+                                   "Performing recursive decomposition of convex hulls");
                 }
                 // First we make a copy of the hulls we are processing
                 VoxelHullVector oldList = mPendingHulls;
@@ -10487,7 +8090,7 @@ public:
                 // a job to be performed in a background thread
                 std::future<void> *futures = new std::future<void>[mPendingHulls.size()];
                 uint32_t futureCount = 0;
-                for (auto &i:mPendingHulls)
+                for (auto &i : mPendingHulls)
                 {
                     if ( i->isComplete() || count > VHACD_MAX_CONVEX_HULL_FRAGMENTS )
                     {
@@ -10513,7 +8116,7 @@ public:
                 // Wait for any outstanding jobs to complete in the background threads
                 if ( futureCount )
                 {
-                    for (uint32_t i=0; i<futureCount; i++)
+                    for (uint32_t i = 0; i < futureCount; i++)
                     {
                         futures[i].get();
                     }
@@ -10523,7 +8126,7 @@ public:
                 // adding the two children to the output list if
                 // we need to recurse them further
                 mPendingHulls.clear();
-                for (auto &vh:oldList)
+                for (auto &vh : oldList)
                 {
                     if ( vh->isComplete() || count > VHACD_MAX_CONVEX_HULL_FRAGMENTS )
                     {
@@ -10563,7 +8166,9 @@ public:
             // Build the convex hull id map
             std::vector< ConvexHull *> hulls;
 
-            progressUpdate(Stages::INITIALIZING_CONVEX_HULLS_FOR_MERGING,0,"Initializing ConvexHulls");
+            progressUpdate(Stages::INITIALIZING_CONVEX_HULLS_FOR_MERGING,
+                           0,
+                           "Initializing ConvexHulls");
 
             for (auto &vh:mVoxelHulls)
             {
@@ -10578,16 +8183,24 @@ public:
                 // Compute the volume of the convex hull
                 ch->m_volume = computeConvexHullVolume(*ch);
                 // Compute the AABB of the convex hull
-                fm_getAABB(ch->m_nPoints,ch->m_points,sizeof(double)*3,ch->mBmin,ch->mBmax);
+                fm_getAABB(ch->m_points,
+                           ch->mBmin,
+                           ch->mBmax);
                 // Inflate the AABB by 10%
-                fm_inflateMinMax(ch->mBmin,ch->mBmax,0.1);
+                fm_inflateMinMax(ch->mBmin,
+                                 ch->mBmax,
+                                 0.1);
 
-                fm_computeCentroid(ch->m_nPoints,ch->m_points,ch->m_nTriangles,ch->m_triangles,ch->m_center);
+                fm_computeCentroid(ch->m_points,
+                                   ch->m_triangles,
+                                   ch->m_center);
 
                 delete vh;
                 hulls.push_back(ch);
             }
-            progressUpdate(Stages::INITIALIZING_CONVEX_HULLS_FOR_MERGING,100,"ConvexHull initialization complete");
+            progressUpdate(Stages::INITIALIZING_CONVEX_HULLS_FOR_MERGING,
+                           100,
+                           "ConvexHull initialization complete");
 
             mVoxelHulls.clear();
 
@@ -10600,16 +8213,19 @@ public:
                 size_t costMatrixSize = ((hullCount*hullCount)-hullCount)>>1;
                 CostTask *tasks = new CostTask[costMatrixSize];
                 CostTask *task = tasks;
-                ScopedTime st("Computing the Cost Matrix",mParams.m_logger);
+                ScopedTime st("Computing the Cost Matrix",
+                              mParams.m_logger);
                 // First thing we need to do is compute the cost matrix
                 // This is computed as the volume error of any two convex hulls
                 // combined
-                progressUpdate(Stages::COMPUTING_COST_MATRIX,0,"Computing Hull Merge Cost Matrix");
-                for (size_t i=1; i<hullCount && !mCanceled; i++)
+                progressUpdate(Stages::COMPUTING_COST_MATRIX,
+                               0,
+                               "Computing Hull Merge Cost Matrix");
+                for (size_t i = 1; i < hullCount && !mCanceled; i++)
                 {
                     ConvexHull *chA = hulls[i];
 
-                    for (size_t j=0; j<i && !mCanceled; j++)
+                    for (size_t j = 0; j < i && !mCanceled; j++)
                     {
                         ConvexHull *chB = hulls[j];
 
@@ -10643,12 +8259,12 @@ public:
                     {
                         if ( taskCount )
                         {
-                            for (uint32_t i=0; i<taskCount; i++)
+                            for (uint32_t i = 0; i < taskCount; i++)
                             {
                                 tasks[i].mFuture.get();
                             }
                         }
-                        for (size_t i=0; i<taskCount; i++)
+                        for (size_t i = 0; i < taskCount; i++)
                         {
                             addCostToPriorityQueue(&tasks[i]);
                         }
@@ -10657,18 +8273,21 @@ public:
 #endif
                     {
                         task = tasks;
-                        for (size_t i=0; i<taskCount; i++)
+                        for (size_t i = 0; i < taskCount; i++)
                         {
                             performMergeCostTask(task);
                             addCostToPriorityQueue(task);
                             task++;
                         }
                     }
-                    progressUpdate(Stages::COMPUTING_COST_MATRIX,100,"Finished cost matrix");
+                    progressUpdate(Stages::COMPUTING_COST_MATRIX,
+                                   100,
+                                   "Finished cost matrix");
                 }
                 if ( !mCanceled )
                 {
-                    ScopedTime stMerging("Merging Convex Hulls",mParams.m_logger);
+                    ScopedTime stMerging("Merging Convex Hulls",
+                                         mParams.m_logger);
                     Timer t;
                     // Now that we know the cost to merge each hull, we can begin merging them.
                     bool cancel = false;
@@ -10676,15 +8295,20 @@ public:
                     uint32_t maxMergeCount = uint32_t(mHulls.size()) - mParams.m_maxConvexHulls;
                     uint32_t startCount = uint32_t(mHulls.size());
 
-                    while ( !cancel && mHulls.size() > mParams.m_maxConvexHulls && !mHullPairQueue.empty() && !mCanceled)
+                    while (   !cancel
+                           && mHulls.size() > mParams.m_maxConvexHulls
+                           && !mHullPairQueue.empty()
+                           && !mCanceled)
                     {
                         double e = t.peekElapsedSeconds();
                         if ( e >= 0.1 )
                         {
                             t.reset();
                             uint32_t hullsProcessed = startCount - uint32_t(mHulls.size() );
-                            double stageProgess = double(hullsProcessed*100) / double(maxMergeCount);
-                            progressUpdate(Stages::MERGING_CONVEX_HULLS,stageProgess,"Merging Convex Hulls");
+                            double stageProgess = double(hullsProcessed * 100) / double(maxMergeCount);
+                            progressUpdate(Stages::MERGING_CONVEX_HULLS,
+                                           stageProgess,
+                                           "Merging Convex Hulls");
                         }
 
                         HullPair hp = mHullPairQueue.top();
@@ -10707,7 +8331,8 @@ public:
                         {
                             // This is the convex hull which results from combining the
                             // vertices in the two source hulls 
-                            ConvexHull *combinedHull = computeCombinedConvexHull(*ch1,*ch2);
+                            ConvexHull *combinedHull = computeCombinedConvexHull(*ch1,
+                                                                                 *ch2);
                             // The two old convex hulls are going to get removed
                             removeHull(hp.mHullA);
                             removeHull(hp.mHullB);
@@ -10719,7 +8344,7 @@ public:
                             // Compute the cost between this new merged hull
                             // and all existing convex hulls and then 
                             // add that to the priority queue
-                            for (auto &i:mHulls)
+                            for (auto &i : mHulls)
                             {
                                 if ( mCanceled )
                                 {
@@ -10745,7 +8370,7 @@ public:
                             if ( mThreadPool && tcount >= 2 )
                             {
                                 taskCost = tasks;
-                                for (uint32_t i=0; i<tcount; i++)
+                                for (uint32_t i = 0; i < tcount; i++)
                                 {
                                     taskCost->mFuture = mThreadPool->enqueue([taskCost]
                                     {
@@ -10762,13 +8387,13 @@ public:
 #endif
                             {
                                 taskCost = tasks;
-                                for (size_t i=0; i<tcount; i++)
+                                for (size_t i = 0; i < tcount; i++)
                                 {
                                     performMergeCostTask(taskCost);
                                     taskCost++;
                                 }
                             }
-                            for (size_t i=0; i<tcount; i++)
+                            for (size_t i = 0; i < tcount; i++)
                             {
                                 addCostToPriorityQueue(&tasks[i]);
                             }
@@ -10776,7 +8401,9 @@ public:
                     }
                     // Ok...once we are done, we copy the results!
                     mMeshId -= 0;
-                    progressUpdate(Stages::FINALIZING_RESULTS,0,"Finalizing results");
+                    progressUpdate(Stages::FINALIZING_RESULTS,
+                                   0,
+                                   "Finalizing results");
                     for (auto &i:mHulls)
                     {
                         if ( mCanceled )
@@ -10785,9 +8412,11 @@ public:
                         }
                         ConvexHull *ch = i.second;
                         // We now must reduce the convex hull 
-                        if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH || mParams.m_shrinkWrap)
+                        if ( ch->m_points.size() > mParams.m_maxNumVerticesPerCH || mParams.m_shrinkWrap)
                         {
-                            ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH,mParams.m_shrinkWrap);
+                            ConvexHull *reduce = computeReducedConvexHull(*ch,
+                                                                          mParams.m_maxNumVerticesPerCH,
+                                                                          mParams.m_shrinkWrap);
                             releaseConvexHull(ch);
                             ch = reduce;
                         }
@@ -10797,21 +8426,27 @@ public:
                         mConvexHulls.push_back(ch);
                     }
                     mHulls.clear(); // since the hulls were moved into the output list, we don't need to delete them from this container
-                    progressUpdate(Stages::FINALIZING_RESULTS,100,"Finalized results complete");
+                    progressUpdate(Stages::FINALIZING_RESULTS,
+                                   100,
+                                   "Finalized results complete");
                 }
                 delete []tasks;
 
             }
             else
             {
-                progressUpdate(Stages::FINALIZING_RESULTS,0,"Finalizing results");
+                progressUpdate(Stages::FINALIZING_RESULTS,
+                               0,
+                               "Finalizing results");
                 mMeshId = 0;
                 for (auto &ch:hulls)
                 {
                     // We now must reduce the convex hull 
-                    if ( ch->m_nPoints > mParams.m_maxNumVerticesPerCH  || mParams.m_shrinkWrap )
+                    if ( ch->m_points.size() > mParams.m_maxNumVerticesPerCH  || mParams.m_shrinkWrap )
                     {
-                        ConvexHull *reduce = computeReducedConvexHull(*ch,mParams.m_maxNumVerticesPerCH,mParams.m_shrinkWrap);
+                        ConvexHull *reduce = computeReducedConvexHull(*ch,
+                                                                      mParams.m_maxNumVerticesPerCH,
+                                                                      mParams.m_shrinkWrap);
                         releaseConvexHull(ch);
                         ch = reduce;
                     }
@@ -10821,7 +8456,9 @@ public:
                     mConvexHulls.push_back(ch);
                 }
                 mHulls.clear();
-                progressUpdate(Stages::FINALIZING_RESULTS,100,"Finalized results");
+                progressUpdate(Stages::FINALIZING_RESULTS,
+                               100,
+                               "Finalized results");
             }
 
         }
@@ -10830,41 +8467,46 @@ public:
     double computeConvexHullVolume(const ConvexHull &sm)
     {
         double totalVolume = 0;
-        Vec3d bary(0,0,0);
-        for (uint32_t i=0; i<sm.m_nPoints; i++)
+        nd::VHACD::Vect3<double> bary(0, 0, 0);
+        for (uint32_t i = 0; i < sm.m_points.size(); i++)
         {
-            Vec3d p(&sm.m_points[i*3]);
-            bary+=p;
+            nd::VHACD::Vect3<double> p(sm.m_points[i]);
+            bary += p;
         }
-        bary/=double(sm.m_nPoints);
+        bary /= double(sm.m_points.size());
 
-        for (uint32_t i=0; i<sm.m_nTriangles; i++)
+        for (uint32_t i = 0; i < sm.m_triangles.size(); i++)
         {
-            uint32_t i1 = sm.m_triangles[i*3+0];
-            uint32_t i2 = sm.m_triangles[i*3+1];
-            uint32_t i3 = sm.m_triangles[i*3+2];
+            uint32_t i1 = sm.m_triangles[i].mI0;
+            uint32_t i2 = sm.m_triangles[i].mI1;
+            uint32_t i3 = sm.m_triangles[i].mI2;
 
-            Vec3d ver0(&sm.m_points[i1*3]);
-            Vec3d ver1(&sm.m_points[i2*3]);
-            Vec3d ver2(&sm.m_points[i3*3]);
+            nd::VHACD::Vect3<double> ver0(sm.m_points[i1]);
+            nd::VHACD::Vect3<double> ver1(sm.m_points[i2]);
+            nd::VHACD::Vect3<double> ver2(sm.m_points[i3]);
 
-            totalVolume+=computeVolume4(ver0,ver1,ver2,bary);
+            totalVolume += computeVolume4(ver0,
+                                          ver1,
+                                          ver2,
+                                          bary);
 
         }
         totalVolume = totalVolume / 6.0;
         return totalVolume;
     }
 
-    double computeVolume4(const Vec3d &a,const Vec3d &b,const Vec3d &c,const Vec3d &d)
+    double computeVolume4(const nd::VHACD::Vect3<double>& a,
+                          const nd::VHACD::Vect3<double>& b,
+                          const nd::VHACD::Vect3<double>& c,
+                          const nd::VHACD::Vect3<double>& d)
     {
-        Vec3d ad = a - d;
-        Vec3d bd = b - d;
-        Vec3d cd = c - d;
-        Vec3d bcd = bd ^ cd;
-        double dot = ad * bcd;
+        nd::VHACD::Vect3<double> ad = a - d;
+        nd::VHACD::Vect3<double> bd = b - d;
+        nd::VHACD::Vect3<double> cd = c - d;
+        nd::VHACD::Vect3<double> bcd = bd.Cross(cd);
+        double dot = ad.Dot(bcd);
         return dot;
     }
-
 
     double computeConcavity(double volumeSeparate,double volumeCombined,double volumeMesh)
     {
@@ -10888,12 +8530,22 @@ public:
 
         if ( !fm_intersectAABB(ch1->mBmin, ch1->mBmax, ch2->mBmin, ch2->mBmax))
         {
-            double bmin[3];
-            double bmax[3];
-            fm_combineAABB(ch1->mBmin, ch1->mBmax, ch2->mBmin, ch2->mBmax, bmin, bmax);
-            double combinedVolume = fm_volumeAABB(bmin, bmax);
-            concavity = computeConcavity(volume1 + volume2, combinedVolume, mOverallHullVolume);
-            HullPair hp(ch1->m_meshId, ch2->m_meshId,concavity);
+            nd::VHACD::Vect3<double> bmin;
+            nd::VHACD::Vect3<double> bmax;
+            fm_combineAABB(ch1->mBmin,
+                           ch1->mBmax,
+                           ch2->mBmin,
+                           ch2->mBmax,
+                           bmin,
+                           bmax);
+            double combinedVolume = fm_volumeAABB(bmin,
+                                                  bmax);
+            concavity = computeConcavity(volume1 + volume2,
+                                         combinedVolume,
+                                         mOverallHullVolume);
+            HullPair hp(ch1->m_meshId,
+                        ch2->m_meshId,
+                        concavity);
             mHullPairQueue.push(hp);
             ret = true;
         }
@@ -10907,46 +8559,48 @@ public:
 
         double volume1 = ch1->m_volume;
         double volume2 = ch2->m_volume;
-        double concavity = FLT_MAX;
 
-        ConvexHull *combined = computeCombinedConvexHull(*ch1, *ch2); // Build the combined convex hull
+        ConvexHull *combined = computeCombinedConvexHull(*ch1,
+                                                         *ch2); // Build the combined convex hull
         double combinedVolume = computeConvexHullVolume(*combined); // get the combined volume
-        mt->mConcavity = computeConcavity(volume1 + volume2, combinedVolume, mOverallHullVolume);
+        mt->mConcavity = computeConcavity(volume1 + volume2,
+                                          combinedVolume,
+                                          mOverallHullVolume);
         releaseConvexHull(combined);
     }
 
-    ConvexHull *computeReducedConvexHull(const ConvexHull &ch,uint32_t maxVerts,bool projectHullVertices)
+    ConvexHull *computeReducedConvexHull(const ConvexHull &ch,
+                                         uint32_t maxVerts,
+                                         bool projectHullVertices)
     {
-
         SimpleMesh sourceConvexHull;
 
-        sourceConvexHull.mVertexCount = ch.m_nPoints;
-        sourceConvexHull.mTriangleCount = ch.m_nTriangles;
-        sourceConvexHull.mVertices = new double[sourceConvexHull.mVertexCount*3];
-        memcpy(sourceConvexHull.mVertices,ch.m_points,sizeof(double)*3*sourceConvexHull.mVertexCount);
-        sourceConvexHull.mIndices = new uint32_t[sourceConvexHull.mTriangleCount*3];
-        memcpy(sourceConvexHull.mIndices,ch.m_triangles,sizeof(uint32_t)*3*sourceConvexHull.mTriangleCount);
+        sourceConvexHull.mVertices = ch.m_points;
+        sourceConvexHull.mIndices = ch.m_triangles;
 
-        ShrinkWrap *sw = ShrinkWrap::create();
-        sw->shrinkWrap(sourceConvexHull,*mRaycastMesh,maxVerts,mVoxelScale*4,projectHullVertices);
+        ShrinkWrapImpl sw;
+        sw.shrinkWrap(sourceConvexHull,
+                      mRaycastMesh,
+                      maxVerts,
+                      mVoxelScale * 4,
+                      projectHullVertices);
 
         ConvexHull *ret = new ConvexHull;
 
-        ret->m_nPoints = sourceConvexHull.mVertexCount;
-        ret->m_nTriangles = sourceConvexHull.mTriangleCount;
         ret->m_points = sourceConvexHull.mVertices;
-        sourceConvexHull.mVertices = nullptr;
         ret->m_triangles = sourceConvexHull.mIndices;
-        sourceConvexHull.mIndices = nullptr;
 
-         fm_getAABB(ret->m_nPoints,ret->m_points,sizeof(double)*3,ret->mBmin,ret->mBmax);
-        fm_inflateMinMax(ret->mBmin,ret->mBmax,0.1);
-        fm_computeCentroid(ret->m_nPoints,ret->m_points,ret->m_nTriangles,ret->m_triangles,ret->m_center);
+        fm_getAABB(ret->m_points,
+                   ret->mBmin,
+                   ret->mBmax);
+        fm_inflateMinMax(ret->mBmin,
+                         ret->mBmax,
+                         0.1);
+        fm_computeCentroid(ret->m_points,
+                           ret->m_triangles,
+                           ret->m_center);
 
         ret->m_volume = computeConvexHullVolume(*ret);
-
-
-        sw->release();
 
         // Return the convex hull 
         return ret;
@@ -10956,40 +8610,49 @@ public:
     // a new convex hull on the combined set of points.
     // Once completed, we create a SimpleMesh instance to hold the triangle mesh
     // and we compute an inflated AABB for it.
-    ConvexHull *computeCombinedConvexHull(const ConvexHull &sm1,const ConvexHull &sm2)
+    ConvexHull* computeCombinedConvexHull(const ConvexHull& sm1,
+                                          const ConvexHull& sm2)
     {
-        uint32_t vcount = sm1.m_nPoints+sm2.m_nPoints; // Total vertices from both hulls
-        double *vertices = new double[vcount*3];  // Allocate memory for that many vertices
-        memcpy(vertices,sm1.m_points,sizeof(double)*3*sm1.m_nPoints); // Copy the vertices from the first hull
-        double *df = vertices+(sm1.m_nPoints*3); // Get a pointer to where to write the vertices for the second hull.
-        memcpy(df,sm2.m_points,sizeof(double)*3*sm2.m_nPoints); // Copy the vertices from the second hull
+        uint32_t vcount = uint32_t(sm1.m_points.size() + sm2.m_points.size()); // Total vertices from both hulls
+        std::vector<VHACD::Vertex> vertices(vcount);
+        auto it = std::copy(sm1.m_points.begin(),
+                            sm1.m_points.end(),
+                            vertices.begin());
+        std::copy(sm2.m_points.begin(),
+                  sm2.m_points.end(),
+                  it);
 
-        VHACD::QuickHull *qh = VHACD::QuickHull::create();
-        VHACD::HullPoints hp;
-        hp.mVertexCount = vcount;
-        hp.mVertices = vertices;
-        hp.mMaxHullVertices = vcount;
-        qh->computeConvexHull(hp);
+        VHACD::QuickHullImpl qh;
+        qh.computeConvexHull(vertices,
+                             vcount);
 
-        uint32_t hvcount,htcount;
-        const double *hvertices = qh->getVertices(hvcount);
-        const uint32_t *hindices = qh->getIndices(htcount);
+        const std::vector<VHACD::Vertex>& hvertices = qh.getVertices();
+        uint32_t hvcount = uint32_t(hvertices.size());
+        const std::vector<VHACD::Triangle>& hindices = qh.getIndices();
+        uint32_t htcount = uint32_t(hindices.size());
 
         ConvexHull *ret = new ConvexHull;
-        ret->m_nPoints = hvcount;
-        ret->m_nTriangles = htcount;
-        ret->m_points = new double[hvcount*3];
-        memcpy(ret->m_points,hvertices,sizeof(double)*hvcount*3);
-        ret->m_triangles = new uint32_t[htcount*3];
-        memcpy(ret->m_triangles,hindices,sizeof(uint32_t)*htcount*3);
+        ret->m_points.resize(hvcount);
+        std::copy(hvertices.begin(),
+                  hvertices.end(),
+                  ret->m_points.begin());
+
+        ret->m_triangles.resize(htcount);
+        std::copy(hindices.begin(),
+                  hindices.end(),
+                  ret->m_triangles.begin());
+
         ret->m_volume = computeConvexHullVolume(*ret);
 
-        fm_getAABB(hvcount,hvertices,sizeof(double)*3,ret->mBmin,ret->mBmax);
-        fm_inflateMinMax(ret->mBmin,ret->mBmax,0.1);
-        fm_computeCentroid(ret->m_nPoints,ret->m_points,ret->m_nTriangles,ret->m_triangles,ret->m_center);
-
-        qh->release();
-        delete []vertices;
+        fm_getAABB(hvertices,
+                   ret->mBmin,
+                   ret->mBmax);
+        fm_inflateMinMax(ret->mBmin,
+                         ret->mBmax,
+                         0.1);
+        fm_computeCentroid(ret->m_points,
+                           ret->m_triangles,
+                           ret->m_center);
 
         // Return the convex hull 
         return ret;
@@ -11026,40 +8689,33 @@ public:
     {
         ConvexHull *ch = new ConvexHull;
 
-        ch->mBmin[0] = source.mBmin[0];
-        ch->mBmin[1] = source.mBmin[1];
-        ch->mBmin[2] = source.mBmin[2];
+        ch->mBmin = source.mBmin;
+        ch->mBmax = source.mBmax;
 
-        ch->mBmax[0] = source.mBmax[0];
-        ch->mBmax[1] = source.mBmax[1];
-        ch->mBmax[2] = source.mBmax[2];
-
-        ch->m_center[0] = source.m_center[0];
-        ch->m_center[1] = source.m_center[1];
-        ch->m_center[2] = source.m_center[2];
+        ch->m_center = source.m_center;
 
         ch->m_meshId = source.m_meshId;
 
-        ch->m_nPoints = source.m_nPoints;
-        ch->m_points = new double[ch->m_nPoints*3];
-        memcpy(ch->m_points,source.m_points,sizeof(double)*ch->m_nPoints*3);
+        ch->m_points = source.m_points;
 
-        ch->m_nTriangles = source.m_nTriangles;
-        ch->m_triangles = new uint32_t[ch->m_nTriangles*3];
-        memcpy(ch->m_triangles,source.m_triangles,sizeof(uint32_t)*ch->m_nTriangles*3);
+        ch->m_triangles = source.m_triangles;
 
         ch->m_volume = source.m_volume;
 
         return ch;
     }
 
-    void progressUpdate(Stages stage,double stageProgress,const char *operation)
+    void progressUpdate(Stages stage,double stageProgress,
+                        const char *operation)
     {
         if ( mParams.m_callback )
         {
-            double overallProgress = (double(stage)*100) / double(Stages::NUM_STAGES);
+            double overallProgress = (double(stage) * 100) / double(Stages::NUM_STAGES);
             const char *s = getStageName(stage);
-            mParams.m_callback->Update(overallProgress,stageProgress,s,operation);
+            mParams.m_callback->Update(overallProgress,
+                                       stageProgress,
+                                       s,
+                                       operation);
         }
     }
 
@@ -11102,7 +8758,7 @@ public:
         return ret;
     }
 
-    virtual bool isCanceled(void) const final
+    bool isCanceled(void) const override final
     {
         return mCanceled;
     }
@@ -11115,20 +8771,20 @@ public:
     VoxelHullVector                         mPendingHulls;
 
     AABBTreeVector							mTrees;
-    RaycastMesh                             *mRaycastMesh{nullptr};
-    Voxelize                                *mVoxelize{nullptr};
-    double                                  mCenter[3];
+    VHACD::MyRaycastMesh                    mRaycastMesh;
+    VHACD::VoxelizeImpl                     mVoxelize;
+    nd::VHACD::Vect3<double>                mCenter;
     double                                  mScale{1};
     double                                  mRecipScale{1};
     SimpleMesh                              mInputMesh;     // re-indexed and normalized input mesh
-    std::vector< double >                   mVertices;
-    std::vector< uint32_t >                 mIndices;
+    std::vector<VHACD::Vertex>              mVertices;
+    std::vector<VHACD::Triangle>            mIndices;
 
     double                                  mOverallHullVolume{0};
     double                                  mVoxelScale{0};
     double                                  mVoxelHalfScale{0};
-    double                                  mVoxelBmin[3];
-    double                                  mVoxelBmax[3];
+    nd::VHACD::Vect3<double>                mVoxelBmin;
+    nd::VHACD::Vect3<double>                mVoxelBmax;
     uint32_t                                mMeshId{0};
     HullPairQueue       mHullPairQueue;
 #if !VHACD_DISABLE_THREADING
@@ -11136,7 +8792,6 @@ public:
 #endif
     HullMap             mHulls;
 
-    // 
     double      mOverallProgress{0};
     double      mStageProgress{0};
     double      mOperationProgress{0};
@@ -11144,13 +8799,13 @@ public:
 
 void jobCallback(void *userPtr)
 {
-   VoxelHull *vh = (VoxelHull *)userPtr;
+   VoxelHull *vh = static_cast<VoxelHull *>(userPtr);
    vh->performPlaneSplit();
 }
 
 void computeMergeCostTask(void *ptr)
 {
-    CostTask *ct = (CostTask *)ptr;
+    CostTask *ct = static_cast<CostTask *>(ptr);
     ct->mThis->performMergeCostTask(ct);
 }
 
@@ -11181,14 +8836,13 @@ class MyHACD_API : public VHACD::IVHACD,
                    VHACD::IVHACD::IUserTaskRunner
 {
 public:
-    MyHACD_API(void)
+    MyHACD_API()
     {
         mVHACD = VHACD::CreateVHACD();
     }
 
-    virtual ~MyHACD_API(void)
+    ~MyHACD_API() override
     {
-        releaseHACD();
         Cancel();
         if ( mVHACD )
         {
@@ -11196,60 +8850,94 @@ public:
         }
     }
 
-    virtual void* StartTask(std::function<void()> func) override
+    void* StartTask(std::function<void()> func) override
     {
         return new std::thread(func);
     }
 
-    virtual void JoinTask(void* Task) override
+    void JoinTask(void* Task) override
     {
-        std::thread* t = (std::thread*)Task;
+        std::thread* t = static_cast<std::thread*>(Task);
         t->join();
         delete t;
     }
 
-    virtual bool Compute(const double* const _points,
-                         const uint32_t countPoints,
-                         const uint32_t* const _triangles,
-                         const uint32_t countTriangles,
-                         const Parameters& _desc) final
+    bool Compute(const float* const points,
+                 const uint32_t countPoints,
+                 const uint32_t* const triangles,
+                 const uint32_t countTriangles,
+                 const Parameters& params) override final
+    {
+        mVertices.reserve(countPoints * 3);
+        for (uint32_t i = 0; i < countPoints; ++i)
+        {
+            mVertices.push_back(points[i * 3 + 0]);
+            mVertices.push_back(points[i * 3 + 1]);
+            mVertices.push_back(points[i * 3 + 2]);
+        }
+
+        mIndices.reserve(countTriangles * 3);
+        for (uint32_t i = 0; i < countTriangles; ++i)
+        {
+            mIndices.push_back(triangles[i * 3 + 0]);
+            mIndices.push_back(triangles[i * 3 + 1]);
+            mIndices.push_back(triangles[i * 3 + 2]);
+        }
+
+        return Compute(params);
+    }
+
+    bool Compute(const double* const _points,
+                 const uint32_t countPoints,
+                 const uint32_t* const _triangles,
+                 const uint32_t countTriangles,
+                 const Parameters& _desc) override final
+    {
+        // We need to copy the input vertices and triangles into our own buffers so we can operate
+        // on them safely from the background thread.
+        mVertices.reserve(countPoints * 3);
+        for (uint32_t i = 0; i < countPoints; ++i)
+        {
+            mVertices.push_back(_points[i * 3 + 0]);
+            mVertices.push_back(_points[i * 3 + 1]);
+            mVertices.push_back(_points[i * 3 + 2]);
+        }
+
+        mIndices.reserve(countTriangles * 3);
+        for (uint32_t i = 0; i < countTriangles; ++i)
+        {
+            mIndices.push_back(_triangles[i * 3 + 0]);
+            mIndices.push_back(_triangles[i * 3 + 1]);
+            mIndices.push_back(_triangles[i * 3 + 2]);
+        }
+
+        return Compute(_desc);
+    }
+
+    bool Compute(const Parameters& _desc)
     {
         Cancel(); // if we previously had a solution running; cancel it.
-        releaseHACD();
 
         Parameters desc = _desc;
         mTaskRunner = _desc.m_taskRunner ? _desc.m_taskRunner : this;
         desc.m_taskRunner = mTaskRunner;
 
-        // We need to copy the input vertices and triangles into our own buffers so we can operate
-        // on them safely from the background thread.
-        mVertices = (double*)malloc(sizeof(double) * countPoints * 3);
-        mIndices = (uint32_t*)malloc(sizeof(uint32_t) * countTriangles * 3);
-        memcpy(mVertices, _points, sizeof(double) * countPoints * 3);
-        memcpy(mIndices, _triangles, sizeof(uint32_t) * countTriangles * 3);
         mRunning = true;
-        mTask = mTaskRunner->StartTask([this, countPoints, countTriangles, desc]() {
-            // printf("Computing V-HACD in background task.\n");
-            ComputeNow(mVertices, countPoints, mIndices, countTriangles, desc);
-            // printf("V-HACD computation complete.\n");
+        mTask = mTaskRunner->StartTask([this, desc]() {
+            ComputeNow(mVertices, mIndices, desc);
             // If we have a user provided callback and the user did *not* call 'cancel' we notify him that the
             // task is completed. However..if the user selected 'cancel' we do not send a completed notification event.
             if (desc.m_callback && !mCancel)
             {
-                // printf("Doing callback notification\n");
                 desc.m_callback->NotifyVHACDComplete();
-                // printf("Notify callback complete.\n");
             }
             mRunning = false;
-            // printf("Exiting compute V-HACD task.\n");
         });
         return true;
     }
 
-    bool ComputeNow(const double* const points,
-                    const uint32_t countPoints,
-                    const uint32_t* const triangles,
-                    const uint32_t countTriangles,
+    bool ComputeNow(const std::vector<double>& points,
+                    const std::vector<uint32_t>& triangles,
                     const Parameters& _desc)
     {
         uint32_t ret = 0;
@@ -11269,9 +8957,13 @@ public:
             desc.m_taskRunner = this;
         }
 
-        if (countPoints && mVHACD)
+        if (mVHACD)
         {
-            bool ok = mVHACD->Compute(points, countPoints, triangles, countTriangles, desc);
+            bool ok = mVHACD->Compute(points.data(),
+                                      uint32_t(points.size() / 3),
+                                      triangles.data(),
+                                      uint32_t(triangles.size() / 3),
+                                      desc);
             if (ok)
             {
                 ret = mVHACD->GetNConvexHulls();
@@ -11281,39 +8973,23 @@ public:
         return ret ? true : false;
     }
 
-    void releaseHull(VHACD::IVHACD::ConvexHull& h)
-    {
-        free((void*)h.m_triangles);
-        free((void*)h.m_points);
-        h.m_triangles = nullptr;
-        h.m_points = nullptr;
-    }
-
-    virtual bool GetConvexHull(const uint32_t index, VHACD::IVHACD::ConvexHull& ch) const final
+    bool GetConvexHull(const uint32_t index,
+                       VHACD::IVHACD::ConvexHull& ch) const override final
     {
         return mVHACD->GetConvexHull(index,ch);
     }
 
-    void releaseHACD(void) // release memory associated with the last HACD request
-    {
-        free(mVertices);
-        mVertices = nullptr;
-        free(mIndices);
-        mIndices = nullptr;
-    }
-
-
-    virtual void release(void) // release the HACD_API interface
+    void release() // release the HACD_API interface
     {
         delete this;
     }
 
-    virtual uint32_t getHullCount(void)
+    uint32_t getHullCount()
     {
         return mVHACD->GetNConvexHulls();
     }
 
-    virtual void Cancel() final
+    void Cancel() override final
     {
         // printf("Entered Cancel\n");
         mCancel = true;
@@ -11332,51 +9008,27 @@ public:
         mCancel = false; // clear the cancel semaphore
     }
 
-    virtual bool Compute(const float* const points,
-                         const uint32_t countPoints,
-                         const uint32_t* const triangles,
-                         const uint32_t countTriangles,
-                         const Parameters& params) final
-    {
-
-        double* vertices = (double*)malloc(sizeof(double) * countPoints * 3);
-        const float* source = points;
-        double* dest = vertices;
-        for (uint32_t i = 0; i < countPoints; i++)
-        {
-            dest[0] = source[0];
-            dest[1] = source[1];
-            dest[2] = source[2];
-            dest += 3;
-            source += 3;
-        }
-
-        bool ret = Compute(vertices, countPoints, triangles, countTriangles, params);
-        free(vertices);
-        return ret;
-    }
-
-    virtual uint32_t GetNConvexHulls() const final
+    uint32_t GetNConvexHulls() const override final
     {
         processPendingMessages();
         return mVHACD->GetNConvexHulls();
     }
 
-    virtual void Clean(void) final // release internally allocated memory
+    void Clean() override final // release internally allocated memory
     {
         Cancel();
-        releaseHACD();
         mVHACD->Clean();
     }
 
-    virtual void Release(void) final // release IVHACD
+    void Release() override final // release IVHACD
     {
         delete this;
     }
 
-    virtual void Update(const double overallProgress,
-                        const double stageProgress,
-                        const char* const stage,const char *operation) final
+    void Update(const double overallProgress,
+                const double stageProgress,
+                const char* const stage,
+                const char *operation) override final
     {
         mMessageMutex.lock();
         LogMessage m;
@@ -11389,7 +9041,7 @@ public:
         mMessageMutex.unlock();
     }
 
-    virtual void Log(const char* const msg) final
+    void Log(const char* const msg) override final
     {
         mMessageMutex.lock();
         LogMessage m;
@@ -11399,7 +9051,7 @@ public:
         mMessageMutex.unlock();
     }
 
-    virtual bool IsReady(void) const final
+    bool IsReady() const override final
     {
         processPendingMessages();
         return !mRunning;
@@ -11408,7 +9060,7 @@ public:
     // As a convenience for the calling application we only send it update and log messages from it's own main
     // thread.  This reduces the complexity burden on the caller by making sure it only has to deal with log
     // messages in it's main application thread.
-    void processPendingMessages(void) const
+    void processPendingMessages() const
     {
         if (mCancel)
         {
@@ -11428,7 +9080,10 @@ public:
                 }
                 else if ( mCallback )
                 {
-                    mCallback->Update(i.mOverallProgress,i.mStageProgress,i.mStage.c_str(),i.mOperation.c_str());
+                    mCallback->Update(i.mOverallProgress,
+                                      i.mStageProgress,
+                                      i.mStage.c_str(),
+                                      i.mOperation.c_str());
                 }
             }
             mMessages.clear();
@@ -11439,7 +9094,7 @@ public:
 
     // Will compute the center of mass of the convex hull decomposition results and return it
     // in 'centerOfMass'.  Returns false if the center of mass could not be computed.
-    virtual bool ComputeCenterOfMass(double centerOfMass[3]) const override
+    bool ComputeCenterOfMass(double centerOfMass[3]) const override
     {
         bool ret = false;
 
@@ -11464,7 +9119,8 @@ public:
     * 
     * @return : Returns which convex hull this position is closest to.
     */
-    virtual uint32_t findNearestConvexHull(const double pos[3],double &distanceToHull) final
+    uint32_t findNearestConvexHull(const double pos[3],
+                                   double &distanceToHull) override final
 	{
 		uint32_t ret = 0; // The default return code is zero
 
@@ -11479,8 +9135,8 @@ public:
 	}
 
 private:
-    double* mVertices{ nullptr };
-    uint32_t* mIndices{ nullptr };
+    std::vector<double> mVertices;
+    std::vector<uint32_t> mIndices;
     VHACD::IVHACD::IUserCallback* mCallback{ nullptr };
     VHACD::IVHACD::IUserLogger* mLogger{ nullptr };
     VHACD::IVHACD* mVHACD{ nullptr };
@@ -11509,8 +9165,12 @@ IVHACD* CreateVHACD_ASYNC(void)
 
 #ifdef _MSC_VER
 #pragma warning(pop)
-#endif
+#endif // _MSC_VER
 
-#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif // __GNUC__
+
+#endif // ENABLE_VHACD_IMPLEMENTATION
 
 #endif // VHACD_H
