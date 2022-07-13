@@ -56,7 +56,8 @@ bool getTrueFalse(const char *option,bool &value)
 	return ret;
 }
 
-class Logging : public VHACD::IVHACD::IUserCallback, public VHACD::IVHACD::IUserLogger
+class Logging : public VHACD::IVHACD::IUserCallback,
+                public VHACD::IVHACD::IUserLogger
 {
 public:
 	Logging(void)
@@ -571,6 +572,7 @@ int main(int argc,const char **argv)
 								fprintf(fph,"endsolid %s\n", hullName);
 							}
 						}
+						fclose(fph);
 					}
 				}
 			}
