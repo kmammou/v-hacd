@@ -169,9 +169,11 @@ int main(int argc,const char **argv)
 		printf("-l <minEdgeLength>      : Minimum size of a voxel edge. Default value is 2 voxels.\n");
 		printf("-p <true/false>         : If false, splits hulls in the middle. If true, tries to find optimal split plane location. False by default.\n");
 		printf("-o <obj/stl>            : Export the convex hulls as a series of wavefront OBJ files or STL files.\n");
+		printf("-l <true/false>         : If set to false, no logging will be displayed.\n");
 	}
 	else
 	{
+		bool showLogging=true;
 		Logging logging;
 		VHACD::IVHACD::Parameters p;
 		p.m_callback = &logging;
@@ -272,6 +274,21 @@ int main(int argc,const char **argv)
 						else
 						{
 							printf("Shrinkwrap disabled.\n");
+						}
+					}
+				}
+				else if ( strcmp(option,"-l") == 0 )
+				{
+					if ( getTrueFalse(value,showLogging) )
+					{
+						if ( showLogging )
+						{
+							printf("Logging messages enabled.\n");
+						}
+						else
+						{
+							p.m_logger = nullptr;
+							p.m_callback = nullptr;
 						}
 					}
 				}
