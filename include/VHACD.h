@@ -6306,7 +6306,11 @@ class ThreadPool {
     ~ThreadPool();
     template<typename F, typename... Args>
     auto enqueue(F&& f, Args&& ... args)
+#ifndef __cpp_lib_is_invocable
         -> std::future< typename std::result_of< F( Args... ) >::type>;
+#else
+        -> std::future< typename std::invoke_result_t<F, Args...>>;
+#endif
  private:
     std::vector<std::thread> workers;
     std::deque<std::function<void()>> tasks;
@@ -6350,10 +6354,18 @@ ThreadPool::ThreadPool(int worker) : closed(false), count(0)
 
 template<typename F, typename... Args>
 auto ThreadPool::enqueue(F&& f, Args&& ... args)
+#ifndef __cpp_lib_is_invocable
     -> std::future< typename std::result_of< F( Args... ) >::type>
+#else
+    -> std::future< typename std::invoke_result_t<F, Args...>>
+#endif
 {
 
-    using return_type = typename std::result_of< F( Args...) >::type;
+#ifndef __cpp_lib_is_invocable
+    using return_type = typename std::result_of< F( Args... ) >::type;
+#else
+    using return_type = typename std::invoke_result_t< F, Args... >;
+#endif
     auto task = std::make_shared<std::packaged_task<return_type()> > (
         std::bind(std::forward<F>(f), std::forward<Args>(args)...)
     );
