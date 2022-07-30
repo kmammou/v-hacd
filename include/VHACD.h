@@ -115,19 +115,6 @@
 
 namespace VHACD {
 
-// #ifdef VHACD_SCALAR
-// using VhScalar = VHACD_SCALAR;
-// #else
-// using VhScalar = double;
-// #endif
-//
-// #ifdef VHACD_VECTOR
-// using VhVector = VHACD_VECTOR;
-// #else
-// template <typename T, typename A = std::allocator<T>>
-// using VhVector = std::vector<T, A>;
-// #endif
-
 struct Vertex
 {
     double mX;
