@@ -378,9 +378,6 @@ public:
         double                          m_volume{ 0 };          // The volume of the convex hull
         VHACD::Vect3                    m_center{ 0, 0, 0 };    // The centroid of the convex hull
         uint32_t                        m_meshId{ 0 };          // A unique id for this convex hull
-//         VHACD::Vect3 m_bMin; // Should be these to keep consistent naming style, but don't want to break API
-//         VHACD::Vect3 m_bMax; // at least not yet, or any more than currently
-//         VHACD::BoundsAABB       m_bounds; // Should be this to properly reflect what it is
         VHACD::Vect3            mBmin;                  // Bounding box minimum of the AABB
         VHACD::Vect3            mBmax;                  // Bounding box maximum of the AABB
     };
@@ -1797,7 +1794,7 @@ void Googol::ToString(char* const string) const
 void Googol::NegateMantissa(std::array<uint64_t, VHACD_GOOGOL_SIZE>& mantissa) const
 {
     uint64_t carrier = 1;
-    for (int i = mantissa.size() - 1; i >= 0; i--)
+    for (size_t i = mantissa.size() - 1; i >= 0 && i < mantissa.size(); i--)
     {
         uint64_t a = ~mantissa[i] + carrier;
         if (a)
@@ -3384,7 +3381,7 @@ void ConvexHull::CalculateConvexHull3D(ConvexHullAABBTreeNode* vertexTree,
                 if (!face1.m_mark && (face1.Evalue(m_points, p) < double(0.0)))
                 {
                     #ifdef _DEBUG
-                    for (const auto* node : deleteList)
+                    for (const auto node : deleteList)
                     {
                         assert(node != node1);
                     }
@@ -7512,7 +7509,7 @@ void VHACDImpl::PerformConvexDecomposition()
                     else
                     {
                         tasks.push_back(std::move(t));
-                        std::vector<CostTask>::reverse_iterator task = tasks.rbegin();
+                        CostTask* task = &tasks.back();
 #if !VHACD_DISABLE_THREADING
                         if ( m_threadPool )
                         {
@@ -7610,7 +7607,8 @@ void VHACDImpl::PerformConvexDecomposition()
 
                         m_meshId++;
                         combinedHull->m_meshId = m_meshId;
-                        CostTask* taskCost = tasks.data();
+                        tasks.clear();
+                        tasks.reserve(m_hulls.size());
 
                         // Compute the cost between this new merged hull
                         // and all existing convex hulls and then
@@ -7622,51 +7620,49 @@ void VHACDImpl::PerformConvexDecomposition()
                                 break;
                             }
                             ConvexHull* secondHull = i.second;
-                            taskCost->m_hullA = combinedHull;
-                            taskCost->m_hullB = secondHull;
-                            taskCost->m_this = this;
-                            if ( DoFastCost(*taskCost) )
+                            CostTask t;
+                            t.m_hullA = combinedHull;
+                            t.m_hullB = secondHull;
+                            t.m_this = this;
+                            if ( DoFastCost(t) )
                             {
                             }
                             else
                             {
-                                taskCost++;
+                                tasks.push_back(std::move(t));
                             }
                         }
                         m_hulls[combinedHull->m_meshId] = combinedHull;
                         // See how many merge cost tasks were posted
                         // If there are 8 or more and we are running asynchronously, then do them that way.
-                        size_t tcount = taskCost - tasks.data();
 #if !VHACD_DISABLE_THREADING
-                        if ( m_threadPool && tcount >= 2 )
+                        if ( m_threadPool && tasks.size() >= 2)
                         {
-                            taskCost = tasks.data();
-                            for (uint32_t i = 0; i < tcount; i++)
+                            for (CostTask& task : tasks)
                             {
-                                taskCost->m_future = m_threadPool->enqueue([taskCost]
+                                task.m_future = m_threadPool->enqueue([&task]
                                 {
-                                    computeMergeCostTask(*taskCost);
+                                    computeMergeCostTask(task);
                                 });
-                                taskCost++;
                             }
-                            for (uint32_t i = 0; i < tcount; i++)
+
+                            for (CostTask& task : tasks)
                             {
-                                tasks[i].m_future.get();
+                                task.m_future.get();
                             }
                         }
                         else
 #endif
                         {
-                            taskCost = tasks.data();
-                            for (size_t i = 0; i < tcount; i++)
+                            for (CostTask& task : tasks)
                             {
-                                PerformMergeCostTask(*taskCost);
-                                taskCost++;
+                                PerformMergeCostTask(task);
                             }
                         }
-                        for (size_t i = 0; i < tcount; i++)
+
+                        for (CostTask& task : tasks)
                         {
-                            AddCostToPriorityQueue(tasks[i]);
+                            AddCostToPriorityQueue(task);
                         }
                     }
                 }
@@ -8004,10 +8000,10 @@ IVHACD* CreateVHACD(void);
 class LogMessage
 {
 public:
-    double  mOverallProgress{ double(-1.0) };
-    double  mStageProgress{ double(-1.0) };
-    std::string mStage;
-    std::string mOperation;
+    double  m_overallProgress{ double(-1.0) };
+    double  m_stageProgress{ double(-1.0) };
+    std::string m_stage;
+    std::string m_operation;
 };
 
 class VHACDAsyncImpl : public VHACD::IVHACD,
@@ -8242,10 +8238,10 @@ void VHACDAsyncImpl::Update(const double overallProgress,
 {
     m_messageMutex.lock();
     LogMessage m;
-    m.mOperation = std::string(operation);
-    m.mOverallProgress = overallProgress;
-    m.mStageProgress = stageProgress;
-    m.mStage = std::string(stage);
+    m.m_operation = std::string(operation);
+    m.m_overallProgress = overallProgress;
+    m.m_stageProgress = stageProgress;
+    m.m_stage = std::string(stage);
     m_messages.push_back(m);
     m_haveMessages = true;
     m_messageMutex.unlock();
@@ -8255,7 +8251,7 @@ void VHACDAsyncImpl::Log(const char* const msg)
 {
     m_messageMutex.lock();
     LogMessage m;
-    m.mOperation = std::string(msg);
+    m.m_operation = std::string(msg);
     m_haveMessages = true;
     m_messages.push_back(m);
     m_messageMutex.unlock();
@@ -8339,19 +8335,19 @@ void VHACDAsyncImpl::ProcessPendingMessages() const
         m_messageMutex.lock();
         for (auto& i : m_messages)
         {
-            if ( i.mOverallProgress == -1 )
+            if ( i.m_overallProgress == -1 )
             {
                 if ( m_logger )
                 {
-                    m_logger->Log(i.mOperation.c_str());
+                    m_logger->Log(i.m_operation.c_str());
                 }
             }
             else if ( m_callback )
             {
-                m_callback->Update(i.mOverallProgress,
-                                   i.mStageProgress,
-                                   i.mStage.c_str(),
-                                   i.mOperation.c_str());
+                m_callback->Update(i.m_overallProgress,
+                                   i.m_stageProgress,
+                                   i.m_stage.c_str(),
+                                   i.m_operation.c_str());
             }
         }
         m_messages.clear();
