@@ -265,7 +265,7 @@ void fm_eulerToQuat(REAL roll,REAL pitch,REAL yaw,REAL *quat) // convert euler a
 	quat[3]   = cr * cpcy + sr * spsy;
 }
 
-void fm_quatToMatrix(const REAL *quat,REAL *matrix) // convert quaterinion rotation to matrix, zeros out the translation component.
+void fm_quatToMatrix(const REAL *quat,REAL *matrix) // convert quaternion rotation to matrix, zeros out the translation component.
 {
 
 	REAL xx = quat[0]*quat[0];
@@ -320,7 +320,7 @@ void fm_getTranslation(const REAL *matrix,REAL *t)
 	t[2] = matrix[3*4+2];
 }
 
-void fm_matrixToQuat(const REAL *matrix,REAL *quat) // convert the 3x3 portion of a 4x4 matrix into a quaterion as x,y,z,w
+void fm_matrixToQuat(const REAL *matrix,REAL *quat) // convert the 3x3 portion of a 4x4 matrix into a quaternion as x,y,z,w
 {
 
 	REAL tr = matrix[0*4+0] + matrix[1*4+1] + matrix[2*4+2];
@@ -967,7 +967,7 @@ bool fm_lineTestAABBXZ(const REAL *p1,const REAL *p2,const REAL *bmin,const REAL
   return sect;
 }
 
-void  fm_minmax(const REAL *p,REAL *bmin,REAL *bmax) // accmulate to a min-max value
+void  fm_minmax(const REAL *p,REAL *bmin,REAL *bmax) // accumulate to a min-max value
 {
 
   if ( p[0] < bmin[0] ) bmin[0] = p[0];
@@ -1527,7 +1527,7 @@ bool fm_computeBestFitPlane(uint32_t vcount,
 	}
   }
 
-  REAL recip = 1.0f / wtotal; // reciprocol of total weighting
+  REAL recip = 1.0f / wtotal; // reciprocal of total weighting
 
   kOrigin[0]*=recip;
   kOrigin[1]*=recip;
@@ -1571,9 +1571,9 @@ bool fm_computeBestFitPlane(uint32_t vcount,
 	  kDiff[1] = w*(p[1] - kOrigin[1]);
 	  kDiff[2] = w*(p[2] - kOrigin[2]);
 
-	  fSumXX+= kDiff[0] * kDiff[0]; // sume of the squares of the differences.
-	  fSumXY+= kDiff[0] * kDiff[1]; // sume of the squares of the differences.
-	  fSumXZ+= kDiff[0] * kDiff[2]; // sume of the squares of the differences.
+	  fSumXX+= kDiff[0] * kDiff[0]; // sum of the squares of the differences.
+	  fSumXY+= kDiff[0] * kDiff[1]; // sum of the squares of the differences.
+	  fSumXZ+= kDiff[0] * kDiff[2]; // sum of the squares of the differences.
 
 	  fSumYY+= kDiff[1] * kDiff[1];
 	  fSumYZ+= kDiff[1] * kDiff[2];
@@ -3344,7 +3344,7 @@ REAL  fm_computeMeshVolume(const REAL *vertices,uint32_t tcount,const uint32_t *
 	const REAL *p1 = &vertices[ indices[0]*3 ];
 		const REAL *p2 = &vertices[ indices[1]*3 ];
 		const REAL *p3 = &vertices[ indices[2]*3 ];
-		volume+=det(p1,p2,p3); // compute the volume of the tetrahedran relative to the origin.
+		volume+=det(p1,p2,p3); // compute the volume of the tetrahedra relative to the origin.
 	}
 
 	volume*=(1.0f/6.0f);
@@ -3745,11 +3745,11 @@ void  fm_multiplyTransform(const REAL *pA,const REAL *pB,REAL *pM)
   pM[12] = m;  pM[13] = n;  pM[14] = o;  pM[15] = p;
 }
 
-void fm_multiply(REAL *A,REAL scaler)
+void fm_multiply(REAL *A,REAL scalar)
 {
-  A[0]*=scaler;
-  A[1]*=scaler;
-  A[2]*=scaler;
+  A[0]*=scalar;
+  A[1]*=scalar;
+  A[2]*=scalar;
 }
 
 void fm_add(const REAL *A,const REAL *B,REAL *sum)
@@ -4650,8 +4650,8 @@ public:
 		mInputPoints.push_back(v);
 	}
 
-	// Triangulation happens in 2d.  We could inverse transform the polygon around the normal direction, or we just use the two most signficant axes
-	// Here we find the two longest axes and use them to triangulate.  Inverse transforming them would introduce more doubleing point error and isn't worth it.
+	// Triangulation happens in 2d.  We could inverse transform the polygon around the normal direction, or we just use the two most significant axes
+	// Here we find the two longest axes and use them to triangulate.  Inverse transforming them would introduce more doubling point error and isn't worth it.
 	virtual uint32_t * triangulate(uint32_t &tcount,double epsilon)
 	{
 		uint32_t *ret = 0;
@@ -5157,7 +5157,7 @@ bool  fm_computeCentroid(uint32_t vcount,     // number of input data points
 		center[2] = 0;
 
 		REAL numerator[3] = { 0, 0, 0 };
-		REAL denomintaor = 0;
+		REAL denominator = 0;
 
 		for (uint32_t i = 0; i < triCount; i++)
 		{
@@ -5187,10 +5187,10 @@ bool  fm_computeCentroid(uint32_t vcount,     // number of input data points
 			numerator[1]+= (sum[1] * area);
 			numerator[2]+= (sum[2] * area);
 
-			denomintaor += area;
+			denominator += area;
 
 		}
-		REAL recip = 1 / denomintaor;
+		REAL recip = 1 / denominator;
 		center[0] = numerator[0] * recip;
 		center[1] = numerator[1] * recip;
 		center[2] = numerator[2] * recip;

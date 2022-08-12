@@ -210,7 +210,7 @@ namespace IN_PARSER
 				}
 
 				foo++;
-				if (*foo == 10) foo++; // skip line feed, if it is in the carraige-return line-feed format...
+				if (*foo == 10) foo++; // skip line feed, if it is in the carriage-return line-feed format...
 				begin = foo;
 			}
 			else
@@ -219,7 +219,7 @@ namespace IN_PARSER
 			}
 		}
 
-		lineno++; // lasst line.
+		lineno++; // last line.
 
 		uint32_t v = ProcessLine(lineno, begin, callback);
 		if (v) ret = v;

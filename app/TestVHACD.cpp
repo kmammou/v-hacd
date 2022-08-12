@@ -530,7 +530,7 @@ int main(int argc,const char **argv)
 						fclose(fph);
 					}
 				}
-				// Save the decompostion as a single STL file
+				// Save the decomposition as a single STL file
 				{
 					FILE *fph = fopen("decomp.stl","wb");
 					if ( fph )
