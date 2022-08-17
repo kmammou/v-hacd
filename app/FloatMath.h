@@ -74,7 +74,7 @@ void fm_getSubMatrix(int32_t ki,int32_t kj,float pDst[16],const float matrix[16]
 void fm_getSubMatrix(int32_t ki,int32_t kj,double pDst[16],const float matrix[16]);
 
 void  fm_rotate(const float matrix[16],const float pos[3],float t[3]); // only rotate the point by a 4x4 matrix, don't translate.
-void  fm_rotate(const double matri[16],const double pos[3],double t[3]); // only rotate the point by a 4x4 matrix, don't translate.
+void  fm_rotate(const double matrix[16],const double pos[3],double t[3]); // only rotate the point by a 4x4 matrix, don't translate.
 
 void  fm_eulerToMatrix(float ax,float ay,float az,float matrix[16]); // convert euler (in radians) to a dest 4x4 matrix (translation set to zero)
 void  fm_eulerToMatrix(double ax,double ay,double az,double matrix[16]); // convert euler (in radians) to a dest 4x4 matrix (translation set to zero)
@@ -106,8 +106,8 @@ void  fm_eulerToQuatDX(double x,double y,double z,double quat[4]); // convert eu
 void  fm_eulerToMatrixDX(float x,float y,float z,float matrix[16]); // convert euler angles to quaternion using the fucked up DirectX method.
 void  fm_eulerToMatrixDX(double x,double y,double z,double matrix[16]); // convert euler angles to quaternion using the fucked up DirectX method.
 
-void  fm_quatToMatrix(const float quat[4],float matrix[16]); // convert quaterinion rotation to matrix, translation set to zero.
-void  fm_quatToMatrix(const double quat[4],double matrix[16]); // convert quaterinion rotation to matrix, translation set to zero.
+void  fm_quatToMatrix(const float quat[4],float matrix[16]); // convert quaternion rotation to matrix, translation set to zero.
+void  fm_quatToMatrix(const double quat[4],double matrix[16]); // convert quaternion rotation to matrix, translation set to zero.
 
 void  fm_quatRotate(const float quat[4],const float v[3],float r[3]); // rotate a vector directly by a quaternion.
 void  fm_quatRotate(const double quat[4],const double v[3],double r[3]); // rotate a vector directly by a quaternion.
@@ -121,8 +121,8 @@ void  fm_setTranslation(const double *translation,double matrix[16]);
 void  fm_multiplyQuat(const float *qa,const float *qb,float *quat);
 void  fm_multiplyQuat(const double *qa,const double *qb,double *quat);
 
-void  fm_matrixToQuat(const float matrix[16],float quat[4]); // convert the 3x3 portion of a 4x4 matrix into a quaterion as x,y,z,w
-void  fm_matrixToQuat(const double matrix[16],double quat[4]); // convert the 3x3 portion of a 4x4 matrix into a quaterion as x,y,z,w
+void  fm_matrixToQuat(const float matrix[16],float quat[4]); // convert the 3x3 portion of a 4x4 matrix into a quaternion as x,y,z,w
+void  fm_matrixToQuat(const double matrix[16],double quat[4]); // convert the 3x3 portion of a 4x4 matrix into a quaternion as x,y,z,w
 
 float fm_sphereVolume(float radius); // return's the volume of a sphere of this radius (4/3 PI * R cubed )
 double fm_sphereVolume(double radius); // return's the volume of a sphere of this radius (4/3 PI * R cubed )
@@ -413,7 +413,7 @@ public:
 };
 
 fm_VertexIndex * fm_createVertexIndex(double granularity,bool snapToGrid); // create an indexed vertex system for doubles
-fm_VertexIndex * fm_createVertexIndex(float granularity,bool snapToGrid);  // create an indexed vertext system for floats
+fm_VertexIndex * fm_createVertexIndex(float granularity,bool snapToGrid);  // create an indexed vertex system for floats
 void             fm_releaseVertexIndex(fm_VertexIndex *vindex);
 
 
@@ -466,8 +466,8 @@ double fm_areaTriangle(const double *p1,const double *p2,const double *p3);
 void fm_subtract(const float *A,const float *B,float *diff); // compute A-B and store the result in 'diff'
 void fm_subtract(const double *A,const double *B,double *diff); // compute A-B and store the result in 'diff'
 
-void fm_multiply(float *A,float scaler);
-void fm_multiply(double *A,double scaler);
+void fm_multiply(float *A,float scalar);
+void fm_multiply(double *A,double scalar);
 
 void fm_add(const float *A,const float *B,float *sum);
 void fm_add(const double *A,const double *B,double *sum);

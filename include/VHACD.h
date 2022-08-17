@@ -39,7 +39,7 @@
 //      * All SIMD code removed
 //      * Old plane splitting code removed
 // 
-// * The code is now delivered as a single hearder file 'VHACD.h' which has both the API
+// * The code is now delivered as a single header file 'VHACD.h' which has both the API
 // * declaration as well as the implementation.  Simply add '#define ENABLE_VHACD_IMPLEMENTATION 1'
 // * to any CPP in your application prior to including 'VHACD.h'. Only do this in one CPP though.
 // * If you do not have this define once, you will get link errors since the implementation code
@@ -95,7 +95,7 @@
 //
 // The next version was written by Khaled Mamou and was called 'HACD'
 // In this version Khaled tried to perform a CSG operation on the source 
-// mesh to produce more robust results. Howerver, Khaled learned that the
+// mesh to produce more robust results. However, Khaled learned that the
 // CSG library he was using had licensing issues so he started work on the
 // next version.
 //
@@ -289,7 +289,7 @@ struct BoundsAABB
 enum class FillMode
 {
     FLOOD_FILL, // This is the default behavior, after the voxelization step it uses a flood fill to determine 'inside'
-                // from 'outside'. Howerver, meshes with holes can fail and create hollow results.
+                // from 'outside'. However, meshes with holes can fail and create hollow results.
     SURFACE_ONLY, // Only consider the 'surface', will create 'skins' with hollow centers.
     RAYCAST_FILL, // Uses raycasting to determine inside from outside.
 };
@@ -308,12 +308,12 @@ public:
         virtual ~IUserCallback(){};
 
         /**
-        * Notifies the appliication of the current state of the convex decomposition operation
+        * Notifies the application of the current state of the convex decomposition operation
         * 
         * @param overallProgress : Total progress from 0-100%
         * @param stageProgress : Progress of the current stage 0-100%
         * @param stage : A text description of the current stage we are in
-        * @param operatoin : A text description of what operation is currently being performed.
+        * @param operation : A text description of what operation is currently being performed.
         */
         virtual void Update(const double overallProgress,
                             const double stageProgress,
@@ -385,7 +385,7 @@ public:
         bool                m_shrinkWrap{true};             // Whether or not to shrinkwrap the voxel positions to the source mesh on output
         FillMode            m_fillMode{ FillMode::FLOOD_FILL }; // How to fill the interior of the voxelized mesh
         uint32_t            m_maxNumVerticesPerCH{ 64 };    // The maximum number of vertices allowed in any output convex hull
-        bool                m_asyncACD{ true };             // Whether or not to run asynchronously, taking advantage of additonal cores
+        bool                m_asyncACD{ true };             // Whether or not to run asynchronously, taking advantage of additional cores
         uint32_t            m_minEdgeLength{ 2 };           // Once a voxel patch has an edge length of less than 4 on all 3 sides, we don't keep recursing
         bool                m_findBestPlane{ false };       // Whether or not to attempt to split planes along the best location. Experimental feature. False by default.
     };
@@ -2399,12 +2399,12 @@ void ConvexHull::GetUniquePoints(std::vector<ConvexHullVertex>& points)
                                           count);
 
     int indexCount = 0;
-    CompareVertex compareVetex;
+    CompareVertex compareVertex;
     for (int i = 1; i < count; ++i)
     {
         for (; i < count; ++i)
         {
-            if (compareVetex.Compare(points[indexCount], points[i]))
+            if (compareVertex.Compare(points[indexCount], points[i]))
             {
                 indexCount++;
                 points[indexCount] = points[i];
@@ -4108,7 +4108,7 @@ inline bool IntersectRayTriTwoSided(const VHACD::Vect3& p,
     VHACD::Vect3 n = ab.Cross(ac);
 
     double d = -dir.Dot(n);
-    double ood = double(1.0) / d; // No need to check for division by zero here as infinity aritmetic will save us...
+    double ood = double(1.0) / d; // No need to check for division by zero here as infinity arithmetic will save us...
     VHACD::Vect3 ap = p - a;
 
     t = ap.Dot(n) * ood;
@@ -4501,7 +4501,7 @@ bool AABBTree::GetClosestPointWithinDistance(const VHACD::Vect3& point,
     return hit;
 }
 
-// partion faces around the median face
+// partition faces around the median face
 uint32_t AABBTree::PartitionMedian(Node& n,
                                    uint32_t* faces,
                                    uint32_t numFaces)
@@ -4517,7 +4517,7 @@ uint32_t AABBTree::PartitionMedian(Node& n,
     return numFaces / 2;
 }
 
-// partion faces based on the surface area heuristic
+// partition faces based on the surface area heuristic
 uint32_t AABBTree::PartitionSAH(Node&,
                                 uint32_t* faces,
                                 uint32_t numFaces)
@@ -5013,7 +5013,7 @@ bool TriBoxOverlap(const VHACD::Vect3& boxCenter,
     /*    1) the {x,y,z}-directions (actually, since we use the AABB of the triangle */
     /*       we do not even need to test these) */
     /*    2) normal of the triangle */
-    /*    3) crossproduct(edge from tri, {x,y,z}-directin) */
+    /*    3) crossproduct(edge from tri, {x,y,z}-direction) */
     /*       this gives 3x3=9 more tests */
 
     VHACD::Vect3 v0 = triVer0 - boxCenter;
@@ -5828,7 +5828,7 @@ public:
               SplitAxis axis,
               uint32_t splitLoc);
 
-    // Here we construct the intitial convex hull around the
+    // Here we construct the initial convex hull around the
     // entire voxel set
     VoxelHull(Volume& voxels,
               const IVHACD::Parameters &params,
@@ -6530,7 +6530,7 @@ bool VoxelHull::FindConcavity(uint32_t idx,
     }
 
 
-    // we now compute the first derivitave to find the greatest spot of concavity on the XY plane
+    // we now compute the first derivative to find the greatest spot of concavity on the XY plane
     double maxDiff = 0;
     uint32_t maxC = 0;
     for (uint32_t x = 1; x < index1; x++)
@@ -6726,7 +6726,7 @@ void VoxelHull::WriteOBJ(FILE* fph,
 
 class VHACDImpl;
 
-// This class represents a single task to compute the volme error
+// This class represents a single task to compute the volume error
 // of two convex hulls combined
 class CostTask
 {
@@ -6734,7 +6734,7 @@ public:
     VHACDImpl*          m_this{ nullptr };
     IVHACD::ConvexHull* m_hullA{ nullptr };
     IVHACD::ConvexHull* m_hullB{ nullptr };
-    double              m_concavity{ 0 }; // concavity of the two combineds
+    double              m_concavity{ 0 }; // concavity of the two combined
     std::future<void>   m_future;
 };
 
@@ -7334,7 +7334,7 @@ void computeMergeCostTask(CostTask& ptr)
 void VHACDImpl::PerformConvexDecomposition()
 {
     {
-        ScopedTime st("Convex Decompostion",
+        ScopedTime st("Convex Decomposition",
                       m_params.m_logger);
         double maxHulls = pow(2, m_params.m_maxRecursionDepth);
         // We recursively split convex hulls until we can
@@ -7560,9 +7560,9 @@ void VHACDImpl::PerformConvexDecomposition()
                     {
                         t.Reset();
                         uint32_t hullsProcessed = startCount - uint32_t(m_hulls.size() );
-                        double stageProgess = double(hullsProcessed * 100) / double(maxMergeCount);
+                        double stageProgress = double(hullsProcessed * 100) / double(maxMergeCount);
                         ProgressUpdate(Stages::MERGING_CONVEX_HULLS,
-                                       stageProgess,
+                                       stageProgress,
                                        "Merging Convex Hulls");
                     }
 
