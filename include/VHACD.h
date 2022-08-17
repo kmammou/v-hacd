@@ -381,7 +381,7 @@ public:
         uint32_t            m_maxConvexHulls{ 64 };         // The maximum number of convex hulls to produce
         uint32_t            m_resolution{ 400000 };         // The voxel resolution to use
         double              m_minimumVolumePercentErrorAllowed{ 1 }; // if the voxels are within 1% of the volume of the hull, we consider this a close enough approximation
-        uint32_t            m_maxRecursionDepth{ 14 };        // The maximum recursion depth
+        uint32_t            m_maxRecursionDepth{ 10 };        // The maximum recursion depth
         bool                m_shrinkWrap{true};             // Whether or not to shrinkwrap the voxel positions to the source mesh on output
         FillMode            m_fillMode{ FillMode::FLOOD_FILL }; // How to fill the interior of the voxelized mesh
         uint32_t            m_maxNumVerticesPerCH{ 64 };    // The maximum number of vertices allowed in any output convex hull
