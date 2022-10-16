@@ -113,6 +113,7 @@
 #include <vector>
 #include <array>
 #include <cmath>
+#include <algorithm>
 
 namespace VHACD {
 
@@ -891,7 +892,6 @@ IVHACD* CreateVHACD_ASYNC();    // Create an asynchronous (non-blocking) impleme
 #include <float.h>
 #include <limits.h>
 
-#include <algorithm>
 #include <array>
 #include <atomic>
 #include <chrono>
