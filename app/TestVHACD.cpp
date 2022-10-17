@@ -22,6 +22,7 @@
 #include <thread>
 #include <string>
 #include <vector>
+#include <array>
 
 #ifdef _MSC_VER
 #pragma warning(disable:4100 4996)
@@ -506,11 +507,16 @@ int main(int argc,const char **argv)
 					if ( fph )
 					{
 						printf("Saving Convex Decomposition results of %d convex hulls to 'decomp.obj'\n", iface->GetNConvexHulls());
+						fprintf(fph, "mtllib decomp.mtl\n");
 						uint32_t baseIndex = 1;
 						for (uint32_t i=0; i<iface->GetNConvexHulls(); i++)
 						{	
 							// add an object name for each single convex hull
 							fprintf(fph,"o %s%03d\n", baseName.c_str(), i);
+
+							// add a material for each single convex hull
+							fprintf(fph, "usemtl Material%03d\n", i);
+
 							VHACD::IVHACD::ConvexHull ch;
 							iface->GetConvexHull(i,ch);
 							for (uint32_t j = 0; j < ch.m_points.size(); j++)
@@ -526,6 +532,36 @@ int main(int argc,const char **argv)
 								fprintf(fph,"f %d %d %d\n", i1, i2, i3);
 							}
 							baseIndex += uint32_t(ch.m_points.size());
+						}
+						fclose(fph);
+					}
+
+					// Colorize the decomposition result
+					std::array<std::array<uint8_t, 3>, 10> colorCycle{
+						31,  119, 180,
+						255, 127, 14,
+						44,  160, 44,
+						214, 39,  40,
+						148, 103, 189,
+						140, 86,  75,
+						227, 119, 194,
+						127, 127, 127,
+						188, 189, 34,
+						23,  190, 207,
+					};
+					fph = fopen("decomp.mtl", "wb");
+					if (fph)
+					{
+						uint32_t colorIdx = 0;
+						for (uint32_t i = 0; i < iface->GetNConvexHulls(); i++)
+						{
+							auto r = (float)colorCycle[colorIdx][0] / 255;
+							auto g = (float)colorCycle[colorIdx][1] / 255;
+							auto b = (float)colorCycle[colorIdx][2] / 255;
+							colorIdx = (colorIdx + 1) % colorCycle.size();
+						
+							fprintf(fph, "newmtl Material%03d\n", i);
+							fprintf(fph, "Kd %0.6f %0.6f %0.6f\n", r, g, b);
 						}
 						fclose(fph);
 					}
