@@ -1,0 +1,1 @@
+cmake -DCMAKE_GENERATOR_PLATFORM=x64 CMakeLists.txt
