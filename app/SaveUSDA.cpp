@@ -3,6 +3,7 @@
 #include <float.h>
 #include <math.h>
 #include <vector>
+#include <cstdio>
 
 #ifdef _MSC_VER
 #pragma warning(disable:4100 4996)
