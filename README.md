@@ -15,7 +15,13 @@ A second approach consists in computing an exact convex decomposition of a surfa
 # Installing the Package
 
 On Windows, go to the ./app directory and run 'cmake -DCMAKE_GENERATOR_PLATFORM=x64 CMakeLists.txt' and then load the solution file
-On Linux, go to the ./app directory and run 'cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_GENERATOR_PLATFORM=x64 CMakeLists.txt' and then run 'cmake --build .' to build the test app
+
+On Linux, use this:
+```bash
+cd app
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
 
 # Documentation
 Click this link to find detailed documentation for how to use the library:
