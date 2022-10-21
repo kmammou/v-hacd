@@ -13,6 +13,9 @@
     <ClCompile Include="D:\github\v-hacd\app\wavefront.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\github\v-hacd\app\SaveUSDA.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="D:\github\v-hacd\app\CMakeLists.txt" />
