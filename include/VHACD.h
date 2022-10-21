@@ -29,7 +29,11 @@
 // ImGui and StbLib and other popular open source libraries.
 
 #    define VHACD_VERSION_MAJOR 4
-#    define VHACD_VERSION_MINOR 0
+#    define VHACD_VERSION_MINOR 1
+
+// Changes for version 4.1
+//
+// Various minor tweaks mostly to the test application and some default values.
 
 // Changes for version 4.0
 //
