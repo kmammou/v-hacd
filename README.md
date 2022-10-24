@@ -56,7 +56,7 @@ Finally you can set the maximum decomposition depth to much higher than the defa
 
 Example: TestVHACD beshon.obj -e 0.01 -d 15 -r 10000000 -r 128
 
-In most cases this may be overkill for your use case but if you have say machined parts with sharp angles, these settings have a better chance of giving a good result.
+Usually this may be overkill for your use case but if you have say machined parts with sharp angles, these settings have a better chance of giving a good result.
 
 Note that setting the maximum decomposition depth to 15 will make the tool run a very long time (possibly multiple minutes) but it will likely give the most precise results.
 
