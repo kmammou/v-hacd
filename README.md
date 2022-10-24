@@ -46,6 +46,14 @@ Going forward version 4.0 and higher are the only versions which will receive te
 
 The earlier versions are now completely deprecated and will not be supported anymore.
 
+# Tuning parameters
+
+The default values are currently designed to give a fast and basic approximation of a shape.
+
+If you want as accurate results as possible and don't care if it takes quite a bit longer you can use a small error threshold (-e 0.01) and a high voxel resolution of ten million (-r 10000000) and a relatively high number of convex hulls say 128 (-h 128)
+
+In most cases this may be overkill for your use case but if you have say machined parts with sharp angles, these settings have a better chance of giving a good result.
+
 # Porting guide
 
 The new version is a single header file. You simply need to define '#define ENABLE_VHACD_IMPLEMENTATION 1' prior to including 'VHACD.h' in *one* CPP file in your project.
