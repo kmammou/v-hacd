@@ -81,9 +81,9 @@ EMSCRIPTEN_BINDINGS(vhacdjs) {
     .property("findBestPlane", &Parameters::m_findBestPlane)
     ;
 
-  class_<JsVHACD>("ConvexHullDecomposition")
+  class_<JsVHACD>("VHACD")
     .constructor<Parameters const&>()
-    .function("compute", &JsVHACD::Compute)
+    .function("compute", &JsVHACD::Compute, allow_raw_pointers())
     .function("dispose", &JsVHACD::Dispose)
     ;
 }
