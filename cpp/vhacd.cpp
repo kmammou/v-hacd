@@ -69,6 +69,7 @@ EMSCRIPTEN_BINDINGS(vhacdjs) {
     ;
 
   class_<Parameters>("Parameters")
+    .constructor()
     .property("maxHulls", &Parameters::m_maxConvexHulls)
     .property("voxelResolution", &Parameters::m_resolution)
     .property("minVolumePercentError", &Parameters::m_minimumVolumePercentErrorAllowed)
@@ -78,5 +79,11 @@ EMSCRIPTEN_BINDINGS(vhacdjs) {
     .property("maxVerticesPerHull", &Parameters::m_maxNumVerticesPerCH)
     .property("minEdgeLength", &Parameters::m_minEdgeLength)
     .property("findBestPlane", &Parameters::m_findBestPlane)
+    ;
+
+  class_<JsVHACD>("ConvexHullDecomposition")
+    .constructor<Parameters const&>()
+    .function("compute", &JsVHACD::Compute)
+    .function("dispose", &JsVHACD::Dispose)
     ;
 }
