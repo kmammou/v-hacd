@@ -9,6 +9,8 @@ using namespace emscripten;
 
 using namespace VHACD;
 
+using Parameters = IVHACD::Parameters;
+
 class JsHull {
 private:
   IVHACD::ConvexHull const& m_hull;
@@ -24,9 +26,9 @@ public:
 class JsVHACD {
 private:
   IVHACD* m_vhacd;
-  IVHACD::Parameters m_parameters;
+  Parameters m_parameters;
 public:
-  JsVHACD(IVHACD::Parameters const& parameters) : m_vhacd(CreateVHACD()), m_parameters(parameters) { }
+  JsVHACD(Parameters const& parameters) : m_vhacd(CreateVHACD()), m_parameters(parameters) { }
 
   ~JsVHACD() {
     m_vhacd->Release();
@@ -56,4 +58,9 @@ EMSCRIPTEN_BINDINGS(vhacdjs) {
     .function("getTriangles", &JsHull::GetTriangles, allow_raw_pointers())
     .property("numPoints", &JsHull::GetNumPoints)
     .property("numTriangles", &JsHull::GetNumTriangles);
+
+  enum_<FillMode>("FillMode")
+    .value("Flood", FillMode::FLOOD_FILL)
+    .value("Surface", FillMode::SURFACE_ONLY)
+    .value("Raycast", FillMode::RAYCAST_FILL);
 }

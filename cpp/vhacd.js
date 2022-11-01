@@ -2604,6 +2604,68 @@ var ASM_CONSTS = {
       });
     }
 
+  function enumReadValueFromPointer(name, shift, signed) {
+      switch (shift) {
+          case 0: return function(pointer) {
+              var heap = signed ? HEAP8 : HEAPU8;
+              return this['fromWireType'](heap[pointer]);
+          };
+          case 1: return function(pointer) {
+              var heap = signed ? HEAP16 : HEAPU16;
+              return this['fromWireType'](heap[pointer >> 1]);
+          };
+          case 2: return function(pointer) {
+              var heap = signed ? HEAP32 : HEAPU32;
+              return this['fromWireType'](heap[pointer >> 2]);
+          };
+          default:
+              throw new TypeError("Unknown integer type: " + name);
+      }
+    }
+  function __embind_register_enum(rawType, name, size, isSigned) {
+      var shift = getShiftFromSize(size);
+      name = readLatin1String(name);
+  
+      function ctor() {}
+      ctor.values = {};
+  
+      registerType(rawType, {
+        name: name,
+        constructor: ctor,
+        'fromWireType': function(c) {
+          return this.constructor.values[c];
+        },
+        'toWireType': function(destructors, c) {
+          return c.value;
+        },
+        'argPackAdvance': 8,
+        'readValueFromPointer': enumReadValueFromPointer(name, shift, isSigned),
+        destructorFunction: null,
+      });
+      exposePublicSymbol(name, ctor);
+    }
+
+  function requireRegisteredType(rawType, humanName) {
+      var impl = registeredTypes[rawType];
+      if (undefined === impl) {
+          throwBindingError(humanName + " has unknown type " + getTypeName(rawType));
+      }
+      return impl;
+    }
+  function __embind_register_enum_value(rawEnumType, name, enumValue) {
+      var enumType = requireRegisteredType(rawEnumType, 'enum');
+      name = readLatin1String(name);
+  
+      var Enum = enumType.constructor;
+  
+      var Value = Object.create(enumType.constructor.prototype, {
+        value: {value: enumValue},
+        constructor: {value: createNamedFunction(enumType.name + '_' + name, function() {})},
+      });
+      Enum.values[enumValue] = Value;
+      Enum[name] = Value;
+    }
+
   function embindRepr(v) {
       if (v === null) {
           return 'null';
@@ -3205,6 +3267,8 @@ var asmLibraryArg = {
   "_embind_register_class_function": __embind_register_class_function,
   "_embind_register_class_property": __embind_register_class_property,
   "_embind_register_emval": __embind_register_emval,
+  "_embind_register_enum": __embind_register_enum,
+  "_embind_register_enum_value": __embind_register_enum_value,
   "_embind_register_float": __embind_register_float,
   "_embind_register_integer": __embind_register_integer,
   "_embind_register_memory_view": __embind_register_memory_view,
@@ -3769,8 +3833,6 @@ var missingLibrarySymbols = [
   'allocate',
   'registerInheritedInstance',
   'unregisterInheritedInstance',
-  'requireRegisteredType',
-  'enumReadValueFromPointer',
   'getStringOrSymbol',
   'craftEmvalAllocator',
   'emval_get_global',
