@@ -1,4 +1,7 @@
 #include <emscripten.h>
+#include <emscripten/bind.h>
+
+using namespace emscripten;
 
 #define ENABLE_VHACD_IMPLEMENTATION 1
 #define VHACD_DISABLE_THREADING 1
@@ -7,10 +10,15 @@
 using namespace VHACD;
 
 class JsHull {
-  double const* m_points;
-  uint32_t m_nPoints;
-  uint32_t const* m_triangles;
-  uint32_t m_nTriangles;
+private:
+  IVHACD::ConvexHull const& m_hull;
+public:
+  explicit JsHull(IVHACD::ConvexHull const& hull) : m_hull(hull) { }
+
+  double const* GetPoints() const { return &(m_hull.m_points[0].mX); }
+  uint32_t GetNumPoints() const { return static_cast<uint32_t>(m_hull.m_points.size()); }
+  uint32_t const* GetTriangles() const { return &(m_hull.m_triangles[0].mI0); }
+  uint32_t GetNumTriangles() const { return static_cast<uint32_t>(m_hull.m_triangles.size()); }
 };
 
 class JsVHACD {
@@ -34,6 +42,18 @@ public:
   // Any space in the output array beyond that required for the produced hulls is left untouched.
   // The pointers in `output` refer to memory owned by the JsVHACD object. They remain valid until Dispose is invoked, at which point they are freed.
   uint32_t Compute(JsHull* output, const double* points, uint32_t nPoints, const uint32_t* triangles, uint32_t nTriangles) {
-    return m_vhacd->Compute(points, nPoints, triangles, nTriangles, m_parameters);
+    if (!m_vhacd->Compute(points, nPoints, triangles, nTriangles, m_parameters))
+      return 0;
+
+    return m_vhacd->GetNConvexHulls();
   }
 };
+
+EMSCRIPTEN_BINDINGS(vhacdjs) {
+  class_<JsHull>("ConvexHull")
+    // These are functions instead of properties because properties can specify raw pointer policy.
+    .function("getPoints", &JsHull::GetPoints, allow_raw_pointers())
+    .function("getTriangles", &JsHull::GetTriangles, allow_raw_pointers())
+    .property("numPoints", &JsHull::GetNumPoints)
+    .property("numTriangles", &JsHull::GetNumTriangles);
+}
