@@ -28,7 +28,9 @@ private:
   IVHACD* m_vhacd;
   Parameters m_parameters;
 public:
-  JsVHACD(Parameters const& parameters) : m_vhacd(CreateVHACD()), m_parameters(parameters) { }
+  JsVHACD(Parameters const& parameters) : m_vhacd(CreateVHACD()), m_parameters(parameters) {
+    m_parameters.m_asyncACD = false;
+  }
 
   ~JsVHACD() {
     m_vhacd->Release();
@@ -57,10 +59,24 @@ EMSCRIPTEN_BINDINGS(vhacdjs) {
     .function("getPoints", &JsHull::GetPoints, allow_raw_pointers())
     .function("getTriangles", &JsHull::GetTriangles, allow_raw_pointers())
     .property("numPoints", &JsHull::GetNumPoints)
-    .property("numTriangles", &JsHull::GetNumTriangles);
+    .property("numTriangles", &JsHull::GetNumTriangles)
+    ;
 
   enum_<FillMode>("FillMode")
     .value("Flood", FillMode::FLOOD_FILL)
     .value("Surface", FillMode::SURFACE_ONLY)
-    .value("Raycast", FillMode::RAYCAST_FILL);
+    .value("Raycast", FillMode::RAYCAST_FILL)
+    ;
+
+  class_<Parameters>("Parameters")
+    .property("maxHulls", &Parameters::m_maxConvexHulls)
+    .property("voxelResolution", &Parameters::m_resolution)
+    .property("minVolumePercentError", &Parameters::m_minimumVolumePercentErrorAllowed)
+    .property("maxRecursionDepth", &Parameters::m_maxRecursionDepth)
+    .property("shrinkWrap", &Parameters::m_shrinkWrap)
+    .property("fillMode", &Parameters::m_fillMode)
+    .property("maxVerticesPerHull", &Parameters::m_maxNumVerticesPerCH)
+    .property("minEdgeLength", &Parameters::m_minEdgeLength)
+    .property("findBestPlane", &Parameters::m_findBestPlane)
+    ;
 }
