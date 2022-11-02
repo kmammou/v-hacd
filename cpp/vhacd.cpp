@@ -13,14 +13,14 @@ using Parameters = IVHACD::Parameters;
 
 class JsHull {
 private:
-  IVHACD::ConvexHull const& m_hull;
+  IVHACD::ConvexHull const* m_hull;
 public:
-  explicit JsHull(IVHACD::ConvexHull const& hull) : m_hull(hull) { }
+  explicit JsHull(IVHACD::ConvexHull const* hull) : m_hull(hull) { }
 
-  double const* GetPoints() const { return &(m_hull.m_points[0].mX); }
-  uint32_t GetNumPoints() const { return static_cast<uint32_t>(m_hull.m_points.size()); }
-  uint32_t const* GetTriangles() const { return &(m_hull.m_triangles[0].mI0); }
-  uint32_t GetNumTriangles() const { return static_cast<uint32_t>(m_hull.m_triangles.size()); }
+  double const* GetPoints() const { return &(m_hull->m_points[0].mX); }
+  uint32_t GetNumPoints() const { return static_cast<uint32_t>(m_hull->m_points.size()); }
+  uint32_t const* GetTriangles() const { return &(m_hull->m_triangles[0].mI0); }
+  uint32_t GetNumTriangles() const { return static_cast<uint32_t>(m_hull->m_triangles.size()); }
 };
 
 class JsVHACD {
@@ -40,16 +40,15 @@ public:
     delete this;
   }
 
-  // Compute convex hulls for the specified mesh, writing the results into `output`.
-  // @param output Buffer to hold the output. It must be large enough to hold the maximum number of convex hulls specified in the Parameters passed to the constructor.
-  // @returns The number of convex hulls actually produced.
-  // Any space in the output array beyond that required for the produced hulls is left untouched.
-  // The pointers in `output` refer to memory owned by the JsVHACD object. They remain valid until Dispose is invoked, at which point they are freed.
-  uint32_t Compute(JsHull* output, const double* points, uint32_t nPoints, const uint32_t* triangles, uint32_t nTriangles) {
-    if (!m_vhacd->Compute(points, nPoints, triangles, nTriangles, m_parameters))
-      return 0;
+  std::vector<JsHull> Compute(const double* points, uint32_t nPoints, const uint32_t* triangles, uint32_t nTriangles) {
+    std::vector<JsHull> hulls;
+    if (m_vhacd->Compute(points, nPoints, triangles, nTriangles, m_parameters)) {
+      uint32_t nHulls = m_vhacd->GetNConvexHulls();
+      for (uint32_t i = 0; i < nHulls; i++)
+        hulls.push_back(JsHull(m_vhacd->GetConvexHull(i)));
+    }
 
-    return m_vhacd->GetNConvexHulls();
+    return hulls;
   }
 };
 
@@ -86,4 +85,6 @@ EMSCRIPTEN_BINDINGS(vhacdjs) {
     .function("compute", &JsVHACD::Compute, allow_raw_pointers())
     .function("dispose", &JsVHACD::Dispose)
     ;
+
+  register_vector<JsHull>("vector<ConvexHull");
 }
