@@ -1,0 +1,32 @@
+{
+  "name": "vhacd-js",
+  "version": "0.0.1",
+  "description": "JavaScript API for V-HACD",
+  "module": "lib/vhacd.js",
+  "typings": "lib/vhacd-js",
+  "license": "BSD 3-Clause License",
+  "repository": {
+    "type" :"git",
+    "url": "https://github.com/pmconne/v-hacd-js"
+  },
+  "scripts": {
+    "build:wasm": "emcc -lembind -o lib/vhacd-wasm.js -sALLOW_MEMORY_GROWTH -sSINGLE_FILE=1 cpp/vhacd.cpp",
+    "build:wasm:optimized": "emcc -lembind -o lib/vhacd-wasm.js -sALLOW_MEMORY_GROWTH -sSINGLE_FILE=1 cpp/vhacd.cpp -Oz"
+  },
+  "keywords": [
+    "convex",
+    "hull",
+    "vhacd",
+    "v-hacd",
+    "mesh",
+    "decomposition"
+  ],
+  "author": {
+    "name": "Paul Connelly",
+    "url": "https://github.com/pmconne"
+  },
+  "devDependencies": {
+  },
+  "dependencies": {
+  }
+}
