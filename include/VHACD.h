@@ -1783,7 +1783,7 @@ void Googol::ToString(char* const string) const
 void Googol::NegateMantissa(std::array<uint64_t, VHACD_GOOGOL_SIZE>& mantissa) const
 {
     uint64_t carrier = 1;
-    for (size_t i = mantissa.size() - 1; i >= 0 && i < mantissa.size(); i--)
+    for (size_t i = mantissa.size() - 1; i < mantissa.size(); i--)
     {
         uint64_t a = ~mantissa[i] + carrier;
         if (a)
@@ -5163,7 +5163,7 @@ void Volume::Voxelize(const std::vector<VHACD::Vertex>& points,
             size_t j = static_cast<size_t>(p[c][1] + double(0.5));
             size_t k = static_cast<size_t>(p[c][2] + double(0.5));
 
-            assert(i < m_dim[0] && i >= 0 && j < m_dim[1] && j >= 0 && k < m_dim[2] && k >= 0);
+            assert(i < m_dim[0] && j < m_dim[1] && k < m_dim[2]);
 
             if (c == 0)
             {
@@ -5350,9 +5350,9 @@ void Volume::SetVoxel(const size_t i,
                       const size_t k,
                       VoxelValue value)
 {
-    assert(i < m_dim[0] || i >= 0);
-    assert(j < m_dim[1] || j >= 0);
-    assert(k < m_dim[2] || k >= 0);
+    assert(i < m_dim[0]);
+    assert(j < m_dim[1]);
+    assert(k < m_dim[2]);
 
     m_data[k + j * m_dim[2] + i * m_dim[1] * m_dim[2]] = value;
 }
@@ -5361,9 +5361,9 @@ VoxelValue& Volume::GetVoxel(const size_t i,
                              const size_t j,
                              const size_t k)
 {
-    assert(i < m_dim[0] || i >= 0);
-    assert(j < m_dim[1] || j >= 0);
-    assert(k < m_dim[2] || k >= 0);
+    assert(i < m_dim[0]);
+    assert(j < m_dim[1]);
+    assert(k < m_dim[2]);
     return m_data[k + j * m_dim[2] + i * m_dim[1] * m_dim[2]];
 }
 
@@ -5371,9 +5371,9 @@ const VoxelValue& Volume::GetVoxel(const size_t i,
                                    const size_t j,
                                    const size_t k) const
 {
-    assert(i < m_dim[0] || i >= 0);
-    assert(j < m_dim[1] || j >= 0);
-    assert(k < m_dim[2] || k >= 0);
+    assert(i < m_dim[0]);
+    assert(j < m_dim[1]);
+    assert(k < m_dim[2]);
     return m_data[k + j * m_dim[2] + i * m_dim[1] * m_dim[2]];
 }
 
@@ -7609,16 +7609,16 @@ void VHACDImpl::PerformConvexDecomposition()
                                 break;
                             }
                             ConvexHull* secondHull = i.second;
-                            CostTask t;
-                            t.m_hullA = combinedHull;
-                            t.m_hullB = secondHull;
-                            t.m_this = this;
-                            if ( DoFastCost(t) )
+                            CostTask ct;
+                            ct.m_hullA = combinedHull;
+                            ct.m_hullB = secondHull;
+                            ct.m_this = this;
+                            if ( DoFastCost(ct) )
                             {
                             }
                             else
                             {
-                                tasks.push_back(std::move(t));
+                                tasks.push_back(std::move(ct));
                             }
                         }
                         m_hulls[combinedHull->m_meshId] = combinedHull;
