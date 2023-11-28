@@ -5695,7 +5695,6 @@ class ThreadPool {
     std::mutex task_mutex;
     std::condition_variable cv;
     bool closed;
-    int count;
 };
 
 ThreadPool::ThreadPool()
@@ -5705,7 +5704,6 @@ ThreadPool::ThreadPool()
 
 ThreadPool::ThreadPool(int worker)
     : closed(false)
-    , count(0)
 {
     workers.reserve(worker);
     for(int i=0; i<worker; i++) 
