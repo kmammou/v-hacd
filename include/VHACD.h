@@ -7485,17 +7485,17 @@ void VHACDImpl::PerformConvexDecomposition()
                 {
                     ConvexHull* chB = hulls[j];
 
-                    CostTask t;
-                    t.m_hullA = chA;
-                    t.m_hullB = chB;
-                    t.m_this = this;
+                    CostTask ct;
+                    ct.m_hullA = chA;
+                    ct.m_hullB = chB;
+                    ct.m_this = this;
 
-                    if ( DoFastCost(t) )
+                    if ( DoFastCost(ct) )
                     {
                     }
                     else
                     {
-                        tasks.push_back(std::move(t));
+                        tasks.push_back(std::move(ct));
                         CostTask* task = &tasks.back();
 #if !VHACD_DISABLE_THREADING
                         if ( m_threadPool )
