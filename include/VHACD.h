@@ -7823,7 +7823,7 @@ IVHACD::ConvexHull* VHACDImpl::ComputeReducedConvexHull(const ConvexHull& ch,
     ShrinkWrap(sourceConvexHull,
                m_AABBTree,
                maxVerts,
-               m_voxelScale * 4,
+               m_voxelScale,
                projectHullVertices);
 
     ConvexHull *ret = new ConvexHull;
