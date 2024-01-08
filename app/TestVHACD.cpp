@@ -30,7 +30,7 @@
 #include <conio.h>
 #endif
 
-// Evaluates if this is true or false, returns true if it 
+// Evaluates if this is true or false, returns true if it
 // could be evaluated. Stores the result into 'value'
 bool getTrueFalse(const char *option,bool &value)
 {
@@ -558,7 +558,7 @@ int main(int argc,const char **argv)
 						fprintf(fph, "mtllib decomp.mtl\n");
 						uint32_t baseIndex = 1;
 						for (uint32_t i=0; i<iface->GetNConvexHulls(); i++)
-						{	
+						{
 							// add an object name for each single convex hull
 							fprintf(fph,"o %s%03d\n", baseName.c_str(), i);
 
@@ -594,7 +594,7 @@ int main(int argc,const char **argv)
 							auto g = (float)colorCycle[colorIdx][1] / 255;
 							auto b = (float)colorCycle[colorIdx][2] / 255;
 							colorIdx = (colorIdx + 1) % colorCycle.size();
-						
+
 							fprintf(fph, "newmtl Material%03d\n", i);
 							fprintf(fph, "Kd %0.6f %0.6f %0.6f\n", r, g, b);
 						}

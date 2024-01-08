@@ -98,7 +98,7 @@ public:
         }
     }
 
-    virtual bool saveMesh(const char *meshName, 
+    virtual bool saveMesh(const char *meshName,
                           const SimpleMesh &mesh,
                           const float meshColor[3]) final
     {
@@ -118,7 +118,7 @@ public:
         delete this;
     }
 
-    bool isValid(void) const 
+    bool isValid(void) const
     {
         return mFph ? true :false;
     }
@@ -181,7 +181,7 @@ public:
         fprintf(fph, "    }\n");
 
 // Ground Plane goes here
-#if 0         
+#if 0
     fprintf(fph,"    def Xform \"GroundPlane\"\n");
     fprintf(fph,"    {\n");
     fprintf(fph,"        quatf xformOp:orient = (1, 0, 0, 0)\n");
@@ -213,8 +213,8 @@ public:
         fprintf(fph, "}\n");
     }
 
-    void writeMesh(const char *meshName, 
-                   const SimpleMesh &mesh, 
+    void writeMesh(const char *meshName,
+                   const SimpleMesh &mesh,
                    const float meshColor[3],
                    FILE *fph)
     {

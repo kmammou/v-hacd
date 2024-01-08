@@ -1,15 +1,14 @@
 /* Copyright (c) 2011 Khaled Mamou (kmamou at gmail dot com)
  All rights reserved.
- 
- 
+
  Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- 
+
  1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- 
+
  2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
- 
+
  3. The names of the contributors may not be used to endorse or promote products derived from this software without specific prior written permission.
- 
+
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #pragma once
@@ -42,7 +41,7 @@
 //      * All Bullet code removed
 //      * All SIMD code removed
 //      * Old plane splitting code removed
-// 
+//
 // * The code is now delivered as a single header file 'VHACD.h' which has both the API
 // * declaration as well as the implementation.  Simply add '#define ENABLE_VHACD_IMPLEMENTATION 1'
 // * to any CPP in your application prior to including 'VHACD.h'. Only do this in one CPP though.
@@ -56,7 +55,7 @@
 // * The old DebugView and test code has all been removed and replaced with a much smaller and
 // * simpler test console application with some test meshes to work with.
 //
-// * The convex hull generation code has changed. The previous version came from Bullet. 
+// * The convex hull generation code has changed. The previous version came from Bullet.
 // * However, the new version is courtesy of Julio Jerez, the author of the Newton
 // * physics engine. His new version is faster and more numerically stable.
 //
@@ -71,9 +70,9 @@
 // * algorithm that is more reliable.
 //
 // * You can now select which 'fill mode' to use. For perfectly closed meshes, the default
-// * behavior using a flood fill generally works fine. However, some meshes have small 
+// * behavior using a flood fill generally works fine. However, some meshes have small
 // * holes in them and therefore the flood fill will fail, treating the mesh as being
-// * hollow. In these cases, you can use the 'raycast' fill option to determine which 
+// * hollow. In these cases, you can use the 'raycast' fill option to determine which
 // * parts of the voxelized mesh are 'inside' versus being 'outside'. Finally, there
 // * are some rare instances where a user might actually want the mesh to be treated as
 // * hollow, in which case you can pass in 'surface' only.
@@ -94,18 +93,18 @@
 // The history of V-HACD:
 //
 // The initial version was written by John W. Ratcliff and was called 'ACD'
-// This version did not perform CSG operations on the source mesh, so if you 
+// This version did not perform CSG operations on the source mesh, so if you
 // recursed too deeply it would produce hollow results.
 //
 // The next version was written by Khaled Mamou and was called 'HACD'
-// In this version Khaled tried to perform a CSG operation on the source 
+// In this version Khaled tried to perform a CSG operation on the source
 // mesh to produce more robust results. However, Khaled learned that the
 // CSG library he was using had licensing issues so he started work on the
 // next version.
 //
 // The next version was called 'V-HACD' because Khaled made the observation
 // that plane splitting would be far easier to implement working in voxel space.
-// 
+//
 // V-HACD has been integrated into UE4, Blender, and a number of other projects.
 // This new release, version4, is a significant refactor of the code to fix
 // some bugs, improve performance, and to make the codebase easier to maintain
@@ -282,14 +281,14 @@ struct BoundsAABB
 
 /**
 * This enumeration determines how the voxels as filled to create a solid
-* object. The default should be 'FLOOD_FILL' which generally works fine 
+* object. The default should be 'FLOOD_FILL' which generally works fine
 * for closed meshes. However, if the mesh is not watertight, then using
-* RAYCAST_FILL may be preferable as it will determine if a voxel is part 
+* RAYCAST_FILL may be preferable as it will determine if a voxel is part
 * of the interior of the source mesh by raycasting around it.
-* 
-* Finally, there are some cases where you might actually want a convex 
+*
+* Finally, there are some cases where you might actually want a convex
 * decomposition to treat the source mesh as being hollow. If that is the
-* case you can pass in 'SURFACE_ONLY' and then the convex decomposition 
+* case you can pass in 'SURFACE_ONLY' and then the convex decomposition
 * will converge only onto the 'skin' of the surface mesh.
 */
 enum class FillMode
@@ -315,7 +314,7 @@ public:
 
         /**
         * Notifies the application of the current state of the convex decomposition operation
-        * 
+        *
         * @param overallProgress : Total progress from 0-100%
         * @param stageProgress : Progress of the current stage 0-100%
         * @param stage : A text description of the current stage we are in
@@ -359,7 +358,7 @@ public:
     };
 
     /**
-    * A simple class that represents a convex hull as a triangle mesh with 
+    * A simple class that represents a convex hull as a triangle mesh with
     * double precision vertices. Polygons are not currently provided.
     */
     class ConvexHull
@@ -403,10 +402,10 @@ public:
 
     /**
     * Compute a convex decomposition of a triangle mesh using float vertices and the provided user parameters.
-    * 
+    *
     * @param points : The vertices of the source mesh as floats in the form of X1,Y1,Z1,  X2,Y2,Z2,.. etc.
     * @param countPoints : The number of vertices in the source mesh.
-    * @param triangles : The indices of triangles in the source mesh in the form of I1,I2,I3, .... 
+    * @param triangles : The indices of triangles in the source mesh in the form of I1,I2,I3, ....
     * @param countTriangles : The number of triangles in the source mesh
     * @param params : The convex decomposition parameters to apply
     * @return : Returns true if the convex decomposition operation can be started
@@ -419,10 +418,10 @@ public:
 
     /**
     * Compute a convex decomposition of a triangle mesh using double vertices and the provided user parameters.
-    * 
+    *
     * @param points : The vertices of the source mesh as floats in the form of X1,Y1,Z1,  X2,Y2,Z2,.. etc.
     * @param countPoints : The number of vertices in the source mesh.
-    * @param triangles : The indices of triangles in the source mesh in the form of I1,I2,I3, .... 
+    * @param triangles : The indices of triangles in the source mesh in the form of I1,I2,I3, ....
     * @param countTriangles : The number of triangles in the source mesh
     * @param params : The convex decomposition parameters to apply
     * @return : Returns true if the convex decomposition operation can be started
@@ -435,14 +434,14 @@ public:
 
     /**
     * Returns the number of convex hulls that were produced.
-    * 
+    *
     * @return : Returns the number of convex hulls produced, or zero if it failed or was canceled
     */
     virtual uint32_t GetNConvexHulls() const = 0;
 
     /**
     * Retrieves one of the convex hulls in the solution set
-    * 
+    *
     * @param index : Which convex hull to retrieve
     * @param ch : The convex hull descriptor to return
     * @return : Returns true if the convex hull exists and could be retrieved
@@ -478,9 +477,9 @@ public:
     * This method will return which convex hull is closest to the source position.
     * You can use this method to figure out, for example, which vertices in the original
     * source mesh are best associated with which convex hull.
-    * 
+    *
     * @param pos : The input 3d position to test against
-    * 
+    *
     * @return : Returns which convex hull this position is closest to.
     */
     virtual uint32_t findNearestConvexHull(const double pos[3],
@@ -5706,17 +5705,17 @@ ThreadPool::ThreadPool(int worker)
     : closed(false)
 {
     workers.reserve(worker);
-    for(int i=0; i<worker; i++) 
+    for(int i=0; i<worker; i++)
     {
         workers.emplace_back(
             [this]
             {
                 std::unique_lock<std::mutex> lock(this->task_mutex);
-                while(true) 
+                while(true)
                 {
-                    while (this->tasks.empty()) 
+                    while (this->tasks.empty())
                     {
-                        if (this->closed) 
+                        if (this->closed)
                         {
                             return;
                         }
@@ -5754,10 +5753,10 @@ auto ThreadPool::enqueue(F&& f, Args&& ... args)
 
     {
         std::unique_lock<std::mutex> lock(task_mutex);
-        if (!closed) 
+        if (!closed)
         {
             tasks.emplace_back([task]
-            { 
+            {
                 (*task)();
             });
             cv.notify_one();
@@ -5773,7 +5772,7 @@ ThreadPool::~ThreadPool() {
         closed = true;
     }
     cv.notify_all();
-    for (auto && worker : workers) 
+    for (auto && worker : workers)
     {
         worker.join();
     }
@@ -5841,14 +5840,14 @@ public:
 
     void BuildRaycastMesh();
 
-    // We now compute the convex hull relative to a triangle mesh generated 
+    // We now compute the convex hull relative to a triangle mesh generated
     // from the voxels
     void ComputeConvexHull();
 
     // Returns true if this convex hull should be considered done
     bool IsComplete();
 
-    
+
     // Convert a voxel position into it's correct double precision location
     VHACD::Vect3 GetPoint(const int32_t x,
                                  const int32_t y,
@@ -5869,14 +5868,14 @@ public:
     // for each voxel, not just the center point. If you don't do this, then the hulls don't fit the
     // mesh accurately enough.
     // The second reason we convert it into a triangle mesh is so that we can do raycasting against it
-    // to search for the best splitting plane fairly quickly. That algorithm will be discussed in the 
+    // to search for the best splitting plane fairly quickly. That algorithm will be discussed in the
     // method which computes the best splitting plane.
     void BuildVoxelMesh();
 
     // Convert a single voxel position into an actual 3d box mesh comprised
     // of 12 triangles
     void AddVoxelBox(const Voxel &v);
-    
+
     // Add the triangle represented by these 3 indices into the 'box' set of vertices
     // to the output mesh
     void AddTri(const std::array<VHACD::Vector3<uint32_t>, 8>& box,
@@ -5890,7 +5889,7 @@ public:
                      const VHACD::Vector3<uint32_t>& p2,
                      const VHACD::Vector3<uint32_t>& p3);
 
-    // When computing the split plane, we start by simply 
+    // When computing the split plane, we start by simply
     // taking the midpoint of the longest side. However,
     // we can also search the surface and look for the greatest
     // spot of concavity and use that as the split location.
@@ -6822,9 +6821,9 @@ public:
     * This method will return which convex hull is closest to the source position.
     * You can use this method to figure out, for example, which vertices in the original
     * source mesh are best associated with which convex hull.
-    * 
+    *
     * @param pos : The input 3d position to test against
-    * 
+    *
     * @return : Returns which convex hull this position is closest to.
     */
     uint32_t findNearestConvexHull(const double pos[3],
@@ -6841,7 +6840,7 @@ public:
 
     // This copies the input mesh while scaling the input positions
     // to fit into a normalized unit cube. It also re-indexes all of the
-    // vertex positions in case they weren't clean coming in. 
+    // vertex positions in case they weren't clean coming in.
     void CopyInputMesh(const std::vector<VHACD::Vertex>& points,
                        const std::vector<VHACD::Triangle>& triangles);
 
