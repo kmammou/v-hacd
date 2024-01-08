@@ -47,7 +47,7 @@
 */
 
 #ifdef _WIN32
-#	define strcasecmp _stricmp 
+#	define strcasecmp _stricmp
 #endif
 
 #pragma warning(disable:4996)
@@ -321,7 +321,7 @@ void WavefrontObj::saveCPP(const char *fname)
 void WavefrontObj::deepCopyScale(WavefrontObj &dest,
 								float scaleFactor,
 								bool centerMesh,
-								uint32_t tessellateInputMesh) 
+								uint32_t tessellateInputMesh)
 {
 	dest.releaseMesh();
 	dest.mVertexCount = mVertexCount;

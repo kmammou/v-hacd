@@ -50,5 +50,3 @@ public:
     const char *mAction{nullptr};
     Timer       mTimer;
 };
-
-
