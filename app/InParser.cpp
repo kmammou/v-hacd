@@ -25,8 +25,18 @@ namespace IN_PARSER
 		FILE *fph = fopen(fname, "rb");
 		if (fph)
 		{
-			fseek(fph, 0L, SEEK_END);
+			if (fseek(fph, 0L, SEEK_END) != 0) {
+				perror("Error seeking to end of file");
+				fclose(fph);
+				return; // Exit early, as the operation cannot proceed.
+			}
 			mLen = ftell(fph);
+			if (mLen == -1)
+			{
+				perror("ftell failed");
+				fclose(fph);
+				return; // Exit early as the file cannot be processed
+			}
 			fseek(fph, 0L, SEEK_SET);
 			if (mLen)
 			{
