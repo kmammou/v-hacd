@@ -203,12 +203,12 @@ int main(int argc,const char **argv)
 					int32_t v = atoi(value);
 					if ( v < 1 || v > 100000 )
 					{
-						printf("Invalid maximum number of convex hulls. Valid range is 1-100000\n");
+						printf("Invalid maximum number of convex hulls. Valid range is 1-100,000 got %d\n", v);
 					}
 					else
 					{
 						p.m_maxConvexHulls = uint32_t(v);
-						printf("Maximum convex hulls set to:%d\n", p.m_maxConvexHulls);
+						printf("Maximum convex hulls set to: %d\n", p.m_maxConvexHulls);
 					}
 				}
 				else if ( strcmp(option,"-r") == 0 )
@@ -216,12 +216,12 @@ int main(int argc,const char **argv)
 					int32_t r = atoi(value);
 					if ( r >= 10000 && r <= 10000000 )
 					{
-						printf("Voxel Resolution set to:%d\n", r);
+						printf("Voxel Resolution set to: %d\n", r);
 						p.m_resolution = uint32_t(r);
 					}
 					else
 					{
-						printf("Invalid voxel resolution must be between 10,000 and 10,000,000\n");
+						printf("Invalid voxel resolution must be between 10,000 and 10,000,000 got %d\n", r);
 					}
 				}
 				else if ( strcmp(option,"-e") == 0 )
@@ -229,12 +229,12 @@ int main(int argc,const char **argv)
 					double e = atof(value);
 					if ( e < 0.001 || e > 10 )
 					{
-						printf("Invalid error percentage. Valid values are 0.001 to 10\n");
+						printf("Invalid error percentage. Valid values are 0.001 to 10, got %f%%\n", e);
 					}
 					else
 					{
 						p.m_minimumVolumePercentErrorAllowed = e;
-						printf("Minimum volume error allowed set to:%0.2f%%\n", p.m_minimumVolumePercentErrorAllowed);
+						printf("Minimum volume error allowed set to: %0.2f%%\n", p.m_minimumVolumePercentErrorAllowed);
 					}
 				}
 				else if ( strcmp(option,"-o") == 0 )
@@ -264,12 +264,12 @@ int main(int argc,const char **argv)
 					int32_t r = atoi(value);
 					if ( r >= 2 && r <= 64 )
 					{
-						printf("Maximum recursion depth set to:%d\n", r);
+						printf("Maximum recursion depth set to: %d\n", r);
 						p.m_maxRecursionDepth = uint32_t(r);
 					}
 					else
 					{
-						printf("Invalid maximum recursion depth, must be between 2 and 64\n");
+						printf("Invalid maximum recursion depth, must be between 2 and 64, got %d\n", r);
 					}
 				}
 				else if ( strcmp(option,"-s") == 0 )
@@ -328,12 +328,12 @@ int main(int argc,const char **argv)
 					int32_t r = atoi(value);
 					if ( r >= 8 && r <= 2048 )
 					{
-						printf("Maximum hull vertices set to:%d\n", r);
+						printf("Maximum hull vertices set to: %d\n", r);
 						p.m_maxNumVerticesPerCH = uint32_t(r);
 					}
 					else
 					{
-						printf("Invalid maximum hull vertices, must be between 8 and 20484\n");
+						printf("Invalid maximum hull vertices, must be between 8 and 20484, got %d\n", r);
 					}
 				}
 				else if ( strcmp(option,"-a") == 0 )
@@ -369,12 +369,12 @@ int main(int argc,const char **argv)
 					int32_t r = atoi(value);
 					if ( r >= 1 && r <= 32 )
 					{
-						printf("Minimum voxel edge length set to:%d\n", r);
+						printf("Minimum voxel edge length set to: %d\n", r);
 						p.m_minEdgeLength = uint32_t(r);
 					}
 					else
 					{
-						printf("Invalid minimum voxel edge length, must be between 1 and 32\n");
+						printf("Invalid minimum voxel edge length, must be between 1 and 32, got %d\n", r);
 					}
 				}
 			}
