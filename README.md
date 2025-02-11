@@ -23,11 +23,6 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-# Documentation
-Click this link to find detailed documentation for how to use the library:
-
-(https://docs.google.com/presentation/d/1OZ4mtZYrGEC8qffqb8F7Le2xzufiqvaPpRbLHKKgTIM/edit?usp=sharing)
-
 # Announcing Version 4.0 release!!
 
 Version 4.0 of V-HACD was officially released on April 7, 2022
