@@ -41,6 +41,20 @@ Going forward version 4.0 and higher are the only versions which will receive te
 
 The earlier versions are now completely deprecated and will not be supported anymore.
 
+# IMPORTANT NOTE
+
+This version no longer attempts to find the 'minimum solution' like the old one did!
+
+Give it a simple shape, and it will still produce many convex hulls.
+
+The design of this version is that you tell it how much detail, in the form of how many convex hulls, that you need.
+
+If you want only 4 convex hulls, then specify that.
+
+The default value is 32 convex hulls, which is often way too high. Just adjust the number to match your design goal.
+
+Based on your use case, simply specify the number of hulls that makes sense to use.
+
 # Tuning parameters
 
 The default values are currently designed to give a fast and basic approximation of a shape.
