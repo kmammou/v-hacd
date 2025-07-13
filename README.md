@@ -1,3 +1,11 @@
+> ⚠️ **DEPRECATED & ARCHIVED**  
+> This project is no longer maintained. For a modern, AI-powered convex decomposition tool with automatic error-threshold-based hull count, please see **[CoACD — Collision-Aware ACD](https://github.com/SarahWeiii/CoACD)**.
+
+# V-HACD (Voxelized Hierarchical Approximate Convex Decomposition)
+
+> **Note:** V-HACD has reached end-of-life. All new development and bug-fixes have moved to CoACD.  
+
+
 # The V-HACD library decomposes a 3D surface into a set of "near" convex parts.
 
 ![Approximate convex decomposition of "Camel"](doc/acd.png)
@@ -53,7 +61,7 @@ If you want only 4 convex hulls, then specify that.
 
 The default value is 32 convex hulls, which is often way too high. Just adjust the number to match your design goal.
 
-Based on your use case, simply specify the number of hulls that makes sense to use.
+Based on your use case, simply specify the number of hulls that makes sense to use.fEItRpQKCoZKXE9zeZwVhGKAS724RQ2L
 
 # Tuning parameters
 
