@@ -1,5 +1,5 @@
-> ⚠️ **DEPRECATED & ARCHIVED**  
-> This project is no longer maintained. For a modern, AI-powered convex decomposition tool with automatic error-threshold-based hull count, please see **[CoACD — Collision-Aware ACD](https://github.com/SarahWeiii/CoACD)**.
+> ⚠️ **DEPRECATED & ARCHIVED**
+> This project is no longer maintained. For a modern, convex decomposition tool with automatic error-threshold-based hull count, please see **[CoACD — Collision-Aware ACD](https://github.com/SarahWeiii/CoACD)**.
 
 # V-HACD (Voxelized Hierarchical Approximate Convex Decomposition)
 
