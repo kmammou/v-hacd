@@ -61,7 +61,7 @@ If you want only 4 convex hulls, then specify that.
 
 The default value is 32 convex hulls, which is often way too high. Just adjust the number to match your design goal.
 
-Based on your use case, simply specify the number of hulls that makes sense to use.fEItRpQKCoZKXE9zeZwVhGKAS724RQ2L
+Based on your use case, simply specify the number of hulls that makes sense to use.
 
 # Tuning parameters
 
